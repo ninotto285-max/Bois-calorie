@@ -1,413 +1,287 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pinguino Pizzaiolo Intelligente v3.0 🍕</title>
-    <style>
-        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background-color: #f0f2f5; margin: 0; padding: 0; min-height: 100vh; }
-        
-        /* PULSANTE DI APERTURA CHAT (BOTTONE IN BASSO A DESTRA) */
-        .chat-launcher {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            width: 60px;
-            height: 60px;
-            background: #ff4757;
-            color: white;
-            border-radius: 50%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 1.8rem;
-            cursor: pointer;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-            transition: transform 0.2s, background 0.2s;
-            z-index: 1000;
-        }
-        .chat-launcher:hover { transform: scale(1.05); background: #e03d4b; }
-
-        /* FINESTRA DI CHAT (NASCOSTA DI DEFAULT) */
-        .chat-container { 
-            position: fixed;
-            bottom: 90px;
-            right: 20px;
-            width: 380px; 
-            max-width: calc(100vw - 40px);
-            height: 500px; 
-            background: white; 
-            border-radius: 15px; 
-            box-shadow: 0 5px 25px rgba(0,0,0,0.15); 
-            overflow: hidden; 
-            display: flex; 
-            flex-direction: column; 
-            z-index: 1000;
-            opacity: 0;
-            transform: translateY(20px) scale(0.95);
-            pointer-events: none;
-            transition: all 0.3s ease;
-        }
-
-        /* CLASSE PER MOSTRARE LA CHAT */
-        .chat-container.open {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-            pointer-events: auto;
-        }
-
-        .chat-header { background: #ff4757; color: white; padding: 15px; text-align: center; font-size: 1.1rem; font-weight: bold; position: relative; }
-        /* Pulsante per chiudere la chat dall'header */
-        .close-chat { position: absolute; right: 15px; top: 15px; cursor: pointer; font-size: 1.1rem; opacity: 0.8; }
-        .close-chat:hover { opacity: 1; }
-
-        .chat-box { flex: 1; padding: 15px; overflow-y: auto; background: #f8f9fa; display: flex; flex-direction: column; gap: 15px; }
-        .message { max-width: 85%; padding: 10px 14px; border-radius: 15px; line-height: 1.4; font-size: 0.95rem; }
-        .user-message { background: #e3f2fd; color: #0d47a1; align-self: flex-end; border-bottom-right-radius: 2px; }
-        .bot-message { background: white; color: #333; align-self: flex-start; border-bottom-left-radius: 2px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border-left: 4px solid #ff4757; white-space: pre-line; }
-        
-        .input-area { display: flex; padding: 12px; background: white; border-top: 1px solid #edeec4; gap: 8px; }
-        input { flex: 1; padding: 10px 15px; border: 1px solid #ccc; border-radius: 25px; outline: none; font-size: 0.95rem; transition: 0.2s; }
-        input:focus { border-color: #ff4757; }
-        button { background: #ff4757; color: white; border: none; padding: 0 15px; border-radius: 25px; cursor: pointer; font-weight: bold; font-size: 0.95rem; transition: 0.2s; }
-        button:hover { background: #e03d4b; }
-    </style>
-</head>
-<body>
-
-<div class="chat-launcher" id="chatLauncher" onclick="toggleChat()">🐧</div>
-
-<div class="chat-container" id="chatContainer">
-    <div class="chat-header">
-        🐧 Pinguino Pizzaiolo Bot v3.0
-        <span class="close-chat" onclick="toggleChat()">✖</span>
-    </div>
-    <div class="chat-box" id="chatBox">
-        <div class="message bot-message">Ciao! Sono il Pinguino Pizzaiolo. Chiedimi pure i prezzi o le calorie delle pizze, modificane i formati (Baby, Battuta) o crea le tue combinazioni di ingredienti preferite! 🍕</div>
-    </div>
-    <div class="input-area">
-        <input type="text" id="userInput" placeholder="Es: una titti formato battuta no crudo..." onkeypress="handleKeyPress(event)">
-        <button onclick="inviaMessaggio()">Invia</button>
-    </div>
-</div>
-
-<script>
-// =========================================================================
-// FUNZIONI DI APERTURA / CHIUSURA INTERFACCIA
-// =========================================================================
-function toggleChat() {
-    const container = document.getElementById('chatContainer');
-    container.classList.toggle('open');
-}
-
-// =========================================================================
-// 1. TRADUZIONI MULTILINGUA (IT - EN - FR - ES - ZH)
-// =========================================================================
-const txt = {
-  it: {
-    full: "La pizza **{N}** costa **{P}€** e ha **{K}** 🍕\nIngredienti: {I}.",
-    costa: "La pizza **{N}** costa **{P}€** 💰",
-    kcal: "La pizza **{N}** ha circa **{K}** 🔥",
-    custom: "La tua pizza personalizzata (**{N}**) viene **{P}€** 🐧\nCalorie stimate: *{K}*",
-    notUnderstood: "Mmh, non ho capito quale pizza o ingrediente desideri. Prova a scriverlo in un altro modo! 🐧"
-  },
-  en: {
-    full: "The **{N}** pizza costs **{P}€** and has **{K}** 🍕\nIngredients: {I}.",
-    costa: "The **{N}** pizza costs **{P}€** 💰",
-    kcal: "The **{N}** pizza has around **{K}** 🔥",
-    custom: "Your customized pizza (**{N}**) is **{P}€** 🐧\nEstimated calories: *{K}*",
-    notUnderstood: "Mmh, I didn't quite catch that. Which pizza or ingredients would you like? 🐧"
-  },
-  fr: {
-    full: "La pizza **{N}** coûte **{P}€** et contient **{K}** 🍕\nIngrédients: {I}.",
-    costa: "La pizza **{N}** coûte **{P}€** 💰",
-    kcal: "La pizza **{N}** contient environ **{K}** 🔥",
-    custom: "Votre pizza personnalisée (**{N}**) est à **{P}€** 🐧\nCalories estimées: *{K}*",
-    notUnderstood: "Mmh, je n'ai pas bien compris. Quelle pizza ou quels ingrédients souhaitez-vous? 🐧"
-  },
-  es: {
-    full: "La pizza **{N}** cuesta **{P}€** y tiene **{K}** 🍕\nIngredientes: {I}.",
-    costa: "La pizza **{N}** cuesta **{P}€** 💰",
-    kcal: "La pizza **{N}** tiene aproximadamente **{K}** 🔥",
-    custom: "Tu pizza personalizada (**{N}**) cuesta **{P}€** 🐧\nCalorías estimadas: *{K}*",
-    notUnderstood: "Mmh, no te entendí bien. ¿Qué pizza o ingredientes deseas? 🐧"
-  },
-  zh: {
-    full: "**{N}** 披萨价格为 **{P}€**，热量为 **{K}** 🍕\n配料: {I}。",
-    costa: "**{N}** 披萨价格为 **{P}€** 💰",
-    kcal: "**{N}** 披萨热量大约为 **{K}** 🔥",
-    custom: "您的自选披萨 (**{N}**) 价格为 **{P}€** 🐧\n估计热量: *{K}*",
-    notUnderstood: "嗯… 我没太听懂。请问您想要哪种披萨或配料？🐧"
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BoisPizza — Pinguino</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  #bois-widget {
+    --red: #c0392b; --orange: #e67e22; --cream: #fdf6ec; --cream2: #faebd7;
+    --text: #3d1f0f; --muted: #9e7a5a; --radius: 20px;
+    --shadow: 0 8px 40px rgba(192,57,43,0.18);
+    font-family: 'Nunito', sans-serif;
+    position: fixed; bottom: 24px; right: 24px; z-index: 99999;
   }
+  #bois-toggle {
+    width: 64px; height: 64px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--red), var(--orange));
+    border: none; cursor: pointer; display: flex; align-items: center;
+    justify-content: center; font-size: 28px; box-shadow: var(--shadow);
+    transition: transform 0.2s; position: relative;
+  }
+  #bois-toggle:hover { transform: scale(1.08); }
+  #bois-toggle .notif {
+    position: absolute; top: -2px; right: -2px; width: 18px; height: 18px;
+    background: #27ae60; border-radius: 50%; border: 2px solid white;
+    animation: pulse-green 2s infinite;
+  }
+  @keyframes pulse-green { 0%,100%{transform:scale(1)} 50%{transform:scale(1.2)} }
+  #bois-panel {
+    position: absolute; bottom: 76px; right: 0; width: 360px; height: 530px;
+    background: var(--cream); border-radius: var(--radius); box-shadow: var(--shadow);
+    display: flex; flex-direction: column; overflow: hidden;
+    transform: scale(0.8) translateY(20px); opacity: 0; pointer-events: none;
+    transition: all 0.25s cubic-bezier(0.34,1.56,0.64,1); transform-origin: bottom right;
+  }
+  #bois-panel.open { transform: scale(1) translateY(0); opacity: 1; pointer-events: all; }
+  .bp-header {
+    background: linear-gradient(135deg, var(--red), var(--orange));
+    padding: 14px 16px; display: flex; align-items: center; gap: 10px; flex-shrink: 0;
+  }
+  .bp-avatar { width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0; }
+  .bp-header-info { flex:1; }
+  .bp-header-info h3 { font-family:'Playfair Display',serif;color:white;font-size:1rem;line-height:1.2; }
+  .bp-header-info p { color:rgba(255,255,255,0.8);font-size:0.7rem;margin-top:1px; }
+  .bp-close { background:rgba(255,255,255,0.2);border:none;border-radius:50%;width:28px;height:28px;color:white;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center; }
+  #bp-messages { flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;scroll-behavior:smooth; }
+  #bp-messages::-webkit-scrollbar{width:3px} #bp-messages::-webkit-scrollbar-thumb{background:rgba(192,57,43,0.2);border-radius:2px}
+  .bp-msg { display:flex;gap:8px;animation:popIn 0.3s ease both;max-width:92%; }
+  @keyframes popIn { from{opacity:0;transform:translateY(8px) scale(0.95)} to{opacity:1;transform:translateY(0) scale(1)} }
+  .bp-msg.user { align-self:flex-end;flex-direction:row-reverse; }
+  .bp-msg-av { width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--red),var(--orange));display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;margin-top:2px; }
+  .bp-msg.user .bp-msg-av { background:var(--cream2);border:1px solid rgba(192,57,43,0.2); }
+  .bp-bubble { padding:9px 13px;border-radius:16px;font-size:0.83rem;line-height:1.6; }
+  .bp-msg.bot .bp-bubble { background:white;border:1px solid rgba(192,57,43,0.1);border-radius:4px 16px 16px 16px;color:var(--text);box-shadow:0 2px 8px rgba(0,0,0,0.05); }
+  .bp-msg.user .bp-bubble { background:linear-gradient(135deg,var(--red),var(--orange));color:white;border-radius:16px 4px 16px 16px; }
+  .cal-box { display:inline-block;background:linear-gradient(135deg,#e74c3c,#e67e22);color:white;border-radius:8px;padding:2px 7px;font-weight:700;font-size:0.88rem; }
+  .bp-typing{display:flex;gap:4px;align-items:center;height:16px}
+  .bp-typing span{width:6px;height:6px;border-radius:50%;background:var(--red);animation:bounce 1.2s ease infinite;opacity:0.5}
+  .bp-typing span:nth-child(2){animation-delay:0.2s}.bp-typing span:nth-child(3){animation-delay:0.4s}
+  @keyframes bounce{0%,80%,100%{transform:translateY(0);opacity:0.4}40%{transform:translateY(-6px);opacity:1}}
+  .bp-chips{display:flex;flex-wrap:wrap;gap:6px;padding:0 14px 10px;flex-shrink:0}
+  .bp-chip{background:white;border:1px solid rgba(192,57,43,0.25);color:var(--red);border-radius:20px;padding:4px 10px;font-size:0.72rem;font-family:'Nunito',sans-serif;font-weight:600;cursor:pointer;transition:all 0.18s;white-space:nowrap}
+  .bp-chip:hover{background:var(--red);color:white}
+  .bp-input-row{display:flex;gap:8px;padding:10px 14px 14px;border-top:1px solid rgba(192,57,43,0.1);flex-shrink:0;background:white}
+  #bp-input{flex:1;border:1.5px solid rgba(192,57,43,0.2);border-radius:12px;padding:8px 12px;font-family:'Nunito',sans-serif;font-size:0.82rem;color:var(--text);outline:none;background:var(--cream);transition:border-color 0.2s}
+  #bp-input:focus{border-color:var(--red)} #bp-input::placeholder{color:var(--muted)}
+  #bp-send{width:38px;height:38px;border-radius:11px;background:linear-gradient(135deg,var(--red),var(--orange));border:none;color:white;font-size:16px;cursor:pointer;transition:all 0.18s;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  #bp-send:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(192,57,43,0.3)} #bp-send:disabled{opacity:0.4;cursor:not-allowed;transform:none}
+  .bp-footer{text-align:center;font-size:0.6rem;color:var(--muted);padding:4px 0 8px;background:white}
+  .bp-footer a{color:var(--red);text-decoration:none}
+  .order-btns{display:flex;flex-direction:column;gap:8px}
+  .order-btns a{display:flex;align-items:center;gap:8px;border-radius:10px;padding:8px 12px;text-decoration:none;font-weight:700;font-size:0.82rem;color:white}
+  .btn-wa{background:linear-gradient(135deg,#25d366,#128c7e)} .btn-tel{background:linear-gradient(135deg,var(--red),var(--orange))}
+  @media(max-width:420px){#bois-panel{width:calc(100vw - 20px);right:-10px}}
+</style>
+</head>
+<body style="background:transparent;margin:0;padding:0;overflow:hidden;">
+<div id="bois-widget">
+  <button id="bois-toggle" onclick="togglePanel()">🍕<div class="notif"></div></button>
+  <div id="bois-panel">
+    <div class="bp-header">
+      <div class="bp-avatar">🐧</div>
+      <div class="bp-header-info">
+        <h3>BoisPizza — Pinguino</h3>
+        <p>Calorie, menù e ordini!</p>
+      </div>
+      <button class="bp-close" onclick="togglePanel()">✕</button>
+    </div>
+    <div id="bp-messages"></div>
+    <div class="bp-chips">
+      <span class="bp-chip" onclick="quickSend('Margherita')">🍕 Margherita</span>
+      <span class="bp-chip" onclick="quickSend('Orari')">🕐 Orari</span>
+      <span class="bp-chip" onclick="quickSend('Pizza leggera')">🥗 Leggera</span>
+      <span class="bp-chip" onclick="quickSend('Fritti')">🍟 Fritti</span>
+      <span class="bp-chip" onclick="quickSend('Ordina')">📞 Ordina</span>
+    </div>
+    <div class="bp-input-row">
+      <input type="text" id="bp-input" placeholder="Scrivi qui..." onkeydown="if(event.key==='Enter') bpSend()" />
+      <button id="bp-send" onclick="bpSend()">➤</button>
+    </div>
+    <div class="bp-footer">Powered by <a href="https://www.boispizza.it" target="_blank">BoisPizza</a> 🍕</div>
+  </div>
+</div>
+<script>
+const GROQ_KEY = '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';
+const WA = 'https://wa.me/393405327257';
+const TEL = 'tel:+390422670631';
+
+const MENU_CALORIE = {
+  'marinara':820,'margherita':1125,'diavola':1070,'salsiccia':1190,'viennese':1180,
+  'pugliese':1090,'prosciutto e funghi':1190,'capricciosa':1240,'tonno e cipolla':1200,
+  'bufala':1000,'bufalina':1020,'quattro stagioni':1380,'romana':1060,'siciliana':1270,
+  'patatosa':1320,'parma':1180,'speck':1210,'montello':1330,'valtellina':1310,
+  'verdure':1200,'estate':950,'norma':1220,'parmigiana':1150,'mike':1470,
+  'ciccia e friarielli':1160,'formaggi':1500,'paolo':1400,'sfiziosa':1470,'ava':1285,
+  'pps':1300,'silvia':1200,'wilma':1260,'wanda':1280,'leone':1380,'giggino':1200,
+  'titti':1370,'boscaiola':1585,'tartufata':1340,'ufo':1650,'pazza':1600,
+  'repubblica':1210,'capricciosa sbagliata':1380,'amatriciana':980,'onta':1100,'cri':1400,
+  'bois':1820,'pimpa':1480,'calzone classico':1120,'calzone piccante':1290,
+  'calzone vegeta':950,'calzone poro mauretto':1350,'calzone ade':1300
+};
+const MENU_PREZZI = {
+  'marinara':5,'margherita':5,'diavola':8,'salsiccia':8,'viennese':7.5,
+  'pugliese':7,'prosciutto e funghi':8,'capricciosa':9,'tonno e cipolla':9,
+  'bufala':9,'bufalina':10,'quattro stagioni':9,'romana':8,'siciliana':9,
+  'patatosa':8,'parma':10,'speck':9.5,'montello':10.5,'valtellina':10.5,
+  'verdure':8.5,'estate':8,'norma':9,'parmigiana':8.5,'mike':10.5,
+  'ciccia e friarielli':9,'formaggi':9,'paolo':10,'sfiziosa':10,'ava':12,
+  'pps':11,'silvia':12,'wilma':8.5,'wanda':9,'leone':12,'giggino':10,
+  'titti':11.5,'boscaiola':11,'tartufata':11,'ufo':12,'pazza':11.5,
+  'repubblica':11.5,'capricciosa sbagliata':12,'amatriciana':10,'onta':10,'cri':14,
+  'bois':11,'pimpa':11,'calzone classico':9,'calzone piccante':9,
+  'calzone vegeta':9,'calzone poro mauretto':12,'calzone ade':13
 };
 
-// =========================================================================
-// 2. DIZIONARIO INGREDIENTI INTERNAZIONALE (5 LINGUE)
-// =========================================================================
-const DIZIONARIO_INGREDIENTI = {
-  'pomodoro': 'pomod', 'tomato': 'pomod', 'tomate': 'pomod', '番茄': 'pomod', '西红柿': 'pomod', 'salsa': 'pomod',
-  'mozzarella': 'mozz', 'cheese': 'mozz', 'fromage': 'mozz', 'queso': 'mozz', '奶酪': 'mozz', '马苏里拉': 'mozz',
-  'bufala': 'bufala', 'buffalo': 'bufala', 'buffle': 'bufala', '水牛奶酪': 'bufala',
-  'salamino': 'salmin', 'diavola': 'salmin', 'pepperoni': 'salmin', 'chorizo': 'salmin', 'spicy salami': 'salmin', '辣香肠': 'salmin', '香肠': 'salmin',
-  'salsiccia': 'salsic', 'sausage': 'salsic', 'saucisse': 'salsic', 'salchicha': 'salsic', '意式肉肠': 'salsic',
-  'wurstel': 'wurst', 'wiener': 'wurst', 'frankfurter': 'wurst', '热狗肠': 'wurst',
-  'cotto': 'cotto', 'prosciutto cotto': 'cotto', 'ham': 'cotto', 'jambon': 'cotto', 'jamón york': 'cotto', '熟火腿': 'cotto', '火腿': 'cotto',
-  'crudo': 'crudo', 'prosciutto crudo': 'crudo', 'parma ham': 'crudo', 'jambon cru': 'crudo', 'jamón serrano': 'crudo', '生火腿': 'crudo',
-  'speck': 'speck', '培根熏肉': 'speck',
-  'porchetta': 'porchet', 'roast pork': 'porchet', 'rôti de porc': 'porchet', '烤豬肉': 'porchet',
-  'pancetta': 'pancetta', 'bacon': 'pancetta', 'tocino': 'pancetta', '烟熏培根': 'pancetta',
-  'bresaola': 'bresaola', '风干牛肉': 'bresaola',
-  'tonno': 'tonno', 'tuna': 'tonno', 'thon': 'tonno', 'atún': 'tonno', '金枪鱼': 'tonno',
-  'acciughe': 'acciughe', 'alici': 'acciughe', 'anchovies': 'acciughe', 'anchois': 'acciughe', 'anchoas': 'acciughe', '鳀鱼': 'acciughe',
-  'cipolla': 'cipoll', 'onion': 'cipoll', 'oignon': 'cipoll', 'cebolla': 'cipoll', '洋葱': 'cipoll',
-  'funghi': 'funghi', 'mushrooms': 'funghi', 'champignons': 'funghi', 'champiñones': 'funghi', '蘑菇': 'funghi', 'misti': 'funghi',
-  'carciofi': 'carciofi', 'artichokes': 'carciofi', 'artichauts': 'carciofi', 'alcachofas': 'carciofi', '朝鲜蓟': 'carciofi',
-  'patate': 'patat', 'patatine': 'patat', 'chips': 'patat', 'fries': 'patat', 'frites': 'patat', 'patatas': 'patat', '薯条': 'patat', '土豆': 'patat',
-  'porcini': 'porcini', '牛肝菌': 'porcini',
-  'zucchine': 'zucchine', 'zucchini': 'zucchine', 'courgettes': 'zucchine', '西葫芦': 'zucchine',
-  'melanzane': 'melanzane', 'aubergines': 'melanzane', 'eggplant': 'melanzane', 'berenjenas': 'melanzane', '茄子': 'melanzane',
-  'peperoni': 'peperoni', 'peppers': 'peperoni', 'poivrons': 'peperoni', 'pimientos': 'peperoni', '灯笼椒': 'peperoni', '青椒': 'peperoni',
-  'datterino': 'pomodorini', 'pomodorini': 'pomodorini', 'cherry tomatoes': 'pomodorini', 'tomates cerises': 'pomodorini', '圣女果': 'pomodorini', '小番茄': 'pomodorini',
-  'pomodorini secchi': 'pomod_secchi', 'sun dried tomatoes': 'pomod_secchi', 'tomates séchées': 'pomod_secchi', '脱水番茄': 'pomod_secchi',
-  'friarielli': 'friarielli', 'broccoli rabe': 'friarielli', '意式油菜': 'friarielli',
-  'spinaci': 'spinaci', 'spinach': 'spinaci', 'épinards': 'spinaci', 'espinacas': 'spinaci', '菠菜': 'spinaci',
-  'rucola': 'rucola', 'rocket': 'rucola', 'arugula': 'rucola', 'roquette': 'rucola', 'rúcula': 'rucola', '芝麻菜': 'rucola',
-  'verdure miste': 'verdure_miste', 'mixed vegetables': 'verdure_miste', ' légumes mix': 'verdure_miste', '杂菜': 'verdure_miste',
-  'capperi': 'capperi', 'capers': 'capperi', 'câpres': 'capperi', 'alcaparras': 'capperi', '刺山柑': 'capperi',
-  'olive': 'olive', 'olives': 'olive', 'aceitunas': 'olive', '橄榄': 'olive',
-  'ricotta': 'ricotta', '奶渣': 'ricotta', 'brie': 'brie', 'briè': 'brie', '布里奶酪': 'brie',
-  'gorgonzola': 'zola', 'zola': 'zola', '蓝纹奶酪': 'zola',
-  'pesto': 'pesto', '香草酱': 'pesto', '罗勒酱': 'pesto',
-  'mais': 'mais', 'corn': 'mais', 'maïs': 'mais', 'maíz': 'mais', '玉米': 'mais',
-  'scamorza': 'scamorza', '斯卡莫扎': 'scamorza',
-  'philadelphia': 'phila', 'phila': 'phila', '飞达奶酪': 'phila', '费城奶酪': 'phila',
-  'tartufo': 'tartufo', 'truffle': 'tartufo', 'truffe': 'tartufo', 'trufa': 'tartufo', '松露': 'tartufo',
-  'noci': 'noci', 'walnuts': 'noci', 'noix': 'noci', 'nueces': 'noci', '核桃': 'noci',
-  'fichi': 'fichi', 'figs': 'fichi', 'figues': 'fichi', 'higos': 'fichi', '无花果': 'fichi',
-  'bbq': 'bbq', 'barbecue': 'bbq', '烤肉酱': 'bbq',
-  'basilico': 'basilico', 'basil': 'basilico', 'basilic': 'basilico', 'albahaca': 'basilico', '罗勒': 'basilico',
-  'aglio': 'aglio', 'garlic': 'aglio', 'ail': 'aglio', 'ajo': 'aglio', '大蒜': 'aglio',
-  'origano': 'origano', 'oregano': 'origano', 'origan': 'origano', '牛至': 'origano',
-  'stracchino': 'stracchino', '丝特拉奇诺': 'stracchino',
-  'grana': 'grana', 'parmesan': 'grana', '帕尔马干酪': 'grana'
-};
-
-const DIZIONARIO_FORMATI = {
-  'battuta': 'battuta', 'battute': 'battuta', 'tirata': 'battuta', 'grande': 'battuta', 'stretched': 'battuta', 'large': 'battuta', '大份': 'battuta', '大披萨': 'battuta',
-  'doppia pasta': 'doppia_pasta', 'doppio impasto': 'doppia_pasta', 'double dough': 'doppia_pasta', 'double pâte': 'doppia_pasta', 'doble masa': 'doppia_pasta', '双倍面团': 'doppia_pasta', '加厚': 'doppia_pasta',
-  'baby': 'baby', 'piccola': 'baby', 'poca fame': 'baby', 'bambino': 'baby', 'small': 'baby', 'kid': 'baby', 'petite': 'baby', 'enfant': 'baby', 'pequeña': 'baby', 'niño': 'baby', '儿童': 'baby', '小份': 'baby', '小披萨': 'baby'
-};
-
-const LISTA_PIZZE_MENU = [
-  'marinara', 'margherita', 'diavola', 'salsiccia', 'viennese', 'pugliese', 'prosciutto e funghi', 
-  'capricciosa', 'tonno e cipolla', 'bufala', 'bufalina', 'quattro stagioni', 'romana', 'siciliana', 
-  'patatosa', 'parma', 'speck', 'montello', 'valtellina', 'verdure', 'estate', 'norma', 'parmigiana', 
-  'mike', 'ciccia e friarielli', 'formaggi', 'paolo', 'sfiziosa', 'ava', 'pps', 'silvia', 'wilma', 
-  'wanda', 'leone', 'giggino', 'titti', 'boscaiola', 'tartufata', 'ufo', 'pazza', 'repubblica', 
-  'capricciosa sbagliata', 'amatriciana', 'onta', 'cri', 'bois', 'pimpa', 'calzone classico', 
-  'calzone piccante', 'calzone vegeta', 'calzone poro mauretto', 'calzone ade'
-];
-
-const MENU_PREZZI = { 'marinara': 4.50, 'margherita': 5.00, 'diavola': 6.50, 'salsiccia': 7.00, 'viennese': 6.00, 'pugliese': 6.00, 'prosciutto e funghi': 8.00, 'capricciosa': 9.50, 'tonno e cipolla': 8.00, 'bufala': 8.00, 'bufalina': 9.50, 'quattro stagioni': 9.50, 'romana': 6.50, 'siciliana': 8.00, 'patatosa': 6.50, 'parma': 8.00, 'speck': 8.00, 'montello': 10.00, 'valtellina': 10.50, 'verdure': 9.50, 'estate': 6.50, 'norma': 8.50, 'parmigiana': 7.50, 'mike': 11.50, 'ciccia e friarielli': 8.50, 'formaggi': 8.50, 'paolo': 10.00, 'sfiziosa': 9.50, 'ava': 11.50, 'pps': 10.00, 'silvia': 11.00, 'wilma': 8.50, 'wanda': 9.00, 'leone': 11.00, 'giggino': 11.50, 'titti': 11.50, 'boscaiola': 10.00, 'tartufata': 8.50, 'ufo': 11.50, 'pazza': 11.50, 'repubblica': 11.00, 'capricciosa sbagliata': 11.00, 'amatriciana': 9.50, 'onta': 10.00, 'cri': 12.00, 'bois': 12.00, 'pimpa': 11.50, 'calzone classico': 8.00, 'calzone piccante': 8.00, 'calzone vegeta': 9.50, 'calzone poro mauretto': 13.50, 'calzone ade': 12.00 };
-const MENU_CALORIE = { 'marinara': 800, 'margherita': 1125, 'diavola': 1377, 'salsiccia': 1365, 'viennese': 1365, 'pugliese': 1137, 'prosciutto e funghi': 1300, 'capricciosa': 1450, 'tonno e cipolla': 1350, 'bufala': 1250, 'bufalina': 1300, 'quattro stagioni': 1480, 'romana': 1200, 'siciliana': 1310, 'patatosa': 1375, 'parma': 1350, 'speck': 1365, 'montello': 1500, 'valtellina': 1400, 'verdure': 1300, 'estate': 1180, 'norma': 1350, 'parmigiana': 1280, 'mike': 1600, 'ciccia e friarielli': 1500, 'formaggi': 1550, 'paolo': 1400, 'sfiziosa': 1450, 'ava': 1650, 'pps': 1500, 'silvia': 1520, 'wilma': 1250, 'wanda': 1320, 'leone': 1550, 'giggino': 1580, 'titti': 1560, 'boscaiola': 1525, 'tartufata': 1300, 'ufo': 1600, 'pazza': 1680, 'repubblica': 1420, 'capricciosa sbagliata': 1510, 'amatriciana': 1450, 'onta': 1550, 'cri': 1650, 'bois': 1700, 'pimpa': 1620, 'calzone classico': 1300, 'calzone piccante': 1320, 'calzone vegeta': 1280, 'calzone poro mauretto': 1800, 'calzone ade': 1650 };
-const MENU_INGREDIENTI = { 'marinara': 'pomodoro, aglio, origano', 'margherita': 'pomodoro, mozzarella', 'diavola': 'pomodoro, mozzarella, salamino piccante', 'salsiccia': 'pomodoro, mozzarella, salsiccia', 'viennese': 'pomodoro, mozzarella, wurstel di suino', 'pugliese': 'pomodoro, mozzarella, cipolla', 'prosciutto e funghi': 'pomodoro, mozzarella, prosciutto cotto, funghi', 'capricciosa': 'pomodoro, mozzarella, prosciutto cotto, funghi, carciofi', 'tonno e cipolla': 'pomodoro, mozzarella, tonno, cipolla', 'bufala': 'pomodoro, mozzarella di bufala', 'bufalina': 'pomodoro, mozzarella di bufala, pomodorini', 'quattro stagioni': 'pomodoro, mozzarella, prosciutto cotto, funghi, carciofi, olive', 'romana': 'pomodoro, mozzarella, acciughe', 'siciliana': 'pomodoro, mozzarella, acciughe, capperi, olive', 'patatosa': 'pomodoro, mozzarella, patate fritte', 'parma': 'pomodoro, mozzarella, prosciutto crudo', 'speck': 'pomodoro, mozzarella, speck', 'montello': 'pomodoro, mozzarella, porchetta, funghi porcini', 'valtellina': 'pomodoro, mozzarella, bresaola, rucola, grana a scaglie', 'verdure': 'pomodoro, mozzarella, melanzane fritte, zucchine, peperoni', 'estate': 'pomodoro, mozzarella, pomodorini', 'norma': 'pomodoro, mozzarella, melanzane fritte, ricotta, grana a scaglie', 'parmigiana': 'pomodoro, mozzarella, melanzane fritte, grana a scaglie', 'mike': 'mozzarella, rucola, salsiccia, briè, grana a scaglie', 'ciccia e friarielli': 'mozzarella, salsiccia, friarielli', 'formaggi': 'mozzarella, gorgonzola, briè, grana a scaglie', 'paolo': 'mozzarella, gorgonzola, cipolla, salamino piccante', 'sfiziosa': 'mozzarella, pesto, melanzane fritte, briè, grana a scaglie', 'ava': 'mozzarella, salsiccia, salamino piccante, pomodorini, aglio, grana a scaglie', 'pps': 'mozzarella, funghi porcini, scamorza, pancetta dolce', 'silvia': 'mozzarella, gorgonzola, porchetta, senape', 'wilma': 'pomodoro, mozzarella, pesto, pomodorini, mais', 'wanda': 'pomodoro, mozzarella, carciofi, salamino piccante, acciughe', 'leone': 'pomodoro, mozzarella, tonno, cipolla, acciughe, capperi, olive', 'giggino': 'pomodoro, mozzarella, prosciutto cotto, mais, philadelphia, pomodorini', 'titti': 'pomodoro, mozzarella, zucchine, philadelphia, prosciutto crudo', 'boscaiola': 'pomodoro, mozzarella, salsiccia, salamino piccante, funghi', 'tartufata': 'pomodoro, mozzarella, crema al tartufo, funghi', 'ufo': 'pomodoro, mozzarella, salsiccia, salamino piccante, olive, pomodorini', 'pazza': 'pomodoro, mozzarella, salsiccia, salamino piccante, peperoni, wurstel di suino', 'repubblica': 'pomodoro, mozzarella, rucola, pomodorini, mozzarella di bufala, grana a scaglie', 'capricciosa sbagliata': 'pomodoro, mozzarella, funghi porcini, carciofi, porchetta', 'amatriciana': 'pomodoro, mozzarella, pancetta dolce, cipolla, grana a scaglie', 'onta': 'pomodoro, mozzarella, salsiccia, cipolla, peperoni', 'cri': 'mozzarella, salsiccia, briè, noci, fichi', 'bois': 'mozzarella, gorgonzola, salsiccia, crema al tartufo, patate fritte', 'pimpa': 'mozzarella, scamorza, salsa bbq, cipolla, patate fritte, pancetta dolce', 'calzone classico': 'pomodoro, mozzarella, prosciutto cotto, funghi', 'calzone piccante': 'pomodoro, mozzarella, salamino piccante, ricotta', 'calzone vegeta': 'pomodoro, mozzarella, melanzane fritte, zucchine, peperoni', 'calzone poro mauretto': 'pomodoro, mozzarella, prosciutto cotto, funghi, spinaci, ricotta, salamino piccante, grana a scaglie', 'calzone ade': 'pomodoro, mozzarella, crema al tartufo, funghi, salamino piccante, briè' };
-const RICETTE_STRUTTURATE = { 'marinara': ['pomod', 'aglio', 'origano'], 'margherita': ['pomod', 'mozz'], 'diavola': ['pomod', 'mozz', 'salmin'], 'salsiccia': ['pomod', 'mozz', 'salsic'], 'viennese': ['pomod', 'mozz', 'wurst'], 'pugliese': ['pomod', 'mozz', 'cipoll'], 'prosciutto e funghi': ['pomod', 'mozz', 'cotto', 'funghi'], 'capricciosa': ['pomod', 'mozz', 'cotto', 'funghi', 'carciofi'], 'tonno e cipolla': ['pomod', 'mozz', 'tonno', 'cipoll'], 'bufala': ['pomod', 'bufala'], 'bufalina': ['pomod', 'bufala', 'pomodorini'], 'quattro stagioni': ['pomod', 'mozz', 'cotto', 'funghi', 'carciofi', 'olive'], 'romana': ['pomod', 'mozz', 'acciughe'], 'siciliana': ['pomod', 'mozz', 'acciughe', 'capperi', 'olive'], 'patatosa': ['pomod', 'mozz', 'patat'], 'parma': ['pomod', 'mozz', 'crudo'], 'speck': ['pomod', 'mozz', 'speck'], 'montello': ['pomod', 'mozz', 'porchet', 'porcini'], 'valtellina': ['pomod', 'mozz', 'bresaola', 'rucola', 'grana'], 'verdure': ['pomod', 'mozz', 'melanzane', 'zucchine', 'peperoni'], 'estate': ['pomod', 'mozz', 'pomodorini'], 'norma': ['pomod', 'mozz', 'melanzane', 'ricotta', 'grana'], 'parmigiana': ['pomod', 'mozz', 'melanzane', 'grana'], 'mike': ['rucola', 'mozz', 'salsic', 'brie', 'grana'], 'ciccia e friarielli': ['mozz', 'salsic', 'friarielli'], 'formaggi': ['zola', 'brie', 'grana', 'mozz'], 'paolo': ['zola', 'cipoll', 'salmin', 'mozz'], 'sfiziosa': ['mozz', 'pesto', 'melanzane', 'brie', 'grana'], 'ava': ['mozz', 'salsic', 'salmin', 'pomodorini', 'aglio', 'grana'], 'pps': ['mozz', 'porcini', 'scamorza', 'pancetta'], 'silvia': ['mozz', 'zola', 'porchet', 'senape'], 'wilma': ['pomod', 'mozz', 'pesto', 'pomodorini', 'mais'], 'wanda': ['pomod', 'mozz', 'carciofi', 'salmin', 'acciughe'], 'leone': ['pomod', 'mozz', 'tonno', 'cipoll', 'acciughe', 'capperi', 'olive'], 'giggino': ['pomod', 'mozz', 'cotto', 'mais', 'phila', 'pomodorini'], 'titti': ['pomod', 'mozz', 'zucchine', 'phila', 'crudo'], 'boscaiola': ['pomod', 'mozz', 'salsic', 'salmin', 'funghi'], 'tartufata': ['pomod', 'mozz', 'tartufo', 'funghi'], 'ufo': ['pomod', 'mozz', 'salsic', 'salmin', 'olive', 'pomodorini'], 'pazza': ['pomod', 'mozz', 'salsic', 'salmin', 'peperoni', 'wurst'], 'repubblica': ['pomod', 'mozz', 'rucola', 'pomodorini', 'bufala', 'grana'], 'capricciosa sbagliata': ['pomod', 'mozz', 'porcini', 'carciofi', 'porchet'], 'amatriciana': ['pomod', 'mozz', 'pancetta', 'cipoll', 'grana'], 'onta': ['pomod', 'mozz', 'salsic', 'cipoll', 'peperoni'], 'cri': ['mozz', 'salsic', 'brie', 'noci', 'fichi'], 'bois': ['mozz', 'zola', 'salsic', 'tartufo', 'patat'], 'pimpa': ['mozz', 'scamorza', 'bbq', 'cipoll', 'patat', 'pancetta'], 'calzone classico': ['pomod', 'mozz', 'cotto', 'funghi'], 'calzone piccante': ['pomod', 'mozz', 'salmin', 'ricotta'], 'calzone vegeta': ['pomod', 'mozz', 'melanzane', 'zucchine', 'peperoni'], 'calzone poro mauretto': ['pomod', 'mozz', 'cotto', 'funghi', 'spinaci', 'ricotta', 'salmin', 'grana'], 'calzone ade': ['pomod', 'mozz', 'tartufo', 'funghi', 'salmin', 'brie'] };
-const PREZZI_AGGIUNTE = { 'pomod': 0.50, 'mozz': 1.50, 'basilico': 0.00, 'olio': 0.00, 'origano': 0.00, 'aglio': 0.00, 'pomodorini': 1.50, 'salmin': 1.50, 'salsiccia': 2.00, 'wurst': 1.00, 'cipoll': 1.00, 'cotto': 1.00, 'funghi': 1.00, 'carciofi': 1.50, 'tonno': 2.00, 'bufala': 3.00, 'olive': 1.50, 'capperi': 0.50, 'acciughe': 1.50, 'ricotta': 1.50, 'patat': 1.50, 'verdure_miste': 2.50, 'melanzane': 1.50, 'zola': 1.50, 'tartufo': 2.00, 'bbq': 1.00, 'pancetta': 2.50, 'scamorza': 1.50, 'mais': 1.00, 'pesto': 1.00, 'zucchine': 1.00, 'phila': 1.50, 'porcini': 2.50, 'pomod_secchi': 2.00, 'peperoni': 1.00, 'rucola': 1.00, 'grana': 1.50, 'porchet': 3.00, 'formaggi': 2.00, 'brie': 1.50, 'friarielli': 1.50, 'stracchino': 2.00, 'noci': 1.00, 'bresaola': 3.00, 'crudo': 3.00, 'speck': 3.00 };
-const KCAL_AGGIUNTE = { 'pomod': 30, 'mozz': 240, 'pomodorini': 35, 'salmin': 252, 'salsiccia': 240, 'wurst': 240, 'cipoll': 12, 'cotto': 175, 'funghi': 50, 'carciofi': 75, 'tonno': 220, 'bufala': 280, 'olive': 110, 'capperi': 10, 'acciughe': 85, 'ricotta': 180, 'patat': 250, 'verdure_miste': 150, 'melanzane': 130, 'zola': 250, 'tartufo': 150, 'bbq': 90, 'pancetta': 310, 'scamorza': 210, 'mais': 80, 'pesto': 200, 'zucchine': 40, 'phila': 160, 'porcini': 160, 'pomod_secchi': 140, 'peperoni': 45, 'rucola': 15, 'grana': 160, 'porchet': 220, 'brie': 180, 'friarielli': 140, 'stracchino': 190, 'noci': 200, 'bresaola': 150, 'crudo': 220, 'speck': 240 };
-
-function trovaPizza(testo) {
-  for (let pizza of LISTA_PIZZE_MENU) {
-    if (testo.includes(pizza)) return pizza;
+function trovaPizza(t) {
+  t = t.toLowerCase();
+  for (const p of Object.keys(MENU_CALORIE)) { if (t.includes(p)) return p; }
+  return null;
+}
+function isComplesso(t) {
+  t = t.toLowerCase();
+  return ['battuta','mezza','doppia pasta','senza ','aggiungi','personaliz','al posto','metà','mezzo','calzone','arrotolat'].some(k => t.includes(k));
+}
+function rispostaFissa(testo) {
+  const t = testo.toLowerCase().trim();
+  if (['ordina','ordinare','prenotare','come ordino','voglio ordinare','posso ordinare','contatti','come posso'].some(k => t.includes(k))) return 'ORDER';
+  if (['orari','aperto','chiuso','quando'].some(k => t.includes(k))) return "Siamo aperti martedì-domenica dalle 18:30 alle 21:30 🕐\nLunedì siamo chiusi!";
+  if (['dove','indirizzo','via','casier'].some(k => t.includes(k))) return "Siamo in Via Principale 113, Casier (TV) 📍";
+  if (['telefono','numero','chiamo','chiama'].some(k => t.includes(k))) return "Puoi chiamarci al 0422 670631 📞\nO scriverci su WhatsApp al 3405327257 (solo info, no prenotazioni)";
+  if (['fritti','frittin','olive','mozzarellin','nuggets','crocch','anellin'].some(k => t.includes(k)) && !isComplesso(t)) {
+    return "I nostri fritti 🍟\n• Olive/Mozzarelline/Nuggets/Crocchette: 6€ (10pz)\n• Anellini cipolla: 3,50€ (10pz)\n• Verdure pastellate: 4€\n• Patate fritte: 3,50€\n• Misto Frittico: 15€\n\nCon la pizza puoi aggiungere un fritino da 5pz misti a soli 2,50€! 🐧";
+  }
+  const pizza = trovaPizza(t);
+  if (pizza && !isComplesso(t)) {
+    const nome = pizza.charAt(0).toUpperCase() + pizza.slice(1);
+    return `La ${nome} ha ${MENU_CALORIE[pizza]} kcal e costa ${MENU_PREZZI[pizza]}€ 🍕`;
   }
   return null;
 }
 
-// =========================================================================
-// 3. MOTORE LOGICO DI RILEVAMENTO LINGUA ED ELABORAZIONE
-// =========================================================================
-function rispostaFissa(testo) {
-  let t = testo.toLowerCase().trim();
-  let lang = 'it'; 
-  
-  if (/[\u4e00-\u9fa5]/.test(t)) {
-    lang = 'zh';
-  } 
-  else if (/\b(avec|sans|prix|calories|petite|champignons|jambon|fromage)\b/.test(t) || t.includes('coûte')) {
-    lang = 'fr';
-  } 
-  else if (/\b(con|sin|precio|calorias|pequeña|champiñones|jamon|queso|cuanto)\b/.test(t) || t.includes('cuesta')) {
-    lang = 'es';
-  } 
-  else if (/\b(hi|hello|with|without|price|calories|small|large|mushrooms|cheese)\b/.test(t)) {
-    lang = 'en';
+const SYSTEM_BASE = `Sei Pinguino 🐧, assistente di BoisPizza pizzeria artigianale a Casier (TV) di Michele Boller.
+Stile: simpatico, caldo, diretto. Risposte brevi e naturali. No elenchi se non richiesti.
+Dai kcal e prezzo totale nel discorso, non ingrediente per ingrediente (a meno che non venga chiesto).
+Non dire "conviene questo". Non moralizzare sulle calorie. La pizza è un piacere!
+ORARI: mar-dom 18:30-21:30. Lun chiuso. CONTATTI: WA 3405327257 (info), Tel 0422670631 (prenotazioni).
+PIZZA LEGGERA: suggerisci Bufalina, Estate, Repubblica, Valtellina o combo creativi (bufala+pomodorini, rucola+brie ecc) — non la Marinara.
+Pomodorini→Estate,Bufalina,Wilma,Repubblica | Brie→Mike,Sfiziosa,Cri
+COMBO(solo con pizza): Fritino 5pz 2,50€ | +bibita 2,50€ | entrambi 4€
+FRITTI STANDALONE: Olive/Mozz/Nuggets/Crocch 6€(10pz) | Anellini 3,50€ | Verdure 4€ | Patate 3,50€ | Misto Frittico 15€`;
+
+const SYSTEM_MENU = `CALORIE: Marinara 820|Margherita 1125|Diavola 1070|Salsiccia 1190|Viennese 1180|Pugliese 1090|P.funghi 1190|Capricciosa 1240|Tonno&cip 1200|Bufala 1000|Bufalina 1020|4stagioni 1380|Romana 1060|Siciliana 1270|Patatosa 1320|Parma 1180|Speck 1210|Montello 1330|Valtellina 1310|Verdure 1200|Estate 950|Norma 1220|Parmigiana 1150|Mike 1470|Ciccia&friar 1160|Formaggi 1500|Paolo 1400|Sfiziosa 1470|AVA 1285|PPS 1300|Silvia 1200|Wilma 1260|Wanda 1280|Leone 1380|Giggino 1200|Titti 1370|Boscaiola 1585|Tartufata 1340|UFO 1650|Pazza 1600|Repubblica 1210|CapSbagliata 1380|Amatriciana 980|Onta 1100|Cri 1400|Bois 1820|Pimpa 1480|CalzClass 1120|CalzPicc 1290|CalzVeg 950|CalzMauretto 1350|CalzAdE 1300
+PREZZI: Marinara/Margherita 5€|Diavola/Salsiccia/P.funghi/Romana 8€|Viennese 7,50€|Pugliese 7€|Capricciosa/Bufala/4stagioni/Siciliana 9€|Bufalina/Parma 10€|Speck 9,50€|Montello/Valtellina 10,50€|Verdure 8,50€|Estate/Norma/Ciccia/Formaggi 9€|Parmigiana 8,50€|Mike/Sfiziosa 10€|AVA 12€|PPS 11€|Silvia 12€|Wilma 8,50€|Wanda 9€|Leone/CapSbagliata/UFO 12€|Giggino/Amatriciana/Onta 10€|Titti/Repubblica 11,50€|Boscaiola/Tartufata 11€|Pazza 11,50€|Cri 14€|Bois/Pimpa 11€|CalzClass/Picc/Veg 9€|CalzMauretto 12€|CalzAdE 13€`;
+
+const SYSTEM_CALCOLI = `
+KCAL INGREDIENTI: Impasto 675|Pomodoro 14|Olio 44|Mozz 280|Bufala 260|Gorgonzola 210|Brie 167|Grana 43|Scamorza 180|Ricotta 70|Philadelphia 96|Stracchino 150|Salsiccia 240|Salamino 252|P.cotto 87|P.crudo 125|Pancetta 270|Speck 130|Porchetta 180|Wurstel 240|Bresaola 75|Tonno 79|Acciughe 21|Funghi 13|Porcini 15|Carciofi 28|Pomodorini 11|Melanzane 15|Peperoni 25|Zucchine 10|Friarielli 18|Cipolla 12|Mais 29|Olive 35|Pesto 135|Tartufo 53|BBQ 24|Patate fritte 250|Pom.secchi 75|Noci 98|Rucola 8
+PREZZI AGGIUNTE: Pomodoro 0,50€|Mozz/Salamino/Olive/Acciughe/Carciofi/Ricotta/Patate/Gorgonzola/Brie/Scamorza/Grana/Friarielli 1,50€|Salsiccia/Tonno/Tartufo/Pom.secchi 2€|Wurstel/Cipolla/P.cotto/Funghi/Mais/Pesto/Zucchine/Peperoni/Rucola/BBQ 1€|Porcini/Pancetta/Verdure 2,50€|Bufala/Porchetta/Bresaola/P.crudo/Speck 3€|Philadelphia/Stracchino 1,50€
+CALCOLI: Base 6€(Margherita SEMPRE 5€)|Scambi=pizza-tolto+aggiunto|Battuta:+2€+ogni aggiunta+0,50€extra+kcal ingredienti(no impasto)x1.3|Doppia pasta:+1€+675kcal|Mezza+mezza:(A+B)/2 prezzo e kcal`;
+
+let bpHistory = [], bpLoading = false, panelOpen = false, orderShown = false;
+
+function togglePanel() {
+  panelOpen = !panelOpen;
+  document.getElementById('bois-panel').classList.toggle('open', panelOpen);
+  if (panelOpen && bpHistory.length === 0)
+    setTimeout(() => addBotMsg("Ciao! 🐧🍕 Sono il Pinguino di BoisPizza!\nDimmi cosa vuoi mangiare e ti dico calorie e prezzo. O chiedimi qualsiasi cosa sul menù!"), 300);
+}
+
+function addBotMsg(text) {
+  const el = document.getElementById('bp-messages');
+  const div = document.createElement('div');
+  div.className = 'bp-msg bot';
+  div.innerHTML = `<div class="bp-msg-av">🐧</div><div class="bp-bubble">${fmt(text)}</div>`;
+  el.appendChild(div); el.scrollTop = el.scrollHeight;
+  bpHistory.push({ role:'assistant', content:text });
+}
+function addUserMsg(text) {
+  const el = document.getElementById('bp-messages');
+  const div = document.createElement('div');
+  div.className = 'bp-msg user';
+  div.innerHTML = `<div class="bp-msg-av">👤</div><div class="bp-bubble">${esc(text)}</div>`;
+  el.appendChild(div); el.scrollTop = el.scrollHeight;
+  bpHistory.push({ role:'user', content:text });
+}
+function showOrderButtons() {
+  if (orderShown) return; orderShown = true;
+  const el = document.getElementById('bp-messages');
+  const div = document.createElement('div');
+  div.className = 'bp-msg bot';
+  div.innerHTML = `<div class="bp-msg-av">🐧</div><div class="bp-bubble"><div style="font-size:0.78rem;color:#9e7a5a;margin-bottom:8px;">Scegli come contattarci 👇</div><div class="order-btns"><a href="${WA}" target="_blank" class="btn-wa"><span>💬</span> WhatsApp (info)</a><a href="${TEL}" class="btn-tel"><span>📞</span> Chiama 0422 670631</a></div></div>`;
+  el.appendChild(div); el.scrollTop = el.scrollHeight;
+}
+function showTyping() {
+  const el = document.getElementById('bp-messages');
+  const div = document.createElement('div');
+  div.className = 'bp-msg bot'; div.id = 'bp-typing';
+  div.innerHTML = `<div class="bp-msg-av">🐧</div><div class="bp-bubble"><div class="bp-typing"><span></span><span></span><span></span></div></div>`;
+  el.appendChild(div); el.scrollTop = el.scrollHeight;
+}
+function removeTyping() { const t = document.getElementById('bp-typing'); if(t) t.remove(); }
+function fmt(t) { return esc(t).replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/(\d+)\s*kcal/gi,'<span class="cal-box">$1 kcal</span>').replace(/\n/g,'<br>'); }
+function esc(t) { return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+async function bpSend() {
+  const input = document.getElementById('bp-input');
+  const text = input.value.trim();
+  if (!text || bpLoading) return;
+  input.value = '';
+  addUserMsg(text);
+
+  // LIVELLO 1 — risposta fissa
+  const fissa = rispostaFissa(text);
+  if (fissa === 'ORDER') {
+    addBotMsg("Ecco come contattarci per ordinare o prenotare! 🐧");
+    setTimeout(showOrderButtons, 300); return;
   }
+  if (fissa) { setTimeout(() => addBotMsg(fissa), 300); return; }
 
-  let formatoScelto = 'normale';
-  for (let parolaFormato in DIZIONARIO_FORMATI) {
-    if (t.includes(parolaFormato)) {
-      formatoScelto = DIZIONARIO_FORMATI[parolaFormato];
-      break; 
-    }
-  }
+  // LIVELLO 2/3 — AI
+  bpLoading = true;
+  document.getElementById('bp-send').disabled = true;
+  showTyping();
 
-  const regexAggiunta = /\b(con|add|mit|avec|ajouter|agregar|加|with|più|piu|\+)\b/g;
-  const regexRimozione = /\b(senza|without|ohne|sans|sin|去|不要|不加|no|-)\b/g;
+  const complesso = isComplesso(text);
+  const model70b = 'llama-3.3-70b-versatile';
+  const model8b = 'llama-3.1-8b-instant';
+  const systemPrompt = SYSTEM_BASE + '\n' + SYSTEM_MENU + (complesso ? '\n' + SYSTEM_CALCOLI : '');
+  const msgs = [{ role:'system', content:systemPrompt }, ...bpHistory.filter(m => m.role==='user'||m.role==='assistant').slice(-6)];
 
-  let pizzaBaseTrovata = trovaPizza(t);
-  let ingredientiTarget = [];
+  let testo = await callGroq(complesso ? model70b : model8b, msgs);
+  if (!testo) testo = await callGroq(model8b, msgs); // fallback
 
-  if (pizzaBaseTrovata) {
-    ingredientiTarget = [...RICETTE_STRUTTURATE[pizzaBaseTrovata]];
-    
-    if (regexAggiunta.test(t)) {
-      let segmentoAggiunte = t.split(regexAggiunta).pop();
-      for (let parolaKey in DIZIONARIO_INGREDIENTI) {
-        if (segmentoAggiunte.includes(parolaKey)) {
-          let cod = DIZIONARIO_INGREDIENTI[parolaKey];
-          if (!ingredientiTarget.includes(cod)) ingredientiTarget.push(cod);
-        }
-      }
-    }
-    if (regexRimozione.test(t)) {
-      let segmentoRimozioni = t.split(regexRimozione).pop();
-      for (let parolaKey in DIZIONARIO_INGREDIENTI) {
-        if (segmentoRimozioni.includes(parolaKey)) {
-          let cod = DIZIONARIO_INGREDIENTI[parolaKey];
-          ingredientiTarget = ingredientiTarget.filter(i => i !== cod);
-        }
-      }
-    }
+  removeTyping();
+  if (testo) {
+    addBotMsg(testo);
+    const ultimi = bpHistory.slice(-4).map(m => m.content.toLowerCase()).join(' ');
+    if (!orderShown && ['ordina','prendo','voglio ordinar','come ordino'].some(k => ultimi.includes(k)))
+      setTimeout(showOrderButtons, 500);
   } else {
-    for (let parolaKey in DIZIONARIO_INGREDIENTI) {
-      if (t.includes(parolaKey)) {
-        let cod = DIZIONARIO_INGREDIENTI[parolaKey];
-        if (!ingredientiTarget.includes(cod)) ingredientiTarget.push(cod);
-      }
-    }
-    if (ingredientiTarget.length > 0) {
-      const isBianca = ['bianca', 'white', 'blanche', 'blanca', '白'].some(b => t.includes(b));
-      if (!ingredientiTarget.includes('pomod') && !isBianca) ingredientiTarget.push('pomod');
-      if (!ingredientiTarget.includes('mozz') && !isBianca) ingredientiTarget.push('mozz');
-    }
+    addBotMsg("Ops, problema tecnico! 😅 Riprova o chiamaci al 0422 670631 🐧");
   }
 
-  let pizzaEsattaTrovata = null;
-  for (let nomeMenu in RICETTE_STRUTTURATE) {
-    let ricettaMenu = RICETTE_STRUTTURATE[nomeMenu];
-    let identiche = ricettaMenu.length === ingredientiTarget.length && 
-                    ricettaMenu.every(ing => ingredientiTarget.includes(ing));
-    if (identiche) {
-      pizzaEsattaTrovata = nomeMenu;
-      break;
-    }
-  }
+  bpLoading = false;
+  document.getElementById('bp-send').disabled = false;
+}
 
-  const verdureSingole = ['zucchine', 'melanzane', 'peperoni', 'carciofi'];
-  let isVerduraSingola = false;
-  if (ingredientiTarget.length === 3 && ingredientiTarget.includes('pomod') && ingredientiTarget.includes('mozz')) {
-    let terzoIngrediente = ingredientiTarget.find(ing => ing !== 'pomod' && ing !== 'mozz');
-    if (verdureSingole.includes(terzoIngrediente)) {
-      isVerduraSingola = true;
-    }
-  }
-
-  let prezzoFinale = 0.0;
-  let kcalFinali = 1125;
-  let nomeVisualizzazione = "";
-
-  if (pizzaEsattaTrovata && !t.match(regexAggiunta) && !t.match(regexRimozione)) {
-    prezzoFinale = MENU_PREZZI[pizzaEsattaTrovata];
-    kcalFinali = MENU_CALORIE[pizzaEsattaTrovata];
-    nomeVisualizzazione = pizzaEsattaTrovata.toUpperCase();
-    if (formatoScelto === 'normale') {
-      return txt[lang].full.replace('{N}', nomeVisualizzazione).replace('{P}', prezzoFinale.toFixed(2)).replace('{K}', kcalFinali + " kcal").replace('{I}', MENU_INGREDIENTI[pizzaEsattaTrovata]);
-    }
-  } else if (pizzaEsattaTrovata) {
-    prezzoFinale = MENU_PREZZI[pizzaEsattaTrovata];
-    kcalFinali = MENU_CALORIE[pizzaEsattaTrovata];
-    nomeVisualizzazione = pizzaEsattaTrovata.toUpperCase();
-  } else if (isVerduraSingola) {
-    prezzoFinale = 7.50;
-    kcalFinali = 1190;
-    let v = ingredientiTarget.find(ing => ing !== 'pomod' && ing !== 'mozz');
-    const prefix = { it: "MARGHERITA CON ", en: "MARGHERITA WITH ", fr: "MARGHERITA AVEC ", es: "MARGHERITA CON ", zh: "玛格丽特配" };
-    nomeVisualizzazione = prefix[lang] + v.toUpperCase();
-  } else if (pizzaBaseTrovata || ingredientiTarget.length > 0) {
-    prezzoFinale = 6.00; 
-    
-    const labelMod = { it: " MODIFICATA", en: " MODIFIED", fr: " MODIFIÉE", es: " MODIFICADA", zh: "修改版" };
-    const labelCust = { it: "PIZZA PERSONALIZZATA", en: "CUSTOM PIZZA", fr: "PIZZA PERSONNALISÉE", es: "PIZZA PERSONALIZADA", zh: "自选披萨" };
-    
-    nomeVisualizzazione = pizzaBaseTrovata ? pizzaBaseTrovata.toUpperCase() + labelMod[lang] : labelCust[lang];
-    
-    let extraIngredienti = ingredientiTarget.filter(ing => ing !== 'pomod' && ing !== 'mozz');
-    extraIngredienti.forEach(ing => {
-      if (PREZZI_AGGIUNTE[ing]) {
-        prezzoFinale += PREZZI_AGGIUNTE[ing];
-        if (formatoScelto === 'battuta') prezzoFinale += 0.50;
-      }
-      if (KCAL_AGGIUNTE[ing]) kcalFinali += KCAL_AGGIUNTE[ing];
+async function callGroq(model, msgs) {
+  try {
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${GROQ_KEY}`},
+      body:JSON.stringify({ model, messages:msgs, max_tokens:350 })
     });
-  } else {
-    return txt[lang].notUnderstood;
-  }
-
-  if (formatoScelto === 'battuta') {
-    prezzoFinale += 2.00;
-    const s = { it: " (Formato Battuta)", en: " (Large Size)", fr: " (Grand Format)", es: " (Formato Grande)", zh: " (大份)" };
-    nomeVisualizzazione += s[lang];
-  } else if (formatoScelto === 'doppia_pasta') {
-    prezzoFinale += 1.00;
-    const s = { it: " (Doppia Pasta)", en: " (Double Dough)", fr: " (Double Pâte)", es: " (Doble Masa)", zh: " (双倍面团)" };
-    nomeVisualizzazione += s[lang];
-  } else if (formatoScelto === 'baby') {
-    prezzoFinale -= 0.50;
-    const s = { it: " (Formato Baby)", en: " (Kid Size)", fr: " (Format Enfant)", es: " (Formato Niño)", zh: " (小份)" };
-    nomeVisualizzazione += s[lang];
-  }
-
-  const isPrezzo = ['price', 'cost', 'quanto', 'prezzo', 'costa', 'coûte', 'cuesta', '价格', '多少钱'].some(k => t.includes(k));
-  const isCalorie = ['calorie', 'calories', 'kcal', 'calorico', '热量', '卡路里'].some(k => t.includes(k));
-
-  let output = "";
-  if (isPrezzo && !isCalorie) output = txt[lang].costa.replace('{N}', nomeVisualizzazione).replace('{P}', prezzoFinale.toFixed(2));
-  else if (isCalorie && !isPrezzo) output = txt[lang].kcal.replace('{N}', nomeVisualizzazione).replace('{K}', kcalFinali + " kcal");
-  else output = txt[lang].custom.replace('{N}', nomeVisualizzazione).replace('{P}', prezzoFinale.toFixed(2)).replace('{K}', kcalFinali + " kcal");
-
-  return output.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    const data = await res.json();
+    return data.choices?.[0]?.message?.content || '';
+  } catch(e) { return ''; }
 }
 
-// --- GESTIONE GRAFICA CHAT ---
-function inviaMessaggio() {
-    const inputEl = document.getElementById('userInput');
-    const chatBox = document.getElementById('chatBox');
-    const testoUtente = inputEl.value.trim();
-
-    if (testoUtente === "") return;
-
-    const userDiv = document.createElement('div');
-    userDiv.className = 'message user-message';
-    userDiv.textContent = testoUtente;
-    chatBox.appendChild(userDiv);
-
-    inputEl.value = "";
-    chatBox.scrollTop = chatBox.scrollHeight;
-
-    setTimeout(() => {
-        const rispostaBot = rispostaFissa(testoUtente);
-        const botDiv = document.createElement('div');
-        botDiv.className = 'message bot-message';
-        botDiv.innerHTML = rispostaBot;
-        chatBox.appendChild(botDiv);
-        chatBox.scrollTop = chatBox.scrollHeight;
-    }, 300);
-}
-
-function handleKeyPress(event) {
-    if (event.key === "Enter") inviaMessaggio();
+function quickSend(text) {
+  if (!panelOpen) togglePanel();
+  setTimeout(() => { document.getElementById('bp-input').value = text; bpSend(); }, 350);
 }
 </script>
-
 </body>
 </html>
