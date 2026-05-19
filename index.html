@@ -197,7 +197,7 @@ const FRITTI = {
   'misto frittico': { nome:'Misto Frittico', prezzo:15, kcal:500 }
 };
 
-// FUZZY MATCHING
+// FUZZY MATCHING - LEVENSHTEIN DISTANCE
 function levenshteinDistance(a, b) {
   const m = a.length, n = b.length;
   const d = Array(m+1).fill().map(()=>Array(n+1).fill(0));
@@ -229,17 +229,43 @@ function trovaMenuFuzzy(testo) {
   return bestScore <= 3 ? best : null;
 }
 
-// PARSING INGREDIENTI
+// ✅ PARSING INGREDIENTI (FUZZY + MIGLIORATO)
 function parseIngredienti(testo) {
   const t = testo.toLowerCase();
   const found = [];
+  const usedKeys = new Set();
+  const parole = t.split(/\s+/);
+  
+  // Primo pass: match esatto
   for(const ing of Object.keys(PREZZI_INGREDIENTI)) {
-    if(t.includes(ing)) found.push(ing);
+    if(usedKeys.has(ing)) continue;
+    if(t.includes(ing)) {
+      found.push(ing);
+      usedKeys.add(ing);
+    }
   }
+  
+  // Secondo pass: fuzzy matching per parole lunghe
+  for(const parola of parole) {
+    if(parola.length < 3) continue;
+    if(usedKeys.has(parola)) continue;
+    
+    for(const ing of Object.keys(PREZZI_INGREDIENTI)) {
+      if(usedKeys.has(ing)) continue;
+      
+      const dist = levenshteinDistance(parola, ing);
+      if(dist <= 2 && ing.length > 3) {
+        found.push(ing);
+        usedKeys.add(ing);
+        break;
+      }
+    }
+  }
+  
   return found;
 }
 
-// MATCHING PIZZA CON INGREDIENTI
+// ✅ MATCHING PIZZA CON INGREDIENTI (SOGLIA BASSA + MIGLIORATO)
 function matchPizzaFromIngredients(ingredienti) {
   if(ingredienti.length === 0) return null;
   const ingSet = new Set(ingredienti);
@@ -248,63 +274,17 @@ function matchPizzaFromIngredients(ingredienti) {
   for(const [key, pizza] of Object.entries(MENU_PIZZE)) {
     const pizzaIng = new Set(pizza.ing);
     const intersection = [...ingSet].filter(i => pizzaIng.has(i)).length;
-    const match = intersection / Math.max(ingSet.size, pizzaIng.size);
-    if(match > bestMatch && match > 0.5) {
+    
+    // Match score: almeno 1 ingrediente trovato o > 30% match
+    const match = intersection > 0 ? 
+      intersection / Math.max(ingSet.size, pizzaIng.size) : 0;
+    
+    if((intersection >= 1 && match >= 0.25) || (match > bestMatch && match > 0.15)) {
       bestMatch = match;
       best = key;
     }
   }
   return best;
-}
-
-// CALCOLO PREZZO E CALORIE PERSONALIZZATI
-function calcolaPizza(pizzaKey, ingredientiAggiunti, ingredientiRimossi, battuta=false, doppiaPasta=false, babySize=false) {
-  if(!pizzaKey || !MENU_PIZZE[pizzaKey]) return null;
-  
-  const pizza = MENU_PIZZE[pizzaKey];
-  let prezzo = pizza.prezzo;
-  let kcal = pizza.kcal;
-  
-  // Batch: +2€ per formato
-  if(battuta) prezzo += 2;
-  
-  // Doppia pasta: +1€
-  if(doppiaPasta) {
-    prezzo += 1;
-    kcal += 675;
-  }
-  
-  // Baby: -0.5€
-  if(babySize) prezzo -= 0.5;
-  
-  // Ingredienti rimossi
-  const toRemove = new Set(ingredientiRimossi);
-  for(const ing of pizza.ing) {
-    if(toRemove.has(ing)) {
-      const prezzo_ing = PREZZI_INGREDIENTI[ing] || 0;
-      const kcal_ing = KCAL_INGREDIENTI[ing] || 0;
-      prezzo -= prezzo_ing;
-      kcal -= kcal_ing;
-    }
-  }
-  
-  // Ingredienti aggiunti
-  for(const ing of ingredientiAggiunti) {
-    if(!pizza.ing.includes(ing)) {
-      const prezzo_ing = PREZZI_INGREDIENTI[ing] || 0;
-      const kcal_ing = KCAL_INGREDIENTI[ing] || 0;
-      
-      if(battuta) {
-        prezzo += prezzo_ing + 0.5;
-        kcal += kcal_ing * 1.3;
-      } else {
-        prezzo += prezzo_ing;
-        kcal += kcal_ing;
-      }
-    }
-  }
-  
-  return { prezzo: Math.max(5, Math.round(prezzo*100)/100), kcal: Math.round(kcal) };
 }
 
 // RISPOSTA FISSA CON FRITTI CASUALI
@@ -377,6 +357,56 @@ function fmt(t) {
 }
 function esc(t) { return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
+// ✅ CALCOLO PREZZO E CALORIE PERSONALIZZATI (MIGLIORATO)
+function calcolaPizza(pizzaKey, ingredientiAggiunti, ingredientiRimossi, battuta=false, doppiaPasta=false, babySize=false) {
+  if(!pizzaKey || !MENU_PIZZE[pizzaKey]) return null;
+  
+  const pizza = MENU_PIZZE[pizzaKey];
+  let prezzo = pizza.prezzo;
+  let kcal = pizza.kcal;
+  
+  // Batch: +2€ per formato
+  if(battuta) prezzo += 2;
+  
+  // Doppia pasta: +1€
+  if(doppiaPasta) {
+    prezzo += 1;
+    kcal += 675;
+  }
+  
+  // Baby: -0.5€
+  if(babySize) prezzo -= 0.5;
+  
+  // Ingredienti rimossi
+  const toRemove = new Set(ingredientiRimossi);
+  for(const ing of pizza.ing) {
+    if(toRemove.has(ing)) {
+      const prezzo_ing = PREZZI_INGREDIENTI[ing] || 0;
+      const kcal_ing = KCAL_INGREDIENTI[ing] || 0;
+      prezzo -= prezzo_ing;
+      kcal -= kcal_ing;
+    }
+  }
+  
+  // Ingredienti aggiunti
+  for(const ing of ingredientiAggiunti) {
+    if(!pizza.ing.includes(ing)) {
+      const prezzo_ing = PREZZI_INGREDIENTI[ing] || 0;
+      const kcal_ing = KCAL_INGREDIENTI[ing] || 0;
+      
+      if(battuta) {
+        prezzo += prezzo_ing + 0.5;
+        kcal += kcal_ing * 1.3;
+      } else {
+        prezzo += prezzo_ing;
+        kcal += kcal_ing;
+      }
+    }
+  }
+  
+  return { prezzo: Math.max(5, Math.round(prezzo*100)/100), kcal: Math.round(kcal) };
+}
+
 async function bpSend() {
   const input = document.getElementById('bp-input');
   const text = input.value.trim();
@@ -392,7 +422,7 @@ async function bpSend() {
   }
   if (fissa) { setTimeout(() => addBotMsg(fissa), 300); return; }
 
-  // LIVELLO 2 — Detect pizza + personalizzazione
+  // ✅ LIVELLO 2 — Detect pizza + personalizzazione (MIGLIORATO)
   const pizzaFuzzy = trovaMenuFuzzy(text);
   const ingredientiParsed = parseIngredienti(text);
   const pizzaFromIng = matchPizzaFromIngredients(ingredientiParsed);
@@ -408,7 +438,7 @@ async function bpSend() {
     
     // Analizza aggiunte/rimozioni
     const aggiunti = ingredientiParsed.filter(i => !pizza.ing.includes(i));
-    const rimossi = []; // potremmo aggiungere parsing "senza"
+    const rimossi = [];
     
     const calcolo = calcolaPizza(pizzaKey, aggiunti, rimossi, isBattuta, isDoppiaPasta, isBaby);
     
