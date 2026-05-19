@@ -135,9 +135,64 @@ const MENU_PREZZI = {
   'calzone vegeta':9,'calzone poro mauretto':12,'calzone ade':13
 };
 
+// DIZIONARIO COMPLETAMENTE AGGIORNATO CON I TUOI DATI REALI
+const MENU_INGREDIENTI = {
+  'marinara': 'pomodoro, aglio, origano, olio evo',
+  'margherita': 'pomodoro, mozzarella',
+  'diavola': 'pomodoro, mozzarella, salamino piccante',
+  'salsiccia': 'pomodoro, mozzarella, salsiccia',
+  'viennese': 'pomodoro, mozzarella, wurstel di suino',
+  'pugliese': 'pomodoro, mozzarella, cipolla di tropea',
+  'prosciutto e funghi': 'pomodoro, mozzarella, prosciutto cotto, funghi',
+  'capricciosa': 'pomodoro, mozzarella, prosciutto cotto, funghi, carciofi',
+  'tonno e cipolla': 'pomodoro, mozzarella, cipolla di tropea, tonno',
+  'bufala': 'pomodoro, mozzarella di bufala',
+  'bufalina': 'pomodoro, mozzarella di bufala, pomodorino',
+  'quattro stagioni': 'pomodoro, mozzarella, prosciutto cotto, funghi, carciofi, olive',
+  'romana': 'pomodoro, mozzarella, acciughe',
+  'siciliana': 'pomodoro, mozzarella, acciughe, capperi, olive',
+  'patatosa': 'pomodoro, mozzarella, patate fritte',
+  'parma': 'pomodoro, mozzarella, prosciutto crudo',
+  'speck': 'pomodoro, mozzarella, speck dell\'alto adige',
+  'montello': 'pomodoro, mozzarella, porchetta trevigiana, funghi porcini',
+  'valtellina': 'pomodoro, mozzarella, bresaola, rucola, grana',
+  'verdure': 'pomodoro, mozzarella, verdure miste grigliate (melanzane, zucchine, peperoni)',
+  'estate': 'pomodoro, mozzarella, pomodorino datterino condito',
+  'norma': 'pomodoro, mozzarella, melanzane, ricotta, spolverata di grana',
+  'parmigiana': 'pomodoro, mozzarella, melanzane, grana',
+  'mike': 'rucola cotta, mozzarella, salsiccia, brie, grana',
+  'ciccia e friarielli': 'mozzarella, salsiccia, friarielli',
+  'formaggi': 'gorgonzola, brie, grana, mozzarella',
+  'paolo': 'gorgonzola, cipolla, salamino, mozzarella',
+  'sfiziosa': 'mozzarella, pesto, melanzane fritte, brie, grana',
+  'ava': 'mozzarella, salsiccia, salamino, pomodorini, aglio, grana',
+  'pps': 'mozzarella, funghi porcini, scamorza, pancetta dolce',
+  'silvia': 'mozzarella, gorgonzola, porchetta, salsa senape di digione e miele',
+  'wilma': 'pomodoro, mozzarella, pesto, pomodorini, mais',
+  'wanda': 'pomodoro, mozzarella, carciofi, salamino, acciughe',
+  'leone': 'pomodoro, mozzarella, tonno, cipolla, acciughe, capperi, olive',
+  'giggino': 'pomodoro, mozzarella, prosciutto cotto, mais, philadelphia, pomodorini',
+  'titti': 'pomodoro, mozzarella, zucchine, philadelphia, prosciutto crudo',
+  'boscaiola': 'pomodoro, mozzarella, salsiccia, salamino, funghi misti',
+  'tartufata': 'pomodoro, mozzarella, salsa al tartufo, funghi misti',
+  'ufo': 'pomodoro, mozzarella, salsiccia, salamino, olive, pomodori secchi',
+  'pazza': 'pomodoro, mozzarella, salsiccia, salamino, peperoni, wurstel',
+  'repubblica': 'pomodoro, mozzarella, rucola, pomodorino, bufala, grana a scaglie',
+  'capricciosa sbagliata': 'pomodoro, mozzarella, funghi porcini, carciofi, porchetta',
+  'amatriciana': 'pomodoro, mozzarella, pancetta, cipolla, grana',
+  'onta': 'pomodoro, mozzarella, salsiccia, cipolla, peperoni',
+  'cri': 'mozzarella, salsiccia, brie erborinato (in stagione), noci, confettura di fichi',
+  'bois': 'arrotolata con mozzarella, gorgonzola, salsiccia, crema al tartufo, patate fritte',
+  'pimpa': 'arrotolata con mozzarella, scamorza, salsa bbq, cipolla, patate fritte, pancetta dolce',
+  'calzone classico': 'pomodoro, mozzarella, prosciutto cotto, funghi',
+  'calzone piccante': 'pomodoro, mozzarella, salamino, ricotta',
+  'calzone vegeta': 'pomodoro, mozzarella, verdure miste grigliate (melanzane, zucchine, peperoni)',
+  'calzone poro mauretto': 'pomodoro, mozzarella, prosciutto cotto, funghi, spinaci, ricotta, salamino, grana',
+  'calzone ade': 'pomodoro, mozzarella, salsa al tartufo, funghi misti, salamino, brie'
+};
+
 function trovaPizza(t) {
   t = t.toLowerCase();
-  // Ordina per lunghezza decrescente per evitare conflitti (es: "capricciosa sbagliata" non attiverà la "capricciosa" classica)
   const chiaviOrdinate = Object.keys(MENU_CALORIE).sort((a, b) => b.length - a.length);
   for (const p of chiaviOrdinate) { if (t.includes(p)) return p; }
   return null;
@@ -157,10 +212,16 @@ function rispostaFissa(testo) {
   if (['fritti','frittin','olive','mozzarellin','nuggets','crocch','anellin'].some(k => t.includes(k)) && !isComplesso(t)) {
     return "I nostri fritti 🍟\n• Olive/Mozzarelline/Nuggets/Crocchette: 6€ (10pz)\n• Anellini cipolla: 3,50€ (10pz)\n• Verdure pastellate: 4€\n• Patate fritte: 3,50€\n• Misto Frittico: 15€\n\nCon la pizza puoi aggiungere un frittino da 5pz misti a soli 2,50€! 🐧";
   }
+  
   const pizza = trovaPizza(t);
   if (pizza && !isComplesso(t)) {
     const nome = pizza.charAt(0).toUpperCase() + pizza.slice(1);
-    return `La ${nome} ha ${MENU_CALORIE[pizza]} kcal e costa ${MENU_PREZZI[pizza]}€ 🍕`;
+    
+    if (['ingredienti', 'cosa c\'è', 'cosa metti', 'condimento', 'cosa ha', 'ricetta', 'fatta con'].some(k => t.includes(k))) {
+      return `La pizza **${nome}** è fatta con: ${MENU_INGREDIENTI[pizza]}. Ha ${MENU_CALORIE[pizza]} kcal e costa ${MENU_PREZZI[pizza]}€! 🍕`;
+    }
+    
+    return `La ${nome} ha ${MENU_CALORIE[pizza]} kcal e costa ${MENU_PREZZI[pizza]}€ 🍕\nIngredienti: ${MENU_INGREDIENTI[pizza]}.`;
   }
   return null;
 }
@@ -177,6 +238,9 @@ FRITTI STANDALONE: Olive/Mozz/Nuggets/Crocch 6€(10pz) | Anellini 3,50€ | Ver
 
 const SYSTEM_MENU = `CALORIE: Marinara 820|Margherita 1125|Diavola 1070|Salsiccia 1190|Viennese 1180|Pugliese 1090|P.funghi 1190|Capricciosa 1240|Tonno&cip 1200|Bufala 1000|Bufalina 1020|4stagioni 1380|Romana 1060|Siciliana 1270|Patatosa 1320|Parma 1180|Speck 1210|Montello 1330|Valtellina 1310|Verdure 1200|Estate 950|Norma 1220|Parmigiana 1150|Mike 1470|Ciccia&friar 1160|Formaggi 1500|Paolo 1400|Sfiziosa 1470|AVA 1285|PPS 1300|Silvia 1200|Wilma 1260|Wanda 1280|Leone 1380|Giggino 1200|Titti 1370|Boscaiola 1585|Tartufata 1340|UFO 1650|Pazza 1600|Repubblica 1210|CapSbagliata 1380|Amatriciana 980|Onta 1100|Cri 1400|Bois 1820|Pimpa 1480|CalzClass 1120|CalzPicc 1290|CalzVeg 950|CalzMauretto 1350|CalzAdE 1300
 PREZZI: Marinara/Margherita 5€|Diavola/Salsiccia/P.funghi/Romana 8€|Viennese 7,50€|Pugliese 7€|Capricciosa/Bufala/4stagioni/Siciliana 9€|Bufalina/Parma 10€|Speck 9,50€|Montello/Valtellina 10,50€|Verdure 8,50€|Estate/Norma/Ciccia/Formaggi 9€|Parmigiana 8,50€|Mike/Sfiziosa 10€|AVA 12€|PPS 11€|Silvia 12€|Wilma 8,50€|Wanda 9€|Leone/CapSbagliata/UFO 12€|Giggino/Amatriciana/Onta 10€|Titti/Repubblica 11,50€|Boscaiola/Tartufata 11€|Pazza 11,50€|Cri 14€|Bois/Pimpa 11€|CalzClass/Picc/Veg 9€|CalzMauretto 12€|CalzAdE 13€`;
+
+// SISTEMATE ANCHE LE RICETTE COMPRESSE PER L'INTELLIGENZA ARTIFICIALE
+const SYSTEM_RICETTE = `RICETTE: Marinara(pomodoro,aglio,origano)|Margherita(pomodoro,mozz)|Diavola(pomodoro,mozz,salamino)|Salsiccia(pomodoro,mozz,salsiccia)|Viennese(pomodoro,mozz,wurstel)|Pugliese(pomodoro,mozz,cipolla)|P.funghi(pomodoro,mozz,cotto,funghi)|Capricciosa(pomodoro,mozz,cotto,funghi,carciofi)|Tonno&cip(pomodoro,mozz,tonno,cipolla)|Bufala(pomodoro,bufala)|Bufalina(pomodoro,bufala,pomodorini)|4stagioni(pomodoro,mozz,cotto,funghi,carciofi,olive)|Romana(pomodoro,mozz,acciughe)|Siciliana(pomodoro,mozz,acciughe,capperi,olive)|Patatosa(pomodoro,mozz,patatine)|Parma(pomodoro,mozz,crudo)|Speck(pomodoro,mozz,speck)|Montello(pomodoro,mozz,porchetta,porcini)|Valtellina(pomodoro,mozz,bresaola,rucola,grana)|Verdure(pomodoro,mozz,melanzane,zucchine,peperoni)|Estate(pomodoro,mozz,pomodorini)|Norma(pomodoro,mozz,melanzane,ricotta,grana)|Parmigiana(pomodoro,mozz,melanzane,grana)|Mike(rucola,mozz,salsiccia,brie,grana)|Ciccia&friar(mozz,friarielli,salsiccia)|Formaggi(zola,brie,grana,mozz)|Paolo(zola,cipolla,salamino,mozz)|Sfiziosa(mozz,pesto,melanzane fritte,brie,grana)|AVA(mozz,salsiccia,salamino,pomodorini,aglio,grana)|PPS(mozz,porcini,scamorza,pancetta)|Silvia(mozz,zola,porchetta,senape miele)|Wilma(pomodoro,mozz,pesto,pomodorini,mais)|Wanda(pomodoro,mozz,carciofi,salamino,acciughe)|Leone(pomodoro,mozz,tonno,cipolla,acciughe,capperi,olive)|Giggino(pomodoro,mozz,cotto,mais,philadelphia,pomodorini)|Titti(pomodoro,mozz,zucchine,philadelphia,crudo)|Boscaiola(pomodoro,mozz,salsiccia,salamino,funghi misti)|Tartufata(pomodoro,mozz,tartufo,funghi misti)|UFO(pomodoro,mozz,salsiccia,salamino,olive,pomodori secchi)|Pazza(pomodoro,mozz,salsiccia,salamino,peperoni,wurstel)|Repubblica(pomodoro,mozz,rucola,pomodorino,bufala,grana)|CapSbagliata(pomodoro,mozz,porcini,carciofi,porchetta)|Amatriciana(pomodoro,mozz,pancetta,cipolla,grana)|Onta(pomodoro,mozz,salsiccia,cipolla,peperoni)|Cri(mozz,salsiccia,brie,noci,fichi)|Bois(arrotolata,mozz,zola,salsiccia,tartufo,patatine)|Pimpa(arrotolata,mozz,scamorza,bbq,cipolla,patatine,pancetta)|CalzClass(pomodoro,mozz,cotto,funghi)|CalzPicc(pomodoro,mozz,salamino,ricotta)|CalzVeg(pomodoro,mozz,melanzane,zucchine,peperoni)|CalzMauretto(pomodoro,mozz,cotto,funghi,spinaci,ricotta,salamino,grana)|CalzAdE(pomodoro,mozz,tartufo,funghi misti,salamino,brie)`;
 
 const SYSTEM_CALCOLI = `
 KCAL INGREDIENTI: Impasto 675|Pomodoro 14|Olio 44|Mozz 280|Bufala 260|Gorgonzola 210|Brie 167|Grana 43|Scamorza 180|Ricotta 70|Philadelphia 96|Stracchino 150|Salsiccia 240|Salamino 252|P.cotto 87|P.crudo 125|Pancetta 270|Speck 130|Porchetta 180|Wurstel 240|Bresaola 75|Tonno 79|Acciughe 21|Funghi 13|Porcini 15|Carciofi 28|Pomodorini 11|Melanzane 15|Peperoni 25|Zucchine 10|Friarielli 18|Cipolla 12|Mais 29|Olive 35|Pesto 135|Tartufo 53|BBQ 24|Patate fritte 250|Pom.secchi 75|Noci 98|Rucola 8
@@ -254,7 +318,8 @@ async function bpSend() {
   const complesso = isComplesso(text);
   const model70b = 'llama-3.3-70b-versatile';
   const model8b = 'llama-3.1-8b-instant';
-  const systemPrompt = SYSTEM_BASE + '\n' + SYSTEM_MENU + (complesso ? '\n' + SYSTEM_CALCOLI : '');
+  
+  const systemPrompt = SYSTEM_BASE + '\n' + SYSTEM_MENU + '\n' + SYSTEM_RICETTE + (complesso ? '\n' + SYSTEM_CALCOLI : '');
   const msgs = [{ role:'system', content:systemPrompt }, ...bpHistory.filter(m => m.role==='user'||m.role==='assistant').slice(-6)];
 
   let testo = await callGroq(complesso ? model70b : model8b, msgs);
