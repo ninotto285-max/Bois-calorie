@@ -137,7 +137,7 @@ const MENU_PIZZE = {
   'mike': { nome:'Mike', ing:['rucola','mozzarella','salsiccia','brie','grana'], prezzo:10.5, kcal:1470 },
   'ciccia e friarielli': { nome:'Ciccia e Friarielli', ing:['mozzarella','salsiccia','friarielli'], prezzo:9, kcal:1160 },
   'formaggi': { nome:'Formaggi', ing:['gorgonzola','brie','grana','mozzarella'], prezzo:9, kcal:1500 },
-  'paolo': { nome:'Paolo', ing:['gorgonzola','cipolla','salamino','mozzarella'], prezzo:10, kcal:1400 },
+  'paolo': { nome:'Paolo', ing:['gorgonzola','cipolla','salamino','mozzarella'], prezzo:10, kcal:1400, tipo:'bianca' },
   'sfiziosa': { nome:'Sfiziosa', ing:['mozzarella','pesto','melanzane','brie','grana'], prezzo:10, kcal:1470 },
   'ava': { nome:'AVA', ing:['mozzarella','salsiccia','salamino','pomodorino','aglio','grana'], prezzo:12, kcal:1285 },
   'pps': { nome:'PPS', ing:['mozzarella','porcini','scamorza','pancetta dolce'], prezzo:11, kcal:1300 },
@@ -156,8 +156,8 @@ const MENU_PIZZE = {
   'amatriciana': { nome:'Amatriciana', ing:['pomodoro','mozzarella','pancetta','cipolla','grana'], prezzo:10, kcal:1100 },
   'onta': { nome:'Onta', ing:['pomodoro','mozzarella','salsiccia','cipolla','peperoni'], prezzo:10, kcal:1400 },
   'cri': { nome:'Cri', ing:['mozzarella','salsiccia','brie','noci','confettura di fichi'], prezzo:14, kcal:1400 },
-  'bois': { nome:'Bois', ing:['mozzarella','gorgonzola','salsiccia','crema al tartufo','patate fritte'], prezzo:11, kcal:1820, note:'arrotolata' },
-  'pimpa': { nome:'Pimpa', ing:['mozzarella','scamorza','salsa bbq','cipolla','patate fritte','pancetta dolce'], prezzo:11, kcal:1480, note:'arrotolata' },
+  'bois': { nome:'Bois', ing:['mozzarella','gorgonzola','salsiccia','crema al tartufo','patate fritte'], prezzo:11, kcal:1820, nota:'arrotolata' },
+  'pimpa': { nome:'Pimpa', ing:['mozzarella','scamorza','salsa bbq','cipolla','patate fritte','pancetta dolce'], prezzo:11, kcal:1480, nota:'arrotolata' },
   'calzone classico': { nome:'Calzone Classico', ing:['pomodoro','mozzarella','prosciutto cotto','funghi'], prezzo:9, kcal:1120 },
   'calzone piccante': { nome:'Calzone Piccante', ing:['pomodoro','mozzarella','salamino','ricotta'], prezzo:9, kcal:1290 },
   'calzone vegeta': { nome:'Calzone Vegeta', ing:['pomodoro','mozzarella','verdure miste'], prezzo:9, kcal:950 },
@@ -173,7 +173,7 @@ const PREZZI_INGREDIENTI = {
   'gorgonzola':1.5, 'crema al tartufo':2, 'salsa bbq':1, 'pancetta dolce':2.5, 'scamorza':1.5, 'mais':1,
   'pesto':1, 'zucchine':1, 'philadelphia':1.5, 'porcini':2.5, 'pomodori secchi':2, 'peperoni':1, 'rucola':1,
   'grana':1.5, 'porchetta':3, 'brie':1.5, 'friarielli':1.5, 'stracchino':2, 'noci':1, 'bresaola':3,
-  'prosciutto crudo':3, 'speck':3, 'prosciutto cotto':1
+  'prosciutto crudo':3, 'speck':3, 'prosciutto cotto':1, 'spinaci':1, 'confettura di fichi':1
 };
 
 const KCAL_INGREDIENTI = {
@@ -183,7 +183,7 @@ const KCAL_INGREDIENTI = {
   'porchetta':180, 'wurstel':240, 'bresaola':75, 'tonno':79, 'acciughe':21, 'funghi':13, 'porcini':15,
   'carciofi':28, 'pomodorino':11, 'melanzane':15, 'peperoni':25, 'zucchine':10, 'friarielli':18,
   'cipolla':12, 'mais':29, 'olive':35, 'pesto':135, 'crema al tartufo':53, 'patate fritte':250,
-  'pomodori secchi':75, 'noci':98, 'rucola':8
+  'pomodori secchi':75, 'noci':98, 'rucola':8, 'spinaci':3, 'confettura di fichi':80
 };
 
 const FRITTI = {
@@ -197,7 +197,9 @@ const FRITTI = {
   'misto frittico': { nome:'Misto Frittico', prezzo:15, kcal:500 }
 };
 
-// FUZZY MATCHING - LEVENSHTEIN DISTANCE
+// ============ CORE LOGIC ============
+
+// LEVENSHTEIN DISTANCE
 function levenshteinDistance(a, b) {
   const m = a.length, n = b.length;
   const d = Array(m+1).fill().map(()=>Array(n+1).fill(0));
@@ -212,152 +214,77 @@ function levenshteinDistance(a, b) {
   return d[m][n];
 }
 
+// FIND PIZZA BY FUZZY NAME
 function trovaMenuFuzzy(testo) {
   const t = testo.toLowerCase().trim();
   const parole = t.split(/\s+/);
   let best = null, bestScore = Infinity;
+  
   for(const key of Object.keys(MENU_PIZZE)) {
     const dist = levenshteinDistance(t, key);
-    if(dist < bestScore) { bestScore = dist; best = key; }
+    if(dist < bestScore && dist <= 2) { bestScore = dist; best = key; }
+    
     for(const parola of parole) {
       if(parola.length > 2) {
         const d = levenshteinDistance(parola, key);
-        if(d < bestScore) { bestScore = d; best = key; }
+        if(d <= 1 && d < bestScore) { bestScore = d; best = key; }
       }
-    }
-  }
-  return bestScore <= 3 ? best : null;
-}
-
-// ✅ PARSING INGREDIENTI (FUZZY + MIGLIORATO)
-function parseIngredienti(testo) {
-  const t = testo.toLowerCase();
-  const found = [];
-  const usedKeys = new Set();
-  const parole = t.split(/\s+/);
-  
-  // Primo pass: match esatto
-  for(const ing of Object.keys(PREZZI_INGREDIENTI)) {
-    if(usedKeys.has(ing)) continue;
-    if(t.includes(ing)) {
-      found.push(ing);
-      usedKeys.add(ing);
-    }
-  }
-  
-  // Secondo pass: fuzzy matching per parole lunghe
-  for(const parola of parole) {
-    if(parola.length < 3) continue;
-    if(usedKeys.has(parola)) continue;
-    
-    for(const ing of Object.keys(PREZZI_INGREDIENTI)) {
-      if(usedKeys.has(ing)) continue;
-      
-      const dist = levenshteinDistance(parola, ing);
-      if(dist <= 2 && ing.length > 3) {
-        found.push(ing);
-        usedKeys.add(ing);
-        break;
-      }
-    }
-  }
-  
-  return found;
-}
-
-// ✅ MATCHING PIZZA CON INGREDIENTI (SOGLIA BASSA + MIGLIORATO)
-function matchPizzaFromIngredients(ingredienti) {
-  if(ingredienti.length === 0) return null;
-  const ingSet = new Set(ingredienti);
-  let best = null, bestMatch = 0;
-  
-  for(const [key, pizza] of Object.entries(MENU_PIZZE)) {
-    const pizzaIng = new Set(pizza.ing);
-    const intersection = [...ingSet].filter(i => pizzaIng.has(i)).length;
-    
-    // Match score: almeno 1 ingrediente trovato o > 30% match
-    const match = intersection > 0 ? 
-      intersection / Math.max(ingSet.size, pizzaIng.size) : 0;
-    
-    if((intersection >= 1 && match >= 0.25) || (match > bestMatch && match > 0.15)) {
-      bestMatch = match;
-      best = key;
     }
   }
   return best;
 }
 
-// RISPOSTA FISSA CON FRITTI CASUALI
-function rispostaFissa(testo) {
-  const t = testo.toLowerCase().trim();
-  if (['ordina','ordinare','prenotare','come ordino','voglio ordinare','posso ordinare','contatti','come posso'].some(k => t.includes(k))) return 'ORDER';
-  if (['orari','aperto','chiuso','quando'].some(k => t.includes(k))) return "Siamo aperti **martedì-domenica 18:30-21:30** 🕐\nLunedì chiusi!";
-  if (['dove','indirizzo','via','casier'].some(k => t.includes(k))) return "Via Principale 113, Casier (TV) 📍";
-  if (['telefono','numero','chiamo'].some(k => t.includes(k))) return "📞 0422 670631 (prenotazioni)\n💬 3405327257 (WhatsApp info)";
+// PARSE INGREDIENTS FROM TEXT
+function parseIngredienti(testo) {
+  const t = testo.toLowerCase();
+  const found = [];
+  const usedKeys = new Set();
   
-  if (['fritti','frittin','olive','mozza'].some(k => t.includes(k))) {
-    const frittiList = "🍟 **I nostri fritti:**\n• Olive/Mozz/Nuggets/Crocch: **6€** (10pz)\n• Anellini cipolla: **3,50€** (10pz)\n• Verdure pastellate: **4€**\n• Patate fritte: **3,50€**\n• Misto Frittico: **15€**\n\n💡 Con pizza aggiungi 5pz misti a solo **2,50€**!";
-    return frittiList;
+  for(const ing of Object.keys(PREZZI_INGREDIENTI)) {
+    if(usedKeys.has(ing)) continue;
+    
+    if(t.includes(ing)) {
+      found.push(ing);
+      usedKeys.add(ing);
+    }
+  }
+  return found;
+}
+
+// ============ SMART MATCHING: Confronta ingredienti vs TUTTE le pizze ============
+function matchPizzaFromIngredients(ingredientiAggiuntivi, ingredientiRimossi) {
+  if(ingredientiAggiuntivi.length === 0 && ingredientiRimossi.length === 0) return null;
+  
+  let bestMatch = null;
+  let bestScore = 0;
+  
+  // Confronta con TUTTE le pizze
+  for(const [key, pizza] of Object.entries(MENU_PIZZE)) {
+    const pizzaIng = new Set(pizza.ing);
+    
+    // Calcola che ingredienti aggiunti sono effettivamente nuovi
+    const realAggiunti = ingredientiAggiuntivi.filter(i => !pizzaIng.has(i));
+    
+    // Score: penalità per ingredienti aggiunti NON in questa pizza
+    const penalitaAggiunti = realAggiunti.length * 0.3;
+    
+    // Bonus se tutti gli ingredienti rimossi sono IN questa pizza
+    const rimossiInPizza = ingredientiRimossi.filter(i => pizzaIng.has(i)).length;
+    const bonusRimossi = rimossiInPizza * 0.5;
+    
+    const score = bonusRimossi - penalitaAggiunti;
+    
+    // Se score è buono (meglio di 0) e penalità è bassa, è un match
+    if(score > bestScore && penalitaAggiunti < 0.6) {
+      bestScore = score;
+      bestMatch = key;
+    }
   }
   
-  if (t.includes('leggera') || t.includes('light') || t.includes('calorie basse')) {
-    return "**Pizza Leggera?** Perfetto! 🥗\nTi consiglio:\n• **Bufalina** (1020 kcal)\n• **Estate** (950 kcal)\n• **Repubblica** (1210 kcal)\n• **Valtellina** (1310 kcal)\nO combina **bufala + pomodorini + rucola** personalizzata! 🐧";
-  }
-  
-  return null;
+  return bestScore > 0 ? bestMatch : null;
 }
 
-let bpHistory = [], bpLoading = false, panelOpen = false, orderShown = false;
-
-function togglePanel() {
-  panelOpen = !panelOpen;
-  document.getElementById('bois-panel').classList.toggle('open', panelOpen);
-  if (panelOpen && bpHistory.length === 0)
-    setTimeout(() => addBotMsg("Ciao! 🐧🍕 Sono il Pinguino di BoisPizza!\nDimmi cosa vuoi mangiare e ti dico calorie e prezzo. O chiedimi qualsiasi cosa!"), 300);
-}
-
-function addBotMsg(text) {
-  const el = document.getElementById('bp-messages');
-  const div = document.createElement('div');
-  div.className = 'bp-msg bot';
-  div.innerHTML = `<div class="bp-msg-av">🐧</div><div class="bp-bubble">${fmt(text)}</div>`;
-  el.appendChild(div); el.scrollTop = el.scrollHeight;
-  bpHistory.push({ role:'assistant', content:text });
-}
-function addUserMsg(text) {
-  const el = document.getElementById('bp-messages');
-  const div = document.createElement('div');
-  div.className = 'bp-msg user';
-  div.innerHTML = `<div class="bp-msg-av">👤</div><div class="bp-bubble">${esc(text)}</div>`;
-  el.appendChild(div); el.scrollTop = el.scrollHeight;
-  bpHistory.push({ role:'user', content:text });
-}
-function showOrderButtons() {
-  if (orderShown) return; orderShown = true;
-  const el = document.getElementById('bp-messages');
-  const div = document.createElement('div');
-  div.className = 'bp-msg bot';
-  div.innerHTML = `<div class="bp-msg-av">🐧</div><div class="bp-bubble"><div style="font-size:0.78rem;color:#9e7a5a;margin-bottom:8px;">Scegli come contattarci 👇</div><div class="order-btns"><a href="${WA}" target="_blank" class="btn-wa"><span>💬</span> WhatsApp (info)</a><a href="${TEL}" class="btn-tel"><span>📞</span> Chiama 0422 670631</a></div></div>`;
-  el.appendChild(div); el.scrollTop = el.scrollHeight;
-}
-function showTyping() {
-  const el = document.getElementById('bp-messages');
-  const div = document.createElement('div');
-  div.className = 'bp-msg bot'; div.id = 'bp-typing';
-  div.innerHTML = `<div class="bp-msg-av">🐧</div><div class="bp-bubble"><div class="bp-typing"><span></span><span></span><span></span></div></div>`;
-  el.appendChild(div); el.scrollTop = el.scrollHeight;
-}
-function removeTyping() { const t = document.getElementById('bp-typing'); if(t) t.remove(); }
-function fmt(t) { 
-  return esc(t)
-    .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
-    .replace(/(\d+)\s*kcal/gi,'<span class="cal-box">$1 kcal</span>')
-    .replace(/(\d+[\d.,]*)\s*€/gi,'<span class="price-box">$1€</span>')
-    .replace(/\n/g,'<br>');
-}
-function esc(t) { return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-
-// ✅ CALCOLO PREZZO E CALORIE PERSONALIZZATI (MIGLIORATO)
+// ============ CALCOLO PREZZO E CALORIE PERSONALIZZATI ============
 function calcolaPizza(pizzaKey, ingredientiAggiunti, ingredientiRimossi, battuta=false, doppiaPasta=false, babySize=false) {
   if(!pizzaKey || !MENU_PIZZE[pizzaKey]) return null;
   
@@ -365,16 +292,11 @@ function calcolaPizza(pizzaKey, ingredientiAggiunti, ingredientiRimossi, battuta
   let prezzo = pizza.prezzo;
   let kcal = pizza.kcal;
   
-  // Batch: +2€ per formato
   if(battuta) prezzo += 2;
-  
-  // Doppia pasta: +1€
   if(doppiaPasta) {
     prezzo += 1;
     kcal += 675;
   }
-  
-  // Baby: -0.5€
   if(babySize) prezzo -= 0.5;
   
   // Ingredienti rimossi
@@ -407,6 +329,112 @@ function calcolaPizza(pizzaKey, ingredientiAggiunti, ingredientiRimossi, battuta
   return { prezzo: Math.max(5, Math.round(prezzo*100)/100), kcal: Math.round(kcal) };
 }
 
+// ============ FIXED RESPONSES ============
+function rispostaFissa(testo) {
+  const t = testo.toLowerCase().trim();
+  
+  // ORDINI
+  if (['ordina','ordinare','prenotare','come ordino','voglio ordinare','posso ordinare','contatti','come posso'].some(k => t.includes(k))) return 'ORDER';
+  
+  // ORARI
+  if (['orari','aperto','chiuso','quando'].some(k => t.includes(k))) return "Siamo aperti **martedì-domenica 18:30-21:30** 🕐\nLunedì chiusi!";
+  
+  // INDIRIZZO
+  if (['dove','indirizzo','via','casier'].some(k => t.includes(k))) return "Via Principale 113, Casier (TV) 📍";
+  
+  // TELEFONO
+  if (['telefono','numero','chiamo'].some(k => t.includes(k))) return "📞 0422 670631 (prenotazioni)\n💬 3405327257 (WhatsApp info)";
+  
+  // FRITTI
+  if (['fritti','frittin','olive','mozza'].some(k => t.includes(k))) {
+    return "🍟 **I nostri fritti:**\n• Olive/Mozz/Nuggets/Crocch: **6€** (10pz)\n• Anellini cipolla: **3,50€** (10pz)\n• Verdure pastellate: **4€**\n• Patate fritte: **3,50€**\n• Misto Frittico: **15€**\n\n💡 Con pizza aggiungi 5pz misti a solo **2,50€**!";
+  }
+  
+  // PIZZA LEGGERA
+  if (t.includes('leggera') || t.includes('light') || t.includes('calorie basse')) {
+    return "**Pizza Leggera?** Perfetto! 🥗\nTi consiglio:\n• **Bufalina** (1020 kcal)\n• **Estate** (950 kcal)\n• **Repubblica** (1210 kcal)\n• **Valtellina** (1310 kcal)\nO combina **bufala + pomodorini + rucola** personalizzata! 🐧";
+  }
+  
+  // CHIEDI INGREDIENTI DI UNA PIZZA
+  for(const [key, pizza] of Object.entries(MENU_PIZZE)) {
+    if(t.includes(key) && ['ingredienti','ha','contiene','cosa','quali'].some(k => t.includes(k))) {
+      let resp = `🍕 **${pizza.nome}**: ${pizza.ing.join(', ')}`;
+      if(pizza.tipo === 'bianca') resp += " *(BIANCA)*";
+      if(pizza.nota) resp += ` *(${pizza.nota})*`;
+      return resp;
+    }
+  }
+  
+  // CHIEDI PREZZO/CALORIE DI UN INGREDIENTE
+  for(const ing of Object.keys(PREZZI_INGREDIENTI)) {
+    if(t.includes(ing) && ['prezzo','costa','kcal','calorie'].some(k => t.includes(k))) {
+      const prezzo = PREZZI_INGREDIENTI[ing];
+      const kcal = KCAL_INGREDIENTI[ing] || 0;
+      return `**${ing}**: ${prezzo}€ | ${kcal} kcal`;
+    }
+  }
+  
+  return null;
+}
+
+// ============ UI ============
+let bpHistory = [], bpLoading = false, panelOpen = false, orderShown = false;
+
+function togglePanel() {
+  panelOpen = !panelOpen;
+  document.getElementById('bois-panel').classList.toggle('open', panelOpen);
+  if (panelOpen && bpHistory.length === 0)
+    setTimeout(() => addBotMsg("Ciao! 🐧🍕 Sono il Pinguino di BoisPizza!\nDimmi cosa vuoi mangiare e ti dico calorie e prezzo. O chiedimi qualsiasi cosa!"), 300);
+}
+
+function addBotMsg(text) {
+  const el = document.getElementById('bp-messages');
+  const div = document.createElement('div');
+  div.className = 'bp-msg bot';
+  div.innerHTML = `<div class="bp-msg-av">🐧</div><div class="bp-bubble">${fmt(text)}</div>`;
+  el.appendChild(div); el.scrollTop = el.scrollHeight;
+  bpHistory.push({ role:'assistant', content:text });
+}
+
+function addUserMsg(text) {
+  const el = document.getElementById('bp-messages');
+  const div = document.createElement('div');
+  div.className = 'bp-msg user';
+  div.innerHTML = `<div class="bp-msg-av">👤</div><div class="bp-bubble">${esc(text)}</div>`;
+  el.appendChild(div); el.scrollTop = el.scrollHeight;
+  bpHistory.push({ role:'user', content:text });
+}
+
+function showOrderButtons() {
+  if (orderShown) return; orderShown = true;
+  const el = document.getElementById('bp-messages');
+  const div = document.createElement('div');
+  div.className = 'bp-msg bot';
+  div.innerHTML = `<div class="bp-msg-av">🐧</div><div class="bp-bubble"><div style="font-size:0.78rem;color:#9e7a5a;margin-bottom:8px;">Scegli come contattarci 👇</div><div class="order-btns"><a href="${WA}" target="_blank" class="btn-wa"><span>💬</span> WhatsApp (info)</a><a href="${TEL}" class="btn-tel"><span>📞</span> Chiama 0422 670631</a></div></div>`;
+  el.appendChild(div); el.scrollTop = el.scrollHeight;
+}
+
+function showTyping() {
+  const el = document.getElementById('bp-messages');
+  const div = document.createElement('div');
+  div.className = 'bp-msg bot'; div.id = 'bp-typing';
+  div.innerHTML = `<div class="bp-msg-av">🐧</div><div class="bp-bubble"><div class="bp-typing"><span></span><span></span><span></span></div></div>`;
+  el.appendChild(div); el.scrollTop = el.scrollHeight;
+}
+
+function removeTyping() { const t = document.getElementById('bp-typing'); if(t) t.remove(); }
+
+function fmt(t) { 
+  return esc(t)
+    .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
+    .replace(/(\d+)\s*kcal/gi,'<span class="cal-box">$1 kcal</span>')
+    .replace(/(\d+[\d.,]*)\s*€/gi,'<span class="price-box">$1€</span>')
+    .replace(/\n/g,'<br>');
+}
+
+function esc(t) { return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ============ MAIN HANDLER ============
 async function bpSend() {
   const input = document.getElementById('bp-input');
   const text = input.value.trim();
@@ -414,45 +442,53 @@ async function bpSend() {
   input.value = '';
   addUserMsg(text);
 
-  // LIVELLO 1 — risposta fissa
+  // LEVEL 1: Fixed responses
   const fissa = rispostaFissa(text);
   if (fissa === 'ORDER') {
     addBotMsg("Ecco come contattarci per ordinare! 🐧");
     setTimeout(showOrderButtons, 300); return;
   }
-  if (fissa) { setTimeout(() => addBotMsg(fissa), 300); return; }
+  if (fissa) { 
+    setTimeout(() => addBotMsg(fissa), 300); 
+    return; 
+  }
 
-  // ✅ LIVELLO 2 — Detect pizza + personalizzazione (MIGLIORATO)
+  // LEVEL 2: Smart pizza matching
   const pizzaFuzzy = trovaMenuFuzzy(text);
   const ingredientiParsed = parseIngredienti(text);
-  const pizzaFromIng = matchPizzaFromIngredients(ingredientiParsed);
+  
+  // Parsing "senza" e "con"
+  const conMatch = text.match(/con\s+(.+?)(?:\s+senza|$)/i);
+  const senzaMatch = text.match(/senza\s+(.+?)(?:\s+con|$)/i);
+  
+  const ingredientiAggiunti = conMatch ? parseIngredienti(conMatch[1]) : [];
+  const ingredientiRimossi = senzaMatch ? parseIngredienti(senzaMatch[1]) : [];
+  
+  const pizzaFromMatch = matchPizzaFromIngredients(ingredientiAggiunti, ingredientiRimossi);
   
   const isBattuta = text.toLowerCase().includes('battuta');
   const isDoppiaPasta = text.toLowerCase().includes('doppia pasta');
   const isBaby = text.toLowerCase().includes('baby') || text.toLowerCase().includes('poca fame');
   
-  let pizzaKey = pizzaFuzzy || pizzaFromIng;
+  let pizzaKey = pizzaFuzzy || pizzaFromMatch;
   
   if (pizzaKey) {
     const pizza = MENU_PIZZE[pizzaKey];
-    
-    // Analizza aggiunte/rimozioni
-    const aggiunti = ingredientiParsed.filter(i => !pizza.ing.includes(i));
-    const rimossi = [];
-    
-    const calcolo = calcolaPizza(pizzaKey, aggiunti, rimossi, isBattuta, isDoppiaPasta, isBaby);
+    const calcolo = calcolaPizza(pizzaKey, ingredientiAggiunti, ingredientiRimossi, isBattuta, isDoppiaPasta, isBaby);
     
     if(calcolo) {
       let risposta = `**${pizza.nome}** 🍕\n`;
-      if(aggiunti.length > 0) risposta += `*Con aggiunta: ${aggiunti.join(', ')}*\n`;
-      risposta += `💪 ${calcolo.kcal} kcal | 💰 ${calcolo.prezzo}€`;
+      if(pizza.tipo === 'bianca') risposta += `*(BIANCA)* `;
+      if(pizza.nota) risposta += `*(${pizza.nota})* `;
+      if(ingredientiAggiunti.length > 0) risposta += `\n*Con aggiunta: ${ingredientiAggiunti.join(', ')}*`;
+      if(ingredientiRimossi.length > 0) risposta += `\n*Senza: ${ingredientiRimossi.join(', ')}*`;
+      risposta += `\n💪 ${calcolo.kcal} kcal | 💰 ${calcolo.prezzo}€`;
       
-      // Proponi fritti casuali
       if(!text.toLowerCase().includes('senza fritti')) {
         const frittiKeys = Object.keys(FRITTI);
         const frittoRandom = frittiKeys[Math.floor(Math.random() * frittiKeys.length)];
         const fritto = FRITTI[frittoRandom];
-        risposta += `\n\n💡 Aggiungi ${fritto.nome} a **${fritto.prezzo}€** per completare? 🤤`;
+        risposta += `\n\n💡 Aggiungi ${fritto.nome} a **${fritto.prezzo}€**? 🤤`;
       }
       
       setTimeout(() => addBotMsg(risposta), 300);
@@ -460,7 +496,7 @@ async function bpSend() {
     }
   }
 
-  // LIVELLO 3 — AI fallback
+  // LEVEL 3: Fallback IA
   bpLoading = true;
   document.getElementById('bp-send').disabled = true;
   showTyping();
@@ -468,6 +504,7 @@ async function bpSend() {
   const systemPrompt = `Sei Pinguino 🐧, assistente pizzeria BoisPizza Casier (TV).
 STILE: Simpatico, diretto, brevi risposte naturali. NO elenchi lunghi.
 ORARI: Mar-Dom 18:30-21:30, Lun chiuso. TEL: 0422670631 | WA: 3405327257
+Se l'utente chiede qualcosa che non conosci o combinazioni strane, rispondi: "Non so! 🤔 Chiama il 0422 670631 o scrivi su WhatsApp per più info!"
 PIZZA LEGGERA: Bufalina (1020kcal), Estate (950kcal), Repubblica (1210kcal), Valtellina (1310kcal).
 FRITTI CON PIZZA: 5pz misti 2,50€. Standalone: Olive/Mozz/Nuggets/Crocch 6€ | Anellini 3,50€ | Verdure 4€ | Patate 3,50€ | Misto 15€.
 Dai sempre KCAL e PREZZO in risposta quando parli di pizza.`;
@@ -483,7 +520,7 @@ Dai sempre KCAL e PREZZO in risposta quando parli di pizza.`;
     if(!orderShown && ['ordina','prendo','voglio ordinar'].some(k => bpHistory.slice(-2).map(m => m.content.toLowerCase()).join(' ').includes(k)))
       setTimeout(showOrderButtons, 500);
   } else {
-    addBotMsg("Ops, problema! 😅 Chiama il 0422 670631 🐧");
+    addBotMsg("Non so! 🤔 Chiama il 0422 670631 o scrivi su WhatsApp per più info!");
   }
 
   bpLoading = false;
