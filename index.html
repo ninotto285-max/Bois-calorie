@@ -541,17 +541,12 @@ REGOLE DI RISPOSTA:
 - Se chiedono ingredienti non nel menù, dì che possono chiamare per personalizzare
 - Ricorda sempre che la pizza è fatta artigianalmente con ingredienti freschi di qualità
 - ORARI ORDINI: martedì-domenica 18:30-21:30. Lunedì chiuso. Ricordalo se chiedono di ordinare fuori orario.
-
-GESTIONE ORDINI:
-Quando il cliente sembra pronto ad ordinare (dice "la prendo", "voglio ordinare", "quanto costa in tutto", "come faccio ad ordinare"), fai un breve riepilogo dell'ordine e mostra i contatti. Alla fine del riepilogo scrivi esattamente questo tag speciale su una riga separata:
-[ORDINA:testo_ordine_precompilato]
-Dove testo_ordine_precompilato è il messaggio WhatsApp già pronto, ad esempio:
-[ORDINA:Ciao! Vorrei ordinare: 1 Diavola + 1 bibita. Totale stimato: 10,50€]
-Questo farà apparire i bottoni WhatsApp e Telefono automaticamente.`;
+- Quando il cliente sembra pronto ad ordinare, fai un breve riepilogo e digli che può ordinare con i bottoni qui sotto.`;
 
 let bpHistory = [];
 let bpLoading = false;
 let panelOpen = false;
+let orderButtonsShown = false;
 
 function togglePanel() {
   panelOpen = !panelOpen;
@@ -561,22 +556,23 @@ function togglePanel() {
   }
 }
 
-function addOrderButtons(orderText) {
+function showOrderButtons() {
+  if (orderButtonsShown) return;
+  orderButtonsShown = true;
   const el = document.getElementById('bp-messages');
   const div = document.createElement('div');
   div.className = 'bp-msg bot';
-  const waMsg = encodeURIComponent(orderText);
   div.innerHTML = `
     <div class="bp-msg-av">🐧</div>
     <div class="bp-bubble" style="display:flex;flex-direction:column;gap:8px;">
-      <div style="font-size:0.8rem;color:#9e7a5a;">Pronto a ordinare? 👇</div>
-      <a href="https://wa.me/393405327257?text=${waMsg}" target="_blank"
+      <div style="font-size:0.78rem;color:#9e7a5a;margin-bottom:2px;">Pronto a ordinare? 👇</div>
+      <a href="https://wa.me/393405327257" target="_blank"
         style="display:flex;align-items:center;gap:8px;background:linear-gradient(135deg,#25d366,#128c7e);color:white;border-radius:10px;padding:8px 12px;text-decoration:none;font-weight:700;font-size:0.82rem;">
-        <span style="font-size:18px;">💬</span> Ordina su WhatsApp
+        <span>💬</span> Ordina su WhatsApp
       </a>
       <a href="tel:+390422670631"
         style="display:flex;align-items:center;gap:8px;background:linear-gradient(135deg,#c0392b,#e67e22);color:white;border-radius:10px;padding:8px 12px;text-decoration:none;font-weight:700;font-size:0.82rem;">
-        <span style="font-size:18px;">📞</span> Chiama 0422 670631
+        <span>📞</span> Chiama 0422 670631
       </a>
     </div>`;
   el.appendChild(div);
@@ -584,22 +580,20 @@ function addOrderButtons(orderText) {
 }
 
 function addBotMsg(text) {
-  // Check for order tag
-  const orderMatch = text.match(/\[ORDINA:(.+?)\]/s);
-  const cleanText = text.replace(/\[ORDINA:.+?\]/s, '').trim();
-
   const el = document.getElementById('bp-messages');
-  if (cleanText) {
-    const div = document.createElement('div');
-    div.className = 'bp-msg bot';
-    div.innerHTML = `<div class="bp-msg-av">🐧</div><div class="bp-bubble">${fmt(cleanText)}</div>`;
-    el.appendChild(div);
-    el.scrollTop = el.scrollHeight;
-  }
-  if (orderMatch) {
-    setTimeout(() => addOrderButtons(orderMatch[1]), 300);
-  }
+  const div = document.createElement('div');
+  div.className = 'bp-msg bot';
+  div.innerHTML = `<div class="bp-msg-av">🐧</div><div class="bp-bubble">${fmt(text)}</div>`;
+  el.appendChild(div);
+  el.scrollTop = el.scrollHeight;
   bpHistory.push({ role: 'assistant', content: text });
+
+  // Show order buttons if conversation suggests readiness to order
+  const orderKeywords = ['ordina', 'prendo', 'voglio', 'prenoto', 'come ordino', 'posso ordinare', 'vorrei'];
+  const recentMsgs = bpHistory.slice(-4).map(m => m.content.toLowerCase()).join(' ');
+  if (!orderButtonsShown && orderKeywords.some(k => recentMsgs.includes(k))) {
+    setTimeout(showOrderButtons, 400);
+  }
 }
 
 function addUserMsg(text) {
