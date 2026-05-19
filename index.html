@@ -204,12 +204,12 @@ function isComplesso(t) {
 function rispostaFissa(testo) {
   let t = testo.toLowerCase().trim();
   
-  // 1. RILEVAMENTO DELLA LINGUA (Default: it)
+  // 1. RILEVAMENTO DELLA LINGUA (Va fatto SUBITO prima di modificare il testo!)
   let lang = 'it';
-  if (['price', 'cost', 'hours', 'open', 'where', 'ingredients', 'with', 'without', 'add'].some(k => t.includes(k))) lang = 'en';
+  if (['price', 'cost', 'hours', 'open', 'where', 'ingredients', 'with', 'without', 'add', 'how much'].some(k => t.includes(k))) lang = 'en';
   else if (['preis', 'kosten', 'uhr', 'öffnungszeiten', 'wo', 'zutaten', 'mit', 'ohne', 'hinzufügen'].some(k => t.includes(k))) lang = 'de';
   else if (['prix', 'horaire', 'ouvert', 'où', 'ingrédients', 'avec', 'sans', 'ajouter'].some(k => t.includes(k))) lang = 'fr';
-  else if (['precio', 'horario', 'abierto', 'donde', 'ingredientes', 'con', 'sin', 'pedir'].some(k => t.includes(k))) lang = 'es';
+  else if (['precio', 'horario', 'abierto', 'donde', 'ingredientes', 'con', 'sin', 'pedir', 'cuanto'].some(k => t.includes(k))) lang = 'es';
   else if (['价格', '多少钱', '卡路里', '热量', '配料', '点餐', '地址', '在哪', '时间', '营业', '加', '去', '不要'].some(k => t.includes(k))) lang = 'zh';
 
   // DIZIONARIO TESTI DI BASE PER LINGUA
@@ -280,7 +280,7 @@ function rispostaFissa(testo) {
       diavola: "¡La Margherita con salame picante es nuestra **Diavola**! Cuesta 8,00€ y tiene 1070 kcal 🍕",
       salsiccia: "¿Margherita con salchicha? ¡Tenemos la pizza **Salsiccia**! Cuesta 8,00€ y tiene 1190 kcal 🐧",
       viennese: "La margherita con salchichas de Viena es nuestra **Viennese**. Cuesta 7,50€ y tiene 1180 kcal 🍕",
-      pugliese: "Si adds cebolla a la base, tenemos la **Pugliese** a 7,00€ (1090 kcal) 🧅",
+      pugliese: "Si añade cebolla a la base, tenemos la **Pugliese** a 7,00€ (1090 kcal) 🧅",
       patatosa: "¡Margherita más patatas fritas es nuestra **Patatosa**! Cuesta 8,00€ y tiene 1320 kcal 🍟",
       custom: "La **{N}** con extra de **{I}** cuesta {P}€ y tiene unas {K} kcal 🐧🍕"
     },
@@ -310,7 +310,15 @@ function rispostaFissa(testo) {
     zh: {salmin:'意大利香肠', patat:'薯条', porcin:'牛肝菌', wurst:'维也纳香肠', cipoll:'洋葱', salsic:'意式鲜香肠'}
   };
 
-  // INTERNAL TRANSLATION / NORMALIZZAZIONE
+  // Mappatura intenzioni sulle parole chiave per uniformare i controlli successivi
+  if (['price', 'cost', 'how much', 'preis', 'kosten', 'prix', 'precio', 'quanto', 'costa', '价格', '多少钱'].some(k => t.includes(k))) t += ' prezzo';
+  if (['calorie', 'calories', 'kalorien', 'calorias', 'kcal', '热量', '卡路里'].some(k => t.includes(k))) t += ' calorie';
+  if (['ingredienti', 'ingredients', 'zutaten', 'ingrédients', 'ingredientes', '配料', '成分'].some(k => t.includes(k))) t += ' ingredienti';
+  if (['orari', 'hours', 'open', 'uhr', 'öffnungszeiten', 'horaire', 'horario', '时间', '营业'].some(k => t.includes(k))) t += ' orari';
+  if (['dove', 'where', 'address', 'wo', 'où', 'donde', '地址', '在哪'].some(k => t.includes(k))) t += ' dove';
+  if (['ordina', 'order', 'book', 'bestellen', 'commander', 'pedir', '点餐', '订餐'].some(k => t.includes(k))) t += ' ordina';
+
+  // 2. NORMALIZZAZIONE DEI CONNETTORI E INGREDIENTI PER I CALCOLI LOCALI
   t = t.replace(/\b(with|mit|avec|con)\b/g, ' con ');
   t = t.replace(/(加|有|带有)/g, ' con ');
   t = t.replace(/\b(without|ohne|sans|sin|senza)\b/g, ' senza ');
@@ -321,35 +329,27 @@ function rispostaFissa(testo) {
   t = t.replace(/\b(sausage|wurst|saucisse|salchicha|香肠|鲜香肠|肉肠)\b/g, 'salsic');
   t = t.replace(/\b(onion|zwiebel|oignon|cebolla|洋葱)\b/g, 'cipoll');
 
-  // Mappatura intenzioni Cinese
-  if (['价格', '多少钱'].some(k => t.includes(k))) t += ' prezzo';
-  if (['卡路里', '热量'].some(k => t.includes(k))) t += ' calorie';
-  if (['配料', '成分'].some(k => t.includes(k))) t += ' ingredienti';
-  if (['时间', '营业'].some(k => t.includes(k))) t += ' orari';
-  if (['地址', '在哪'].some(k => t.includes(k))) t += ' dove';
-  if (['点餐', '订餐', '预订'].some(k => t.includes(k))) t += ' ordina';
-
-  // 2. LOGICA DELLE RISPOSTE LOCALIZZATE
-  if (['ordina','order','bestellen','commander','pedir'].some(k => t.includes(k))) return 'ORDER';
-  if (['orari','hours','uhr','horaire','horario'].some(k => t.includes(k))) return txt[lang].chiuso;
-  if (['dove','where','wo','où','donde'].some(k => t.includes(k))) return txt[lang].dove;
+  // 3. LOGICA DELLE RISPOSTE LOCALIZZATE
+  if (t.includes('ordina')) return 'ORDER';
+  if (t.includes('orari')) return txt[lang].chiuso;
+  if (t.includes('dove')) return txt[lang].dove;
 
   const pizza = trovaPizza(t);
   if (pizza) {
     const nome = pizza.charAt(0).toUpperCase() + pizza.slice(1);
     
-    // Filtri solo prezzo / solo calorie / solo ingredienti
-    if (['prezzo','cost','preis','prix','precio'].some(k => t.includes(k)) && !t.includes('calor') && !t.includes('kcal')) {
+    // Filtri specifici (Prezzo / Calorie / Ingredienti)
+    if (t.includes('prezzo') && !t.includes('calorie')) {
       return txt[lang].costa.replace('{N}', nome).replace('{P}', MENU_PREZZI[pizza]);
     }
-    if (['calor','kcal'].some(k => t.includes(k)) && !t.includes('prezz') && !t.includes('cost') && !t.includes('prix') && !t.includes('precio')) {
+    if (t.includes('calorie') && !t.includes('prezzo')) {
       return txt[lang].kcal.replace('{N}', nome).replace('{K}', MENU_CALORIE[pizza]);
     }
-    if (['ingred','zutat'].some(k => t.includes(k))) {
+    if (t.includes('ingredienti')) {
       return txt[lang].ingr.replace('{N}', nome).replace('{I}', MENU_INGREDIENTI[pizza]).replace('{K}', MENU_CALORIE[pizza]).replace('{P}', MENU_PREZZI[pizza]);
     }
 
-    // LOGICA AGGIUNTE LOCALI
+    // Gestione Aggiunte / Modifiche Locali
     if (t.includes('+') || t.includes(' con ') || t.includes('add') || t.includes('ajouter')) {
       if (pizza === 'margherita' || t.includes('base')) {
         if (t.includes('salmin')) return txt[lang].diavola;
