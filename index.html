@@ -174,7 +174,7 @@ const TRADUZIONI_PIZZE = {
 };
 
 const DIZIONARIO_INGREDIENTI = {
-  'salamino': 'salmin', 'diavola': 'salmin', 'patate': 'patat', 'patatine': 'patat', 'porcini': 'porcin', 
+  'salamino': 'salmin', 'diavola': 'salmin', 'salami': 'salmin', 'patate': 'patat', 'patatine': 'patat', 'porcini': 'porcin', 
   'wurstel': 'wurst', 'cipolla': 'cipoll', 'salsiccia': 'salsic', 'mozzarella': 'mozz', 'pomodoro': 'pomodoro',
   'spicy salami': 'salmin', 'pepperoni': 'salmin', 'french fries': 'patat', 'chips': 'patat', 'porcini mushrooms': 'porcin', 
   'onion': 'cipoll', 'mozzarella cheese': 'mozz', 'scharfe salami': 'salmin', 'pommes': 'patat', 'steinpilzen': 'porcin', 
@@ -185,6 +185,8 @@ const DIZIONARIO_INGREDIENTI = {
 
 const KCAL_AGGIUNTE = { 'salmin': 252, 'patat': 250, 'porcin': 15, 'wurst': 240, 'cipoll': 12, 'salsic': 240, 'mozz': 280 };
 const PREZZI_AGGIUNTE = { 'salmin': 1.5, 'patat': 1.5, 'porcin': 2.5, 'wurst': 1, 'cipoll': 1, 'salsic': 2, 'mozz': 1.5 };
+
+let bpHistory = [], bpLoading = false, panelOpen = false, orderShown = false;
 
 function trovaPizza(t) {
   t = t.toLowerCase();
@@ -202,13 +204,29 @@ function isComplesso(t) {
 function rispostaFissa(testo) {
   let t = testo.toLowerCase().trim();
   
-  let lang = 'it';
-  if (['price', 'cost', 'hours', 'open', 'where', 'ingredients', 'how much', 'menu', 'with', 'without', 'add', 'remove'].some(k => t.includes(k))) lang = 'en';
-  else if (['preis', 'kosten', 'uhr', 'öffnungszeiten', 'wo', 'zutaten', 'speisekarte', 'mit', 'ohne'].some(k => t.includes(k))) lang = 'de';
-  else if (['prix', 'horaire', 'ouvert', 'où', 'ingrédients', 'carte', 'avec', 'sans'].some(k => t.includes(k))) lang = 'fr';
-  else if (['precio', 'horario', 'abierto', 'donde', 'ingredientes', 'cuanto', 'carta', 'con', 'sin'].some(k => t.includes(k))) lang = 'es';
-  else if (['价格', '多少钱', '卡路里', '热量', '配料', '地址', '时间', '营业', '菜单', '加', '去', '不要', '不加'].some(k => t.includes(k))) lang = 'zh';
+  // 1. SISTEMA DI RILEVAMENTO LINGUA A PUNTEGGIO
+  const dizionariLingue = {
+    en: ['price', 'cost', 'hours', 'open', 'where', 'ingredients', 'how much', 'menu', 'with', 'whit', 'wth', 'add', 'remove', 'pizza', 'one', 'please', 'hi', 'hello', 'salami'],
+    de: ['preis', 'kosten', 'uhr', 'öffnungszeiten', 'wo', 'zutaten', 'speisekarte', 'mit', 'ohne', 'bitte', 'hallo'],
+    fr: ['prix', 'horaire', 'ouvert', 'où', 'ingrédients', 'carte', 'avec', 'sans', 's\'il vous plaît', 'bonjour'],
+    es: ['precio', 'horario', 'abierto', 'donde', 'ingredientes', 'cuanto', 'carta', 'con', 'sin', 'por favor', 'hola'],
+    zh: ['价格', '多少钱', '卡路里', '热量', '配料', '地址', '时间', '营业', '菜单', '加', '去', '不要', '不加', '请', '你好'],
+    it: ['quanto', 'costa', 'prezzo', 'orari', 'aperto', 'chiuso', 'dove', 'indirizzo', 'ingredienti', 'con', 'senza', 'aggiungi', 'togli', 'per favore', 'ciao', 'una', 'un']
+  };
 
+  let punteggi = { it: 0, en: 0, de: 0, fr: 0, es: 0, zh: 0 };
+  for (let l in dizionariLingue) {
+    dizionariLingue[l].forEach(parola => {
+      const regexParola = new RegExp('\\b' + parola + '\\b|' + parola, 'g');
+      const corrispondenze = t.match(regexParola);
+      if (corrispondenze) punteggi[l] += corrispondenze.length;
+    });
+  }
+
+  let lang = 'it'; let maxPunti = 0;
+  for (let l in punteggi) { if (punteggi[l] > maxPunti) { maxPunti = punteggi[l]; lang = l; } }
+
+  // 2. DIZIONARIO DELLE RISPOSTE PREIMPOSTATE
   const txt = {
     it: {
       chiuso: "Siamo aperti martedì-domenica dalle 18:30 alle 21:30 🕐\nLunedì siamo chiusi!",
@@ -216,8 +234,7 @@ function rispostaFissa(testo) {
       costa: "La pizza **{N}** costa {P},00€ 🍕",
       kcal: "La pizza **{N}** ha {K} kcal 🐧",
       full: "La pizza **{N}** costa {P},00€ e ha {K} kcal 🍕\nIngredienti: {I}.",
-      custom: "La tua pizza personalizzata (**{N}** modificata) viene {P}€ e ha circa {K} kcal 🐧🍕",
-      infoOrd: "Ecco come contattarci per ordinare! 🐧"
+      custom: "La tua pizza personalizzata (**{N}** modificata) viene {P}€ e ha circa {K} kcal 🐧🍕"
     },
     en: {
       chiuso: "We are open Tuesday-Sunday from 6:30 PM to 9:30 PM 🕐\nClosed on Mondays!",
@@ -225,8 +242,7 @@ function rispostaFissa(testo) {
       costa: "Pizza **{N}** costs {P}.00€ 🍕",
       kcal: "Pizza **{N}** has {K} kcal 🐧",
       full: "Pizza **{N}** costs {P}.00€ and has {K} kcal 🍕\nToppings: {I}.",
-      custom: "Your customized pizza (**{N}** modified) costs {P}€ and has around {K} kcal 🐧🍕",
-      infoOrd: "Here is how to contact us to order! 🐧"
+      custom: "Your customized pizza (**{N}** modified) costs {P}€ and has around {K} kcal 🐧🍕"
     },
     de: {
       chiuso: "Wir haben von Dienstag bis Sonntag von 18:30 bis 21:30 Uhr geöffnet 🕐\nMontags geschlossen!",
@@ -234,8 +250,7 @@ function rispostaFissa(testo) {
       costa: "Pizza **{N}** kostet {P},00€ 🍕",
       kcal: "Pizza **{N}** hat {K} kcal 🐧",
       full: "Pizza **{N}** kostet {P},00€ und hat {K} kcal 🍕\nZutaten: {I}.",
-      custom: "Ihre Pizza (**{N}** modifiziert) kostet {P}€ und hat ca. {K} kcal 🐧🍕",
-      infoOrd: "So können Sie uns bestellen! 🐧"
+      custom: "Ihre Pizza (**{N}** modifiziert) kostet {P}€ und hat ca. {K} kcal 🐧🍕"
     },
     fr: {
       chiuso: "Nous sommes ouverts du mardi au dimanche de 18h30 à 21h30 🕐\nFermé le lundi !",
@@ -243,8 +258,7 @@ function rispostaFissa(testo) {
       costa: "La pizza **{N}** coûte {P},00€ 🍕",
       kcal: "La pizza **{N}** fait {K} kcal 🐧",
       full: "La pizza **{N}** coûte {P},00€ et fait {K} kcal 🍕\nIngrédients: {I}.",
-      custom: "Votre pizza personnalisée (**{N}** modifiée) coûte {P}€ et fait environ {K} kcal 🐧🍕",
-      infoOrd: "Voici comment ci-contacter pour commander! 🐧"
+      custom: "Votre pizza personnalisée (**{N}** modifiée) coûte {P}€ et fait environ {K} kcal 🐧🍕"
     },
     es: {
       chiuso: "Estamos abiertos de martes a domingo de 18:30 a 21:30 🕐\n¡Lunes cerrado!",
@@ -252,8 +266,7 @@ function rispostaFissa(testo) {
       costa: "La pizza **{N}** cuesta {P},00€ 🍕",
       kcal: "La pizza **{N}** tiene {K} kcal 🐧",
       full: "La pizza **{N}** cuesta {P},00€ y tiene {K} kcal 🍕\nIngredientes: {I}.",
-      custom: "Tu pizza personalizada (**{N}** modificada) cuesta {P}€ y tiene unas {K} kcal 🐧🍕",
-      infoOrd: "¡Aquí tienes cómo contactarnos para pedir! 🐧"
+      custom: "Tu pizza personalizada (**{N}** modificada) cuesta {P}€ y tiene unas {K} kcal 🐧🍕"
     },
     zh: {
       chiuso: "我们的营业时间是周二至周日 18:30 至 21:30 🕐\n周一休息！",
@@ -261,18 +274,15 @@ function rispostaFissa(testo) {
       costa: "**{N}** 披萨的价格是 {P}.00 欧元 🍕",
       kcal: "**{N}** 披萨的热量是 {K} 卡路里 🐧",
       full: "**{N}** 披萨价格为 {P}.00 欧元，热量约 {K} 卡路里 🍕\n配料：{I}。",
-      custom: "您的定制披萨（修改版 **{N}**）价格为 {P} 欧元，热量大约是 {K} 卡路里 🐧🍕",
-      infoOrd: "为您提供联系我们的订餐方式！🐧"
+      custom: "您的定制披萨（修改版 **{N}**）价格为 {P} 欧元，热量大约是 {K} 卡路里 🐧🍕"
     }
   };
 
-  const connettoriAggiunta = [' con ', ' con', 'add ', 'add', 'mit ', 'mit', 'avec ', 'ajouter', 'agregar', '加', '带有'];
-  const connettoriRimozione = [' senza ', ' senza', 'without ', 'ohne ', 'sans ', 'sin ', '去', '不要', '不加'];
-
   if (['ordina', 'order', 'book', 'bestellen', 'commander', 'pedir', '点餐', '订餐'].some(k => t.includes(k))) return 'ORDER_' + lang;
-  if (['orari', 'hours', 'open', 'uhr', 'öffnungszeiten', '时间', '营业'].some(k => t.includes(k))) return txt[lang].chiuso;
+  if (['orari', 'hours', 'open', 'uhr', 'öffnungszeiten', '时间', '营业', 'horaire', 'horario'].some(k => t.includes(k))) return txt[lang].chiuso;
   if (['dove', 'where', 'address', 'wo', 'où', 'donde', '地址', '在哪'].some(k => t.includes(k))) return txt[lang].dove;
 
+  // 3. LOGICA DI PARSING MATEMATICO CON REGEX CONTRO REFUSI E SPAZI
   const pizza = trovaPizza(t);
   if (pizza) {
     let nomePizza = pizza.charAt(0).toUpperCase() + pizza.slice(1);
@@ -280,40 +290,39 @@ function rispostaFissa(testo) {
     let kcalFinali = MENU_CALORIE[pizza];
     let haModifiche = false;
 
-    connettoriAggiunta.forEach(c => {
-      if (t.includes(c)) {
-        let segmentoAggiunte = t.split(c)[1];
-        for (let ingredienteUtente in DIZIONARIO_INGREDIENTI) {
-          if (segmentoAggiunte && segmentoAggiunte.includes(ingredienteUtente)) {
-            let idIngrediente = DIZIONARIO_INGREDIENTI[ingredienteUtente];
-            if (PREZZI_AGGIUNTE[idIngrediente]) {
-              prezzoFinale += PREZZI_AGGIUNTE[idIngrediente];
-              kcalFinali += KCAL_AGGIUNTE[idIngrediente];
-              haModifiche = true;
-            }
+    const regexAggiunta = /\b(con|add|mit|avec|ajouter|agregar|加|with|whit|wth)\b|(\+)/g;
+    const regexRimozione = /\b(senza|without|ohne|sans|sin|去|不要|不加)\b|(-)/g;
+
+    if (regexAggiunta.test(t)) {
+      let parti = t.split(regexAggiunta);
+      let segmentoAggiunte = parti[parti.length - 1]; 
+      for (let ingredienteUtente in DIZIONARIO_INGREDIENTI) {
+        if (segmentoAggiunte && segmentoAggiunte.includes(ingredienteUtente)) {
+          let idIngrediente = DIZIONARIO_INGREDIENTI[ingredienteUtente];
+          if (PREZZI_AGGIUNTE[idIngrediente]) {
+            prezzoFinale += PREZZI_AGGIUNTE[idIngrediente];
+            kcalFinali += KCAL_AGGIUNTE[idIngrediente];
+            haModifiche = true;
           }
         }
       }
-    });
-
-    connettoriRimozione.forEach(c => {
-      if (t.includes(c)) {
-        let segmentoRimozioni = t.split(c)[1];
-        for (let ingredienteUtente in DIZIONARIO_INGREDIENTI) {
-          if (segmentoRimozioni && segmentoRimozioni.includes(ingredienteUtente)) {
-            let idIngrediente = DIZIONARIO_INGREDIENTI[ingredienteUtente];
-            if (KCAL_AGGIUNTE[idIngrediente]) {
-              kcalFinali -= KCAL_AGGIUNTE[idIngrediente];
-              haModifiche = true;
-            }
-          }
-        }
-      }
-    });
-
-    if (haModifiche) {
-      return txt[lang].custom.replace('{N}', nomePizza).replace('{P}', prezzoFinale.toFixed(2)).replace('{K}', kcalFinali);
     }
+
+    if (regexRimozione.test(t)) {
+      let parti = t.split(regexRimozione);
+      let segmentoRimozioni = parti[parti.length - 1];
+      for (let ingredienteUtente in DIZIONARIO_INGREDIENTI) {
+        if (segmentoRimozioni && segmentoRimozioni.includes(ingredienteUtente)) {
+          let idIngrediente = DIZIONARIO_INGREDIENTI[ingredienteUtente];
+          if (KCAL_AGGIUNTE[idIngrediente]) {
+            kcalFinali -= KCAL_AGGIUNTE[idIngrediente];
+            haModifiche = true;
+          }
+        }
+      }
+    }
+
+    if (haModifiche) return txt[lang].custom.replace('{N}', nomePizza).replace('{P}', prezzoFinale.toFixed(2)).replace('{K}', kcalFinali);
 
     const isPrezzo = ['price', 'cost', 'how much', 'preis', 'prix', 'precio', 'quanto', '价格'].some(k => t.includes(k));
     const isCalorie = ['calorie', 'calories', 'kalorien', 'kcal', '热量'].some(k => t.includes(k));
@@ -343,8 +352,6 @@ PREZZI: Marinara/Margherita 5€|Diavola/Salsiccia/P.funghi/Romana 8€|Viennese
 
 const SYSTEM_RICETTE = `RICETTE: Marinara(pomodoro,aglio,origano)|Margherita(pomodoro,mozz)|Diavola(pomodoro,mozz,salamino)|Salsiccia(pomodoro,mozz,salsiccia)|Viennese(pomodoro,mozz,wurstel)|Pugliese(pomodoro,mozz,cipolla)|P.funghi(pomodoro,mozz,cotto,funghi)|Capricciosa(pomodoro,mozz,cotto,funghi,carciofi)|Tonno&cip(pomodoro,mozz,tonno,cipolla)|Bufala(pomodoro,bufala)|Bufalina(pomodoro,bufala,pomodorini)|4stagioni(pomodoro,mozz,cotto,funghi,carciofi,olive)|Romana(pomodoro,mozz,acciughe)|Siciliana(pomodoro,mozz,acciughe,capperi,olive)|Patatosa(pomodoro,mozz,patatine)|Parma(pomodoro,mozz,crudo)|Speck(pomodoro,mozz,speck)|Montello(pomodoro,mozz,porchetta,porcini)|Valtellina(pomodoro,mozz,bresaola,rucola,grana)|Verdure(pomodoro,mozz,melanzane,zucchine,peperoni)|Estate(pomodoro,mozz,pomodorini)|Norma(pomodoro,mozz,melanzane,ricotta,grana)|Parmigiana(pomodoro,mozz,melanzane,grana)|Mike(rucola,mozz,salsiccia,brie,grana)|Ciccia&friar(mozz,friarielli,salsiccia)|Formaggi(zola,brie,grana,mozz)|Paolo(zola,cipolla,salamino,mozz)|Sfiziosa(mozz,pesto,melanzane fritte,brie,grana)|AVA(mozz,salsiccia,salamino,pomodorini,aglio,grana)|PPS(mozz,porcini,scamorza,pancetta)|Silvia(mozz,zola,porchetta,senape miele)|Wilma(pomodoro,mozz,pesto,pomodorini,mais)|Wanda(pomodoro,mozz,carciofi,salamino,acciughe)|Leone(pomodoro,mozz,tonno,cipolla,acciughe,capperi,olive)|Giggino(pomodoro,mozz,cotto,mais,philadelphia,pomodorini)|Titti(pomodoro,mozz,zucchine,philadelphia,crudo)|Boscaiola(pomodoro,mozz,salsiccia,salamino,funghi misti)|Tartufata(pomodoro,mozz,tartufo,funghi misti)|UFO(pomodoro,mozz,salsiccia,salamino,olive,pomodori secchi)|Pazza(pomodoro,mozz,salsiccia,salamino,peperoni,wurstel)|Repubblica(pomodoro,mozz,rucola,pomodorino,bufala,grana)|CapSbagliata(pomodoro,mozz,porcini,carciofi,porchetta)|Amatriciana(pomodoro,mozz,pancetta,cipolla,grana)|Onta(pomodoro,mozz,salsiccia,cipolla,peperoni)|Cri(mozz,salsiccia,brie,noci,fichi)|Bois(arrotolata,mozz,zola,salsiccia,tartufo,patatine)|Pimpa(arrotolata,mozz,scamorza,bbq,cipolla,patatine,pancetta)|CalzClass(pomodoro,mozz,cotto,funghi)|CalzPicc(pomodoro,mozz,salamino,ricotta)|CalzVeg(pomodoro,mozz,melanzane,zucchine,peperoni)|CalzMauretto(pomodoro,mozz,cotto,funghi,spinaci,ricotta,salamino,grana)|CalzAdE(pomodoro,mozz,tartufo,funghi misti,salamino,brie)`;
 
-let bpHistory = [], bpLoading = false, panelOpen = false, orderShown = false;
-
 function togglePanel() {
   panelOpen = !panelOpen;
   document.getElementById('bois-panel').classList.toggle('open', panelOpen);
@@ -354,8 +361,7 @@ function togglePanel() {
 
 function addBotMsg(text) {
   const el = document.getElementById('bp-messages');
-  const div = document.createElement('div');
-  div.className = 'bp-msg bot';
+  const div = document.createElement('div'); div.className = 'bp-msg bot';
   div.innerHTML = `<div class="bp-msg-av">🐧</div><div class="bp-bubble">${fmt(text)}</div>`;
   el.appendChild(div); el.scrollTop = el.scrollHeight;
   bpHistory.push({ role:'assistant', content:text });
@@ -363,8 +369,7 @@ function addBotMsg(text) {
 
 function addUserMsg(text) {
   const el = document.getElementById('bp-messages');
-  const div = document.createElement('div');
-  div.className = 'bp-msg user';
+  const div = document.createElement('div'); div.className = 'bp-msg user';
   div.innerHTML = `<div class="bp-msg-av">👤</div><div class="bp-bubble">${esc(text)}</div>`;
   el.appendChild(div); el.scrollTop = el.scrollHeight;
   bpHistory.push({ role:'user', content:text });
@@ -373,16 +378,14 @@ function addUserMsg(text) {
 function showOrderButtons() {
   if (orderShown) return; orderShown = true;
   const el = document.getElementById('bp-messages');
-  const div = document.createElement('div');
-  div.className = 'bp-msg bot';
+  const div = document.createElement('div'); div.className = 'bp-msg bot';
   div.innerHTML = `<div class="bp-msg-av">🐧</div><div class="bp-bubble"><div style="font-size:0.78rem;color:#9e7a5a;margin-bottom:8px;">Scegli come contattarci / Contact us 👇</div><div class="order-btns"><a href="${WA}" target="_blank" class="btn-wa"><span>💬</span> WhatsApp</a><a href="${TEL}" class="btn-tel"><span>📞</span> Chiama / Call</a></div></div>`;
   el.appendChild(div); el.scrollTop = el.scrollHeight;
 }
 
 function showTyping() {
   const el = document.getElementById('bp-messages');
-  const div = document.createElement('div');
-  div.className = 'bp-msg bot'; div.id = 'bp-typing';
+  const div = document.createElement('div'); div.className = 'bp-msg bot'; div.id = 'bp-typing';
   div.innerHTML = `<div class="bp-msg-av">🐧</div><div class="bp-bubble"><div class="bp-typing"><span></span><span></span><span></span></div></div>`;
   el.appendChild(div); el.scrollTop = el.scrollHeight;
 }
@@ -401,7 +404,7 @@ async function bpSend() {
   const fissa = rispostaFissa(text);
   if (fissa && fissa.startsWith('ORDER_')) {
     const l = fissa.split('_')[1];
-    const avvisi = { it:"Ecco come contattarci per ordinare! 🐧", en:"Here is how to contact us to order! 🐧", de:"So können Sie uns bestellen! 🐧", fr:"Voici comment ci-contacter pour commander! 🐧", es:"¡Aquí tienes cómo contactarnos para pedir! 🐧", zh:"为您提供联系我们的订餐方式！🐧" };
+    const avvisi = { it:"Ecco come contattarci per ordinare! 🐧", en:"Here is how to contact us to order! 🐧", de:"So können Sie uns bestellen! 🐧", fr:"Voici comment ci-contacter pour commander! 🐧", es:"¡Aquí tienes comment contactarnos para pedir! 🐧", zh:"为您提供联系我们的订餐方式！🐧" };
     addBotMsg(avvisi[l] || avvisi['it']);
     setTimeout(showOrderButtons, 300); return;
   }
@@ -412,9 +415,7 @@ async function bpSend() {
   showTyping();
 
   const complesso = isComplesso(text);
-  const model70b = 'llama-3.3-70b-versatile';
-  const model8b = 'llama-3.1-8b-instant';
-  
+  const model70b = 'llama-3.3-70b-versatile'; const model8b = 'llama-3.1-8b-instant';
   const systemPrompt = SYSTEM_BASE + '\n' + SYSTEM_MENU + '\n' + SYSTEM_RICETTE;
   const msgs = [{ role:'system', content:systemPrompt }, ...bpHistory.filter(m => m.role==='user'||m.role==='assistant').slice(-6)];
 
