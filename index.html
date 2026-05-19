@@ -507,17 +507,17 @@ async function callGroq() {
   document.getElementById('bp-send').disabled = true;
   showTyping();
 
-  const msgs = bpHistory.filter(m => m.role === 'user' || m.role === 'assistant');
+  const msgs = [{ role: 'system', content: SYSTEM }, ...bpHistory.filter(m => m.role === 'user' || m.role === 'assistant')];
 
   try {
-    const res = await fetch('/api/chat', {
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ system: SYSTEM, messages: msgs, max_tokens: 400 })
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${GROQ_KEY}` },
+      body: JSON.stringify({ model: 'llama-3.3-70b-versatile', messages: msgs, max_tokens: 400 })
     });
     const data = await res.json();
     removeTyping();
-    const text = data.content?.[0]?.text || '';
+    const text = data.choices?.[0]?.message?.content || '';
     if (text) addBotMsg(text);
     else addBotMsg("Ops! Qualcosa non ha funzionato 😅 Riprova!");
   } catch(e) {
