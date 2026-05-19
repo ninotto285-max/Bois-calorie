@@ -287,14 +287,9 @@
   }
 </style>
 </head>
-<body style="background:#f0f0f0; min-height:100vh; display:flex; align-items:center; justify-content:center;">
+<body style="background:transparent; margin:0; padding:0; overflow:hidden;">
 
-<!-- DEMO PAGE (rimuovi questo in embed) -->
-<div style="font-family:sans-serif; text-align:center; color:#888; padding:40px;">
-  <h2 style="color:#c0392b;">🍕 BoisPizza Calorie Widget</h2>
-  <p>Il widget appare in basso a destra →</p>
-  <p style="margin-top:10px; font-size:0.85rem;">Per embedderlo nel tuo sito copia il codice in fondo al file</p>
-</div>
+
 
 <!-- ── WIDGET ── -->
 <div id="bois-widget">
@@ -460,7 +455,35 @@ ORARI: Martedì-domenica 18:30-21:30. Lunedì chiuso.
 TELEFONO: 0422/670631 | WhatsApp info: 3405327257
 INDIRIZZO: Via Principale 113, Casier (TV)
 
-REGOLE DI RISPOSTA:
+LOGICA PREZZI E CALORIE PERSONALIZZAZIONI:
+
+REGOLE BASE:
+- Pizza base (pomodoro + mozzarella): 6€, ~1125 kcal
+- Margherita: SEMPRE 5€ (è la "pizza del popolo", eccezione fissa)
+- Ogni aggiunta: prezzo della lista ingredienti
+- Ogni rimozione: sottrai il prezzo di quell'ingrediente dalla pizza
+- Scambi: prezzo finale = prezzo pizza - ingrediente tolto + ingrediente aggiunto (mai gratis)
+  Esempio: Paolo senza gorgonzola +brie = 10€ - 1,50€ + 1,50€ = 10€ (stesso prezzo)
+  Esempio: Pugliese senza cipolla +porchetta = 7€ - 1€ + 3€ = 9€
+
+FORMATO BATTUTA (+2€):
+- +2€ sul prezzo base della pizza
+- Ogni aggiunta costa +0,50€ in più rispetto al prezzo normale
+  Esempio: salsiccia normalmente +2€, su battuta diventa +2,50€
+- Calorie di tutti gli ingredienti (escluso impasto) aumentano del +30%
+- Doppia pasta: +1€ fisso sempre (anche su battuta) → calorie impasto x2 (675x2=1350 kcal)
+
+MEZZA + MEZZA:
+- Prezzo = (prezzo pizza A + prezzo pizza B) / 2
+- Calorie = (calorie pizza A + calorie pizza B) / 2
+
+CALCOLO CALORIE PERSONALIZZAZIONI:
+- Togli ingrediente → sottrai le sue kcal
+- Aggiungi ingrediente → aggiungi le sue kcal
+- Su battuta → calorie ingredienti (no impasto) x 1.30
+- Doppia pasta → aggiungi 675 kcal in più (secondo impasto)
+
+Quando l'utente descrive una pizza personalizzata, calcola SEMPRE prezzo e calorie finali passo per passo e mostra il totale in modo chiaro.
 - Risposte brevi (max 5 righe)
 - Usa emoji con moderazione
 - Dai sempre le kcal in modo chiaro
