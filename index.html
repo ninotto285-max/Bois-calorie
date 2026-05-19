@@ -455,7 +455,30 @@ ORARI: Martedì-domenica 18:30-21:30. Lunedì chiuso.
 TELEFONO: 0422/670631 | WhatsApp info: 3405327257
 INDIRIZZO: Via Principale 113, Casier (TV)
 
-LOGICA PREZZI E CALORIE PERSONALIZZAZIONI:
+QUANDO CHIEDONO UNA PIZZA LEGGERA O FRESCA:
+Non consigliare la Marinara per prima — il cliente intende qualcosa di sfizioso e appagante, non "meno calorie".
+Suggerisci in ordine di preferenza:
+- Bufalina (pomodoro, bufala, pomodorini) — fresca e cremosa
+- Estate (pomodoro, mozzarella, datterino condito) — estiva e leggera
+- Repubblica (pomodoro, mozzarella, rucola, pomodorino, bufala, grana) — fresca e saporita
+- Valtellina (pomodoro, mozzarella, bresaola, rucola, grana) — elegante e leggera
+- Oppure inventa una combo personalizzata con gli ingredienti disponibili, tipo: "pomodoro, bufala a fine cottura, pomodorini e un filo d'olio" o "pomodoro, acciughe, pomodorini secchi e capperi"
+
+QUANDO CHIEDONO INGREDIENTI SPECIFICI:
+Conosci BENE tutti gli ingredienti del menù e le pizze che li contengono.
+Esempi:
+- Pomodorini → Estate, Bufalina, Wilma, Giggino, Titti, Repubblica, AVA
+- Brie → Mike, Sfiziosa, Cri, Calzone AdE
+- Pomodorini + brie → suggerisci Estate con aggiunta brie (+1,50€) o una pizza personalizzata
+- Bufala → Bufala, Bufalina, Repubblica
+- Verdure grigliate → Verdure, Calzone Vegeta
+MAI dire "non esiste questa pizza" — cerca sempre la combinazione più vicina o proponi una personalizzazione con gli ingredienti disponibili.
+
+CREATIVITÀ:
+Puoi suggerire combinazioni creative usando gli ingredienti reali del menù, presentandole come "prova così" o "potresti chiedere". Esempi:
+- "Una Margherita con bufala aggiunta a fine cottura e pomodorini freschi — fresca e cremosa"
+- "Pomodoro, acciughe, capperi e pomodorini secchi — tipo una siciliana rinfrescata"
+- "Bianca con stracchino, rucola e pomodorini — leggera e sfiziosa"
 
 REGOLE BASE:
 - Pizza base (pomodoro + mozzarella): 6€, ~1125 kcal
@@ -516,7 +539,15 @@ REGOLE DI RISPOSTA:
 - Se chiedono ingredienti non nel menù, suggerisci di chiamare
 - La pizza è artigianale, fatta con amore da Michele 🐧
 - Se chiedono ingredienti non nel menù, dì che possono chiamare per personalizzare
-- Ricorda sempre che la pizza è fatta artigianalmente con ingredienti freschi di qualità`;
+- Ricorda sempre che la pizza è fatta artigianalmente con ingredienti freschi di qualità
+- ORARI ORDINI: martedì-domenica 18:30-21:30. Lunedì chiuso. Ricordalo se chiedono di ordinare fuori orario.
+
+GESTIONE ORDINI:
+Quando il cliente sembra pronto ad ordinare (dice "la prendo", "voglio ordinare", "quanto costa in tutto", "come faccio ad ordinare"), fai un breve riepilogo dell'ordine e mostra i contatti. Alla fine del riepilogo scrivi esattamente questo tag speciale su una riga separata:
+[ORDINA:testo_ordine_precompilato]
+Dove testo_ordine_precompilato è il messaggio WhatsApp già pronto, ad esempio:
+[ORDINA:Ciao! Vorrei ordinare: 1 Diavola + 1 bibita. Totale stimato: 10,50€]
+Questo farà apparire i bottoni WhatsApp e Telefono automaticamente.`;
 
 let bpHistory = [];
 let bpLoading = false;
@@ -530,13 +561,44 @@ function togglePanel() {
   }
 }
 
-function addBotMsg(text) {
+function addOrderButtons(orderText) {
   const el = document.getElementById('bp-messages');
   const div = document.createElement('div');
   div.className = 'bp-msg bot';
-  div.innerHTML = `<div class="bp-msg-av">🐧</div><div class="bp-bubble">${fmt(text)}</div>`;
+  const waMsg = encodeURIComponent(orderText);
+  div.innerHTML = `
+    <div class="bp-msg-av">🐧</div>
+    <div class="bp-bubble" style="display:flex;flex-direction:column;gap:8px;">
+      <div style="font-size:0.8rem;color:#9e7a5a;">Pronto a ordinare? 👇</div>
+      <a href="https://wa.me/393405327257?text=${waMsg}" target="_blank"
+        style="display:flex;align-items:center;gap:8px;background:linear-gradient(135deg,#25d366,#128c7e);color:white;border-radius:10px;padding:8px 12px;text-decoration:none;font-weight:700;font-size:0.82rem;">
+        <span style="font-size:18px;">💬</span> Ordina su WhatsApp
+      </a>
+      <a href="tel:+390422670631"
+        style="display:flex;align-items:center;gap:8px;background:linear-gradient(135deg,#c0392b,#e67e22);color:white;border-radius:10px;padding:8px 12px;text-decoration:none;font-weight:700;font-size:0.82rem;">
+        <span style="font-size:18px;">📞</span> Chiama 0422 670631
+      </a>
+    </div>`;
   el.appendChild(div);
   el.scrollTop = el.scrollHeight;
+}
+
+function addBotMsg(text) {
+  // Check for order tag
+  const orderMatch = text.match(/\[ORDINA:(.+?)\]/s);
+  const cleanText = text.replace(/\[ORDINA:.+?\]/s, '').trim();
+
+  const el = document.getElementById('bp-messages');
+  if (cleanText) {
+    const div = document.createElement('div');
+    div.className = 'bp-msg bot';
+    div.innerHTML = `<div class="bp-msg-av">🐧</div><div class="bp-bubble">${fmt(cleanText)}</div>`;
+    el.appendChild(div);
+    el.scrollTop = el.scrollHeight;
+  }
+  if (orderMatch) {
+    setTimeout(() => addOrderButtons(orderMatch[1]), 300);
+  }
   bpHistory.push({ role: 'assistant', content: text });
 }
 
