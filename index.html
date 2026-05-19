@@ -3,580 +3,189 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BoisPizza — Assistente Calorie</title>
+<title>BoisPizza — Pinguino</title>
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-
-  /* ── WIDGET CONTAINER ── */
   #bois-widget {
-    --red: #c0392b;
-    --red2: #e74c3c;
-    --orange: #e67e22;
-    --cream: #fdf6ec;
-    --cream2: #faebd7;
-    --dark: #2c1810;
-    --text: #3d1f0f;
-    --muted: #9e7a5a;
-    --white: #fff;
-    --radius: 20px;
+    --red: #c0392b; --orange: #e67e22; --cream: #fdf6ec; --cream2: #faebd7;
+    --text: #3d1f0f; --muted: #9e7a5a; --radius: 20px;
     --shadow: 0 8px 40px rgba(192,57,43,0.18);
-
     font-family: 'Nunito', sans-serif;
-    position: fixed;
-    bottom: 24px;
-    right: 24px;
-    z-index: 99999;
+    position: fixed; bottom: 24px; right: 24px; z-index: 99999;
   }
-
-  /* ── CHAT BUBBLE BUTTON ── */
   #bois-toggle {
-    width: 64px; height: 64px;
-    border-radius: 50%;
+    width: 64px; height: 64px; border-radius: 50%;
     background: linear-gradient(135deg, var(--red), var(--orange));
-    border: none;
-    cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 28px;
-    box-shadow: var(--shadow);
-    transition: transform 0.2s;
-    position: relative;
+    border: none; cursor: pointer; display: flex; align-items: center;
+    justify-content: center; font-size: 28px; box-shadow: var(--shadow);
+    transition: transform 0.2s; position: relative;
   }
   #bois-toggle:hover { transform: scale(1.08); }
   #bois-toggle .notif {
-    position: absolute;
-    top: -2px; right: -2px;
-    width: 18px; height: 18px;
-    background: #27ae60;
-    border-radius: 50%;
-    border: 2px solid white;
+    position: absolute; top: -2px; right: -2px; width: 18px; height: 18px;
+    background: #27ae60; border-radius: 50%; border: 2px solid white;
     animation: pulse-green 2s infinite;
   }
-  @keyframes pulse-green {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.2); }
-  }
-
-  /* ── CHAT PANEL ── */
+  @keyframes pulse-green { 0%,100%{transform:scale(1)} 50%{transform:scale(1.2)} }
   #bois-panel {
-    position: absolute;
-    bottom: 76px;
-    right: 0;
-    width: 360px;
-    height: 520px;
-    background: var(--cream);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    transform: scale(0.8) translateY(20px);
-    opacity: 0;
-    pointer-events: none;
-    transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-    transform-origin: bottom right;
+    position: absolute; bottom: 76px; right: 0; width: 360px; height: 530px;
+    background: var(--cream); border-radius: var(--radius); box-shadow: var(--shadow);
+    display: flex; flex-direction: column; overflow: hidden;
+    transform: scale(0.8) translateY(20px); opacity: 0; pointer-events: none;
+    transition: all 0.25s cubic-bezier(0.34,1.56,0.64,1); transform-origin: bottom right;
   }
-  #bois-panel.open {
-    transform: scale(1) translateY(0);
-    opacity: 1;
-    pointer-events: all;
-  }
-
-  /* ── HEADER ── */
+  #bois-panel.open { transform: scale(1) translateY(0); opacity: 1; pointer-events: all; }
   .bp-header {
     background: linear-gradient(135deg, var(--red), var(--orange));
-    padding: 14px 16px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex-shrink: 0;
+    padding: 14px 16px; display: flex; align-items: center; gap: 10px; flex-shrink: 0;
   }
-  .bp-avatar {
-    width: 40px; height: 40px;
-    border-radius: 50%;
-    background: rgba(255,255,255,0.25);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 20px;
-    flex-shrink: 0;
-  }
-  .bp-header-info { flex: 1; }
-  .bp-header-info h3 {
-    font-family: 'Playfair Display', serif;
-    color: white;
-    font-size: 1rem;
-    line-height: 1.2;
-  }
-  .bp-header-info p {
-    color: rgba(255,255,255,0.8);
-    font-size: 0.7rem;
-    margin-top: 1px;
-  }
-  .bp-close {
-    background: rgba(255,255,255,0.2);
-    border: none;
-    border-radius: 50%;
-    width: 28px; height: 28px;
-    color: white;
-    font-size: 16px;
-    cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    transition: background 0.2s;
-  }
-  .bp-close:hover { background: rgba(255,255,255,0.35); }
-
-  /* ── MESSAGES ── */
-  #bp-messages {
-    flex: 1;
-    overflow-y: auto;
-    padding: 14px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    scroll-behavior: smooth;
-  }
-  #bp-messages::-webkit-scrollbar { width: 3px; }
-  #bp-messages::-webkit-scrollbar-thumb { background: rgba(192,57,43,0.2); border-radius: 2px; }
-
-  .bp-msg {
-    display: flex;
-    gap: 8px;
-    animation: popIn 0.3s ease both;
-    max-width: 90%;
-  }
-  @keyframes popIn {
-    from { opacity: 0; transform: translateY(8px) scale(0.95); }
-    to   { opacity: 1; transform: translateY(0) scale(1); }
-  }
-  .bp-msg.user { align-self: flex-end; flex-direction: row-reverse; }
-
-  .bp-msg-av {
-    width: 28px; height: 28px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, var(--red), var(--orange));
-    display: flex; align-items: center; justify-content: center;
-    font-size: 13px;
-    flex-shrink: 0;
-    margin-top: 2px;
-  }
-  .bp-msg.user .bp-msg-av {
-    background: var(--cream2);
-    border: 1px solid rgba(192,57,43,0.2);
-  }
-
-  .bp-bubble {
-    padding: 9px 13px;
-    border-radius: 16px;
-    font-size: 0.83rem;
-    line-height: 1.6;
-  }
-  .bp-msg.bot .bp-bubble {
-    background: white;
-    border: 1px solid rgba(192,57,43,0.1);
-    border-radius: 4px 16px 16px 16px;
-    color: var(--text);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-  }
-  .bp-msg.user .bp-bubble {
-    background: linear-gradient(135deg, var(--red), var(--orange));
-    color: white;
-    border-radius: 16px 4px 16px 16px;
-  }
-
-  /* calorie highlight */
-  .bp-bubble .cal-box {
-    display: inline-block;
-    background: linear-gradient(135deg, #e74c3c, #e67e22);
-    color: white;
-    border-radius: 8px;
-    padding: 3px 8px;
-    font-weight: 700;
-    font-size: 0.9rem;
-    margin: 2px 0;
-  }
-
-  /* typing */
-  .bp-typing { display: flex; gap: 4px; align-items: center; height: 16px; }
-  .bp-typing span {
-    width: 6px; height: 6px;
-    border-radius: 50%;
-    background: var(--red);
-    animation: bounce 1.2s ease infinite;
-    opacity: 0.5;
-  }
-  .bp-typing span:nth-child(2) { animation-delay: 0.2s; }
-  .bp-typing span:nth-child(3) { animation-delay: 0.4s; }
-  @keyframes bounce {
-    0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
-    40% { transform: translateY(-6px); opacity: 1; }
-  }
-
-  /* quick chips */
-  .bp-chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    padding: 0 14px 10px;
-    flex-shrink: 0;
-  }
-  .bp-chip {
-    background: white;
-    border: 1px solid rgba(192,57,43,0.25);
-    color: var(--red);
-    border-radius: 20px;
-    padding: 4px 10px;
-    font-size: 0.72rem;
-    font-family: 'Nunito', sans-serif;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.18s;
-    white-space: nowrap;
-  }
-  .bp-chip:hover { background: var(--red); color: white; }
-
-  /* ── INPUT ── */
-  .bp-input-row {
-    display: flex;
-    gap: 8px;
-    padding: 10px 14px 14px;
-    border-top: 1px solid rgba(192,57,43,0.1);
-    flex-shrink: 0;
-    background: white;
-  }
-  #bp-input {
-    flex: 1;
-    border: 1.5px solid rgba(192,57,43,0.2);
-    border-radius: 12px;
-    padding: 8px 12px;
-    font-family: 'Nunito', sans-serif;
-    font-size: 0.82rem;
-    color: var(--text);
-    outline: none;
-    background: var(--cream);
-    transition: border-color 0.2s;
-  }
-  #bp-input:focus { border-color: var(--red); }
-  #bp-input::placeholder { color: var(--muted); }
-  #bp-send {
-    width: 38px; height: 38px;
-    border-radius: 11px;
-    background: linear-gradient(135deg, var(--red), var(--orange));
-    border: none;
-    color: white;
-    font-size: 16px;
-    cursor: pointer;
-    transition: all 0.18s;
-    display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
-  }
-  #bp-send:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(192,57,43,0.3); }
-  #bp-send:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
-
-  /* footer */
-  .bp-footer {
-    text-align: center;
-    font-size: 0.6rem;
-    color: var(--muted);
-    padding: 4px 0 8px;
-    background: white;
-  }
-  .bp-footer a { color: var(--red); text-decoration: none; }
-
-  /* responsive mobile */
-  @media (max-width: 420px) {
-    #bois-panel { width: calc(100vw - 20px); right: -10px; }
-  }
+  .bp-avatar { width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0; }
+  .bp-header-info { flex:1; }
+  .bp-header-info h3 { font-family:'Playfair Display',serif;color:white;font-size:1rem;line-height:1.2; }
+  .bp-header-info p { color:rgba(255,255,255,0.8);font-size:0.7rem;margin-top:1px; }
+  .bp-close { background:rgba(255,255,255,0.2);border:none;border-radius:50%;width:28px;height:28px;color:white;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center; }
+  #bp-messages { flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;scroll-behavior:smooth; }
+  #bp-messages::-webkit-scrollbar{width:3px} #bp-messages::-webkit-scrollbar-thumb{background:rgba(192,57,43,0.2);border-radius:2px}
+  .bp-msg { display:flex;gap:8px;animation:popIn 0.3s ease both;max-width:92%; }
+  @keyframes popIn { from{opacity:0;transform:translateY(8px) scale(0.95)} to{opacity:1;transform:translateY(0) scale(1)} }
+  .bp-msg.user { align-self:flex-end;flex-direction:row-reverse; }
+  .bp-msg-av { width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--red),var(--orange));display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;margin-top:2px; }
+  .bp-msg.user .bp-msg-av { background:var(--cream2);border:1px solid rgba(192,57,43,0.2); }
+  .bp-bubble { padding:9px 13px;border-radius:16px;font-size:0.83rem;line-height:1.6; }
+  .bp-msg.bot .bp-bubble { background:white;border:1px solid rgba(192,57,43,0.1);border-radius:4px 16px 16px 16px;color:var(--text);box-shadow:0 2px 8px rgba(0,0,0,0.05); }
+  .bp-msg.user .bp-bubble { background:linear-gradient(135deg,var(--red),var(--orange));color:white;border-radius:16px 4px 16px 16px; }
+  .cal-box { display:inline-block;background:linear-gradient(135deg,#e74c3c,#e67e22);color:white;border-radius:8px;padding:2px 7px;font-weight:700;font-size:0.88rem; }
+  .bp-typing{display:flex;gap:4px;align-items:center;height:16px}
+  .bp-typing span{width:6px;height:6px;border-radius:50%;background:var(--red);animation:bounce 1.2s ease infinite;opacity:0.5}
+  .bp-typing span:nth-child(2){animation-delay:0.2s}.bp-typing span:nth-child(3){animation-delay:0.4s}
+  @keyframes bounce{0%,80%,100%{transform:translateY(0);opacity:0.4}40%{transform:translateY(-6px);opacity:1}}
+  .bp-chips{display:flex;flex-wrap:wrap;gap:6px;padding:0 14px 10px;flex-shrink:0}
+  .bp-chip{background:white;border:1px solid rgba(192,57,43,0.25);color:var(--red);border-radius:20px;padding:4px 10px;font-size:0.72rem;font-family:'Nunito',sans-serif;font-weight:600;cursor:pointer;transition:all 0.18s;white-space:nowrap}
+  .bp-chip:hover{background:var(--red);color:white}
+  .bp-input-row{display:flex;gap:8px;padding:10px 14px 14px;border-top:1px solid rgba(192,57,43,0.1);flex-shrink:0;background:white}
+  #bp-input{flex:1;border:1.5px solid rgba(192,57,43,0.2);border-radius:12px;padding:8px 12px;font-family:'Nunito',sans-serif;font-size:0.82rem;color:var(--text);outline:none;background:var(--cream);transition:border-color 0.2s}
+  #bp-input:focus{border-color:var(--red)} #bp-input::placeholder{color:var(--muted)}
+  #bp-send{width:38px;height:38px;border-radius:11px;background:linear-gradient(135deg,var(--red),var(--orange));border:none;color:white;font-size:16px;cursor:pointer;transition:all 0.18s;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  #bp-send:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(192,57,43,0.3)} #bp-send:disabled{opacity:0.4;cursor:not-allowed;transform:none}
+  .bp-footer{text-align:center;font-size:0.6rem;color:var(--muted);padding:4px 0 8px;background:white}
+  .bp-footer a{color:var(--red);text-decoration:none}
+  .order-btns{display:flex;flex-direction:column;gap:8px}
+  .order-btns a{display:flex;align-items:center;gap:8px;border-radius:10px;padding:8px 12px;text-decoration:none;font-weight:700;font-size:0.82rem;color:white}
+  .btn-wa{background:linear-gradient(135deg,#25d366,#128c7e)} .btn-tel{background:linear-gradient(135deg,var(--red),var(--orange))}
+  @media(max-width:420px){#bois-panel{width:calc(100vw - 20px);right:-10px}}
 </style>
 </head>
-<body style="background:transparent; margin:0; padding:0; overflow:hidden;">
-
-
-
-<!-- ── WIDGET ── -->
+<body style="background:transparent;margin:0;padding:0;overflow:hidden;">
 <div id="bois-widget">
-  <button id="bois-toggle" onclick="togglePanel()">
-    🍕
-    <div class="notif"></div>
-  </button>
-
+  <button id="bois-toggle" onclick="togglePanel()">🍕<div class="notif"></div></button>
   <div id="bois-panel">
     <div class="bp-header">
       <div class="bp-avatar">🐧</div>
       <div class="bp-header-info">
-        <h3>BoisPizza — Calorie</h3>
-        <p>Chiedi tutto sul nostro menù!</p>
+        <h3>BoisPizza — Pinguino</h3>
+        <p>Calorie, menù e ordini!</p>
       </div>
       <button class="bp-close" onclick="togglePanel()">✕</button>
     </div>
-
     <div id="bp-messages"></div>
-
-    <div class="bp-chips" id="bp-chips">
-      <span class="bp-chip" onclick="quickSend('Quante calorie ha la Margherita?')">🍕 Margherita</span>
-      <span class="bp-chip" onclick="quickSend('Quante calorie hanno le olive ascolane?')">🫒 Fritti</span>
-      <span class="bp-chip" onclick="quickSend('Qual è la pizza più leggera?')">🥗 Più leggera</span>
-      <span class="bp-chip" onclick="quickSend('Ho mangiato una Diavola, quante calorie ho preso?')">🌶️ Diavola</span>
+    <div class="bp-chips">
+      <span class="bp-chip" onclick="quickSend('Margherita')">🍕 Margherita</span>
+      <span class="bp-chip" onclick="quickSend('Orari')">🕐 Orari</span>
+      <span class="bp-chip" onclick="quickSend('Pizza leggera')">🥗 Leggera</span>
+      <span class="bp-chip" onclick="quickSend('Fritti')">🍟 Fritti</span>
+      <span class="bp-chip" onclick="quickSend('Ordina')">📞 Ordina</span>
     </div>
-
     <div class="bp-input-row">
-      <input type="text" id="bp-input" placeholder="Es: quante calorie ha la Norma?" 
-        onkeydown="if(event.key==='Enter') bpSend()" />
+      <input type="text" id="bp-input" placeholder="Scrivi qui..." onkeydown="if(event.key==='Enter') bpSend()" />
       <button id="bp-send" onclick="bpSend()">➤</button>
     </div>
     <div class="bp-footer">Powered by <a href="https://www.boispizza.it" target="_blank">BoisPizza</a> 🍕</div>
   </div>
 </div>
-
 <script>
 const GROQ_KEY = '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';
+const WA = 'https://wa.me/393405327257';
+const TEL = 'tel:+390422670631';
 
-const SYSTEM = `Sei l'assistente virtuale di BoisPizza, la pizzeria artigianale di Casier (TV) di Michele Boller.
-Il tuo nome è Pinguino 🐧 (la mascotte di BoisPizza).
-Il tuo stile: dolce, empatico, simpatico, un po' burlone — come un amico che ti vuole bene ma ti dice la verità sulle calorie 😄.
-Parli italiano, usi qualche emoji, sei breve e diretto.
+const MENU_CALORIE = {
+  'marinara':820,'margherita':1125,'diavola':1070,'salsiccia':1190,'viennese':1180,
+  'pugliese':1090,'prosciutto e funghi':1190,'capricciosa':1240,'tonno e cipolla':1200,
+  'bufala':1000,'bufalina':1020,'quattro stagioni':1380,'romana':1060,'siciliana':1270,
+  'patatosa':1320,'parma':1180,'speck':1210,'montello':1330,'valtellina':1310,
+  'verdure':1200,'estate':950,'norma':1220,'parmigiana':1150,'mike':1470,
+  'ciccia e friarielli':1160,'formaggi':1500,'paolo':1400,'sfiziosa':1470,'ava':1285,
+  'pps':1300,'silvia':1200,'wilma':1260,'wanda':1280,'leone':1380,'giggino':1200,
+  'titti':1370,'boscaiola':1585,'tartufata':1340,'ufo':1650,'pazza':1600,
+  'repubblica':1210,'capricciosa sbagliata':1380,'amatriciana':980,'onta':1100,'cri':1400,
+  'bois':1820,'pimpa':1480,'calzone classico':1120,'calzone piccante':1290,
+  'calzone vegeta':950,'calzone poro mauretto':1350,'calzone ade':1300
+};
+const MENU_PREZZI = {
+  'marinara':5,'margherita':5,'diavola':8,'salsiccia':8,'viennese':7.5,
+  'pugliese':7,'prosciutto e funghi':8,'capricciosa':9,'tonno e cipolla':9,
+  'bufala':9,'bufalina':10,'quattro stagioni':9,'romana':8,'siciliana':9,
+  'patatosa':8,'parma':10,'speck':9.5,'montello':10.5,'valtellina':10.5,
+  'verdure':8.5,'estate':8,'norma':9,'parmigiana':8.5,'mike':10.5,
+  'ciccia e friarielli':9,'formaggi':9,'paolo':10,'sfiziosa':10,'ava':12,
+  'pps':11,'silvia':12,'wilma':8.5,'wanda':9,'leone':12,'giggino':10,
+  'titti':11.5,'boscaiola':11,'tartufata':11,'ufo':12,'pazza':11.5,
+  'repubblica':11.5,'capricciosa sbagliata':12,'amatriciana':10,'onta':10,'cri':14,
+  'bois':11,'pimpa':11,'calzone classico':9,'calzone piccante':9,
+  'calzone vegeta':9,'calzone poro mauretto':12,'calzone ade':13
+};
 
-IL TUO COMPITO PRINCIPALE: dare informazioni sulle calorie dei prodotti BoisPizza e aiutare le persone a fare scelte consapevoli.
-- Stima le calorie basandoti sugli ingredienti reali
-- Una pizza intera standard (impasto ~300g cotto) ha circa 700-900 kcal base
-- Sii onesto ma non moralizzatore — la pizza è un piacere della vita!
-- Se chiedono altro (ingredienti, prezzi, orari) rispondi usando le info del menù
+function trovaPizza(t) {
+  t = t.toLowerCase();
+  for (const p of Object.keys(MENU_CALORIE)) { if (t.includes(p)) return p; }
+  return null;
+}
+function isComplesso(t) {
+  t = t.toLowerCase();
+  return ['battuta','mezza','doppia pasta','senza ','aggiungi','personaliz','al posto','metà','mezzo','calzone','arrotolat'].some(k => t.includes(k));
+}
+function rispostaFissa(testo) {
+  const t = testo.toLowerCase().trim();
+  if (['ordina','ordinare','prenotare','come ordino','voglio ordinare','posso ordinare','contatti','come posso'].some(k => t.includes(k))) return 'ORDER';
+  if (['orari','aperto','chiuso','quando'].some(k => t.includes(k))) return "Siamo aperti martedì-domenica dalle 18:30 alle 21:30 🕐\nLunedì siamo chiusi!";
+  if (['dove','indirizzo','via','casier'].some(k => t.includes(k))) return "Siamo in Via Principale 113, Casier (TV) 📍";
+  if (['telefono','numero','chiamo','chiama'].some(k => t.includes(k))) return "Puoi chiamarci al 0422 670631 📞\nO scriverci su WhatsApp al 3405327257 (solo info, no prenotazioni)";
+  if (['fritti','frittin','olive','mozzarellin','nuggets','crocch','anellin'].some(k => t.includes(k)) && !isComplesso(t)) {
+    return "I nostri fritti 🍟\n• Olive/Mozzarelline/Nuggets/Crocchette: 6€ (10pz)\n• Anellini cipolla: 3,50€ (10pz)\n• Verdure pastellate: 4€\n• Patate fritte: 3,50€\n• Misto Frittico: 15€\n\nCon la pizza puoi aggiungere un fritino da 5pz misti a soli 2,50€! 🐧";
+  }
+  const pizza = trovaPizza(t);
+  if (pizza && !isComplesso(t)) {
+    const nome = pizza.charAt(0).toUpperCase() + pizza.slice(1);
+    return `La ${nome} ha ${MENU_CALORIE[pizza]} kcal e costa ${MENU_PREZZI[pizza]}€ 🍕`;
+  }
+  return null;
+}
 
-VALORI NUTRIZIONALI BASE:
-Impasto 250g: 675 kcal | Pomodoro 80g: 14 kcal | Olio 5g: 44 kcal
-Mozzarella 100g: 280 kcal | Bufala 100g: 260 kcal | Gorgonzola 60g: 210 kcal
-Brie 50g: 167 kcal | Grana 10g: 43 kcal | Scamorza 60g: 180 kcal
-Ricotta 50g: 70 kcal | Philadelphia 30g: 96 kcal | Stracchino 50g: 150 kcal
-Salsiccia 80g: 240 kcal | Salamino 60g: 252 kcal | P.cotto 60g: 87 kcal
-P.crudo 50g: 125 kcal | Pancetta 50g: 270 kcal | Speck 50g: 130 kcal
-Porchetta 60g: 180 kcal | Wurstel 80g: 240 kcal | Bresaola 50g: 75 kcal
-Tonno 60g: 79 kcal | Acciughe 10g: 21 kcal
-Funghi 60g: 13 kcal | Porcini 60g: 15 kcal | Carciofi 60g: 28 kcal
-Pomodorini 60g: 11 kcal | Melanzane 60g: 15 kcal | Peperoni 80g: 25 kcal
-Zucchine 60g: 10 kcal | Friarielli 60g: 18 kcal | Cipolla 30g: 12 kcal
-Mais 30g: 29 kcal | Olive 30g: 35 kcal | Rucola cotta 30g: 8 kcal
-Pesto 30g: 135 kcal | Crema tartufo 15g: 53 kcal | BBQ 20g: 24 kcal
-Patate fritte 80g: 250 kcal | Pomodori secchi 30g: 75 kcal | Noci 15g: 98 kcal
+const SYSTEM_BASE = `Sei Pinguino 🐧, assistente di BoisPizza pizzeria artigianale a Casier (TV) di Michele Boller.
+Stile: simpatico, caldo, diretto. Risposte brevi e naturali. No elenchi se non richiesti.
+Dai kcal e prezzo totale nel discorso, non ingrediente per ingrediente (a meno che non venga chiesto).
+Non dire "conviene questo". Non moralizzare sulle calorie. La pizza è un piacere!
+ORARI: mar-dom 18:30-21:30. Lun chiuso. CONTATTI: WA 3405327257 (info), Tel 0422670631 (prenotazioni).
+PIZZA LEGGERA: suggerisci Bufalina, Estate, Repubblica, Valtellina o combo creativi (bufala+pomodorini, rucola+brie ecc) — non la Marinara.
+Pomodorini→Estate,Bufalina,Wilma,Repubblica | Brie→Mike,Sfiziosa,Cri
+COMBO(solo con pizza): Fritino 5pz 2,50€ | +bibita 2,50€ | entrambi 4€
+FRITTI STANDALONE: Olive/Mozz/Nuggets/Crocch 6€(10pz) | Anellini 3,50€ | Verdure 4€ | Patate 3,50€ | Misto Frittico 15€`;
 
-CALORIE ESATTE PER OGNI PIZZA (intera):
-SFRIZZI:
-- Olive ascolane 10pz: 6€ (~400 kcal)
-- Mozzarelline 10pz: 6€ (~450 kcal)
-- Nuggets pollo 10pz: 6€ (~380 kcal)
-- Crocchette patate 10pz: 6€ (~350 kcal)
-- Anellini cipolla 10pz: 3,50€ (~300 kcal)
-- Verdure pastellate: 4€ (~250 kcal)
-- Patate fritte: 3,50€ (~320 kcal)
-- Misto Frittico: 15€ (~900 kcal)
+const SYSTEM_MENU = `CALORIE: Marinara 820|Margherita 1125|Diavola 1070|Salsiccia 1190|Viennese 1180|Pugliese 1090|P.funghi 1190|Capricciosa 1240|Tonno&cip 1200|Bufala 1000|Bufalina 1020|4stagioni 1380|Romana 1060|Siciliana 1270|Patatosa 1320|Parma 1180|Speck 1210|Montello 1330|Valtellina 1310|Verdure 1200|Estate 950|Norma 1220|Parmigiana 1150|Mike 1470|Ciccia&friar 1160|Formaggi 1500|Paolo 1400|Sfiziosa 1470|AVA 1285|PPS 1300|Silvia 1200|Wilma 1260|Wanda 1280|Leone 1380|Giggino 1200|Titti 1370|Boscaiola 1585|Tartufata 1340|UFO 1650|Pazza 1600|Repubblica 1210|CapSbagliata 1380|Amatriciana 980|Onta 1100|Cri 1400|Bois 1820|Pimpa 1480|CalzClass 1120|CalzPicc 1290|CalzVeg 950|CalzMauretto 1350|CalzAdE 1300
+PREZZI: Marinara/Margherita 5€|Diavola/Salsiccia/P.funghi/Romana 8€|Viennese 7,50€|Pugliese 7€|Capricciosa/Bufala/4stagioni/Siciliana 9€|Bufalina/Parma 10€|Speck 9,50€|Montello/Valtellina 10,50€|Verdure 8,50€|Estate/Norma/Ciccia/Formaggi 9€|Parmigiana 8,50€|Mike/Sfiziosa 10€|AVA 12€|PPS 11€|Silvia 12€|Wilma 8,50€|Wanda 9€|Leone/CapSbagliata/UFO 12€|Giggino/Amatriciana/Onta 10€|Titti/Repubblica 11,50€|Boscaiola/Tartufata 11€|Pazza 11,50€|Cri 14€|Bois/Pimpa 11€|CalzClass/Picc/Veg 9€|CalzMauretto 12€|CalzAdE 13€`;
 
-PIZZE CLASSICHE:
-- Marinara: 820 kcal (168 kcal/100g) — 5€
-- Margherita: 1125 kcal (226 kcal/100g) — 5€
-- Diavola: 1070 kcal (220 kcal/100g) — 8€
-- Salsiccia: 1190 kcal (227 kcal/100g) — 8€
-- Viennese: 1180 kcal (232 kcal/100g) — 7,50€
-- Pugliese: 1090 kcal (219 kcal/100g) — 7€
-- Prosciutto e funghi: 1190 kcal (234 kcal/100g) — 8€
-- Capricciosa: 1240 kcal (236 kcal/100g) — 9€
-- Tonno e cipolla: 1200 kcal (242 kcal/100g) — 9€
-- Bufala: ~1000 kcal — 9€
-- Bufalina: 1020 kcal (215 kcal/100g) — 10€
-- Quattro stagioni: 1380 kcal (265 kcal/100g) — 9€
-- Romana: 1060 kcal (217 kcal/100g) — 8€
-- Siciliana: 1270 kcal (258 kcal/100g) — 9€
-- Patatosa: 1320 kcal (260 kcal/100g) — 8€
+const SYSTEM_CALCOLI = `
+KCAL INGREDIENTI: Impasto 675|Pomodoro 14|Olio 44|Mozz 280|Bufala 260|Gorgonzola 210|Brie 167|Grana 43|Scamorza 180|Ricotta 70|Philadelphia 96|Stracchino 150|Salsiccia 240|Salamino 252|P.cotto 87|P.crudo 125|Pancetta 270|Speck 130|Porchetta 180|Wurstel 240|Bresaola 75|Tonno 79|Acciughe 21|Funghi 13|Porcini 15|Carciofi 28|Pomodorini 11|Melanzane 15|Peperoni 25|Zucchine 10|Friarielli 18|Cipolla 12|Mais 29|Olive 35|Pesto 135|Tartufo 53|BBQ 24|Patate fritte 250|Pom.secchi 75|Noci 98|Rucola 8
+PREZZI AGGIUNTE: Pomodoro 0,50€|Mozz/Salamino/Olive/Acciughe/Carciofi/Ricotta/Patate/Gorgonzola/Brie/Scamorza/Grana/Friarielli 1,50€|Salsiccia/Tonno/Tartufo/Pom.secchi 2€|Wurstel/Cipolla/P.cotto/Funghi/Mais/Pesto/Zucchine/Peperoni/Rucola/BBQ 1€|Porcini/Pancetta/Verdure 2,50€|Bufala/Porchetta/Bresaola/P.crudo/Speck 3€|Philadelphia/Stracchino 1,50€
+CALCOLI: Base 6€(Margherita SEMPRE 5€)|Scambi=pizza-tolto+aggiunto|Battuta:+2€+ogni aggiunta+0,50€extra+kcal ingredienti(no impasto)x1.3|Doppia pasta:+1€+675kcal|Mezza+mezza:(A+B)/2 prezzo e kcal`;
 
-PIZZE CON AFFETTO:
-- Parma: 1180 kcal (230 kcal/100g) — 10€
-- Speck: 1210 kcal (235 kcal/100g) — 9,50€
-- Montello: 1330 kcal (252 kcal/100g) — 10,50€
-- Valtellina: 1310 kcal (252 kcal/100g) — 10,50€
-
-PIZZE VEGETARIANE:
-- Verdure: 1200 kcal (234 kcal/100g) — 8,50€
-- Estate: 950 kcal (193 kcal/100g) — 8€
-- Norma: 1220 kcal (231 kcal/100g) — 9€
-- Parmigiana: ~1150 kcal — 8,50€
-
-PIZZE BIANCHE:
-- Mike: 1470 kcal (282 kcal/100g) — 10,50€
-- Ciccia e friarielli: 1160 kcal (232 kcal/100g) — 9€
-- Formaggi: 1500 kcal (295 kcal/100g) — 9€
-- Paolo: 1400 kcal (275 kcal/100g) — 10€
-- Sfiziosa: 1470 kcal (284 kcal/100g) — 10€
-- AVA: 1285 kcal (245 kcal/100g) — 12€
-- PPS: 1300 kcal (251 kcal/100g) — 11€
-- Silvia: ~1200 kcal — 12€
-
-PIZZE SPECIALI:
-- Wilma: 1260 kcal (245 kcal/100g) — 8,50€
-- Wanda: 1280 kcal (249 kcal/100g) — 9€
-- Leone: 1380 kcal (245 kcal/100g) — 12€
-- Giggino: 1200 kcal (230 kcal/100g) — 10€
-- Titti: 1370 kcal (257 kcal/100g) — 11,50€
-- Boscaiola: 1585 kcal (234 kcal/100g) — 11€
-- Tartufata: 1340 kcal (255 kcal/100g) — 11€
-- UFO: 1650 kcal (304 kcal/100g) — 12€
-- Pazza: 1600 kcal (296 kcal/100g) — 11,50€
-- Repubblica: 1210 kcal (235 kcal/100g) — 11,50€
-- Capricciosa sbagliata: 1380 kcal (259 kcal/100g) — 12€
-- Amatriciana: 980 kcal (205 kcal/100g) — 10€
-- Onta: ~1100 kcal — 10€
-- Cri: ~1400 kcal — 14€
-
-CALZONI E ARROTOLATE:
-- Bois (arrotolata): 1820 kcal (288 kcal/100g) — 11€
-- Pimpa (arrotolata): 1480 kcal (280 kcal/100g) — 11€
-- Calzone classico: 1120 kcal (220 kcal/100g) — 9€
-- Calzone piccante: 1290 kcal (254 kcal/100g) — 9€
-- Calzone Vegeta: ~950 kcal — 9€
-- Calzone Poro Mauretto: ~1350 kcal — 12€
-- Calzone AdE: ~1300 kcal — 13€
-
-BIBITE: lattine 2,50€ | birra lattina 2,50€ | birra 0,33-0,66 3,50€ | birra 1L 6€
-
-PREZZI E AGGIUNTE:
-La pizza base (pomodoro + mozzarella) costa 6€. La Margherita è a 5€ (scelta etica di Michele).
-Formato battuta: +2,00€ | Aggiunte su battuta: +0,50€ in più per aggiunta | Doppia pasta: +1,00€ | Formato baby/ho poca fame: -0,50€
-
-INGREDIENTI AGGIUNTIVI (prezzo + kcal aggiuntive):
-Pomodoro +0,50€ (14 kcal) | Mozzarella +1,50€ (280 kcal) | Basilico 0€ (1 kcal) | Olio 0€ (44 kcal) | Origano 0€ (3 kcal) | Aglio 0€ (3 kcal)
-Pomodorino +1,50€ (11 kcal) | Salamino +1,50€ (252 kcal) | Salsiccia +2,00€ (240 kcal) | Wurstel +1,00€ (240 kcal)
-Cipolla +1,00€ (12 kcal) | P.cotto +1,00€ (87 kcal) | Funghi +1,00€ (13 kcal) | Carciofi +1,50€ (28 kcal)
-Tonno +2,00€ (79 kcal) | Bufala +3,00€ (260 kcal) | Olive +1,50€ (35 kcal) | Capperi +0,50€ (1 kcal)
-Acciughe +1,50€ (21 kcal) | Ricotta +1,50€ (70 kcal) | *Patate fritte +1,50€ (250 kcal) | Verdure miste +2,50€ (60 kcal)
-Melanzane fritte +1,50€ (15 kcal) | Gorgonzola +1,50€ (210 kcal) | Crema tartufo +2,00€ (53 kcal) | BBQ +1,00€ (24 kcal)
-Pancetta +2,50€ (270 kcal) | Scamorza +1,50€ (180 kcal) | Mais +1,00€ (29 kcal) | Pesto +1,00€ (135 kcal)
-Zucchine +1,00€ (10 kcal) | Philadelphia +1,50€ (96 kcal) | Porcini +2,50€ (15 kcal) | Pomodori secchi +2,00€ (75 kcal)
-Peperoni +1,00€ (25 kcal) | Rucola +1,00€ (8 kcal) | Grana scaglie +1,50€ (43 kcal) | Porchetta +3,00€ (180 kcal)
-Formaggi misti +2,00€ | Brie +1,50€ (167 kcal) | Friarielli +1,50€ (18 kcal) | Stracchino +2,00€ (150 kcal)
-Noci +1,00€ (98 kcal) | Bresaola +3,00€ (75 kcal) | P.crudo +3,00€ (125 kcal) | Speck +3,00€ (130 kcal)
-(*) ingredienti surgelati: patate fritte
-
-ORARI: Martedì-domenica 18:30-21:30. Lunedì chiuso.
-TELEFONO: 0422/670631 | WhatsApp info: 3405327257
-INDIRIZZO: Via Principale 113, Casier (TV)
-
-QUANDO CHIEDONO UNA PIZZA LEGGERA O FRESCA:
-Non consigliare la Marinara per prima — il cliente intende qualcosa di sfizioso e appagante, non "meno calorie".
-Suggerisci in ordine di preferenza:
-- Bufalina (pomodoro, bufala, pomodorini) — fresca e cremosa
-- Estate (pomodoro, mozzarella, datterino condito) — estiva e leggera
-- Repubblica (pomodoro, mozzarella, rucola, pomodorino, bufala, grana) — fresca e saporita
-- Valtellina (pomodoro, mozzarella, bresaola, rucola, grana) — elegante e leggera
-- Oppure inventa una combo personalizzata con gli ingredienti disponibili, tipo: "pomodoro, bufala a fine cottura, pomodorini e un filo d'olio" o "pomodoro, acciughe, pomodorini secchi e capperi"
-
-QUANDO CHIEDONO INGREDIENTI SPECIFICI:
-Conosci BENE tutti gli ingredienti del menù e le pizze che li contengono.
-Esempi:
-- Pomodorini → Estate, Bufalina, Wilma, Giggino, Titti, Repubblica, AVA
-- Brie → Mike, Sfiziosa, Cri, Calzone AdE
-- Pomodorini + brie → suggerisci Estate con aggiunta brie (+1,50€) o una pizza personalizzata
-- Bufala → Bufala, Bufalina, Repubblica
-- Verdure grigliate → Verdure, Calzone Vegeta
-MAI dire "non esiste questa pizza" — cerca sempre la combinazione più vicina o proponi una personalizzazione con gli ingredienti disponibili.
-
-CREATIVITÀ:
-Puoi suggerire combinazioni creative usando gli ingredienti reali del menù, presentandole come "prova così" o "potresti chiedere". Esempi:
-- "Una Margherita con bufala aggiunta a fine cottura e pomodorini freschi — fresca e cremosa"
-- "Pomodoro, acciughe, capperi e pomodorini secchi — tipo una siciliana rinfrescata"
-- "Bianca con stracchino, rucola e pomodorini — leggera e sfiziosa"
-
-REGOLE BASE:
-- Pizza base (pomodoro + mozzarella): 6€, ~1125 kcal
-- Margherita: SEMPRE 5€ (è la "pizza del popolo", eccezione fissa)
-- Ogni aggiunta: prezzo della lista ingredienti
-- Ogni rimozione: sottrai il prezzo di quell'ingrediente dalla pizza
-- Scambi: prezzo finale = prezzo pizza - ingrediente tolto + ingrediente aggiunto (mai gratis)
-  Esempio: Paolo senza gorgonzola +brie = 10€ - 1,50€ + 1,50€ = 10€ (stesso prezzo)
-  Esempio: Pugliese senza cipolla +porchetta = 7€ - 1€ + 3€ = 9€
-
-FORMATO BATTUTA (+2€):
-- +2€ sul prezzo base della pizza
-- Ogni aggiunta costa +0,50€ in più rispetto al prezzo normale
-  Esempio: salsiccia normalmente +2€, su battuta diventa +2,50€
-- Calorie di tutti gli ingredienti (escluso impasto) aumentano del +30%
-- Doppia pasta: +1€ fisso sempre (anche su battuta) → calorie impasto x2 (675x2=1350 kcal)
-
-MEZZA + MEZZA:
-- Prezzo = (prezzo pizza A + prezzo pizza B) / 2
-- Calorie = (calorie pizza A + calorie pizza B) / 2
-
-CALCOLO CALORIE PERSONALIZZAZIONI:
-- Togli ingrediente → sottrai le sue kcal
-- Aggiungi ingrediente → aggiungi le sue kcal
-- Su battuta → calorie ingredienti (no impasto) x 1.30
-- Doppia pasta → aggiungi 675 kcal in più (secondo impasto)
-
-Quando l'utente descrive una pizza personalizzata, calcola prezzo e calorie internamente ma rispondi in modo NATURALE e conversazionale — non elencare ingrediente per ingrediente a meno che il cliente non lo chieda esplicitamente. Dai solo il totale finale in modo scorrevole.
-Esempio risposta giusta: "Quella pizza viene circa 1627 kcal e ti costa 10,50€ 🍕"
-Esempio risposta sbagliata: "Cipolla: +1€, +12 kcal / Salsiccia: +2€, +240 kcal..."
-
-UPSELLING — PROMO FRITINO (discreta, non sempre):
-Il fritino da 5pz misti (nuggets + olive ascolane + crocchette + mozzarelline) a 2,50€ è disponibile SOLO in abbinamento alla pizza, non standalone.
-Menzionalo solo occasionalmente e in modo naturale, mai in modo insistente.
-
-COMBO PREZZI:
-- Pizza + bibita: +2,50€
-- Pizza + fritino: +2,50€
-- Pizza + fritino + bibita: +4,00€ in totale extra
-Esempio: Margherita (5€) + bibita + fritino = 9€
-
-SE VUOLE SOLO FRITTI (senza pizza):
-- Olive ascolane 10pz: 6€ (~400 kcal)
-- Mozzarelline 10pz: 6€ (~450 kcal)
-- Nuggets pollo 10pz: 6€ (~380 kcal)
-- Crocchette patate 10pz: 6€ (~350 kcal)
-- Anellini cipolla 10pz: 3,50€ (~300 kcal)
-- Verdure pastellate: 4€ (~250 kcal)
-- Patate fritte: 3,50€ (~320 kcal)
-- Misto Frittico: 4pz di tutto + 150g patate fritte + 150g verdure pastellate — 15€ (~900 kcal)
-
-REGOLE DI RISPOSTA:
-- Tono naturale, caldo, simpatico — come un amico dietro al bancone
-- Risposte brevi e scorrevoli, no elenchi puntati se non richiesti
-- Dai kcal e prezzo totale in modo chiaro ma integrato nel discorso
-- Non dire mai "conviene questo o quello" — lascia scegliere il cliente
-- Se qualcuno vuole dimagrire, suggerisci opzioni leggere con leggerezza
-- Se chiedono ingredienti non nel menù, suggerisci di chiamare
-- La pizza è artigianale, fatta con amore da Michele 🐧
-- Se chiedono ingredienti non nel menù, dì che possono chiamare per personalizzare
-- Ricorda sempre che la pizza è fatta artigianalmente con ingredienti freschi di qualità
-- ORARI ORDINI: martedì-domenica 18:30-21:30. Lunedì chiuso. Ricordalo se chiedono di ordinare fuori orario.
-- Quando il cliente sembra pronto ad ordinare, fai un breve riepilogo e digli che può ordinare con i bottoni qui sotto.`;
-
-let bpHistory = [];
-let bpLoading = false;
-let panelOpen = false;
-let orderButtonsShown = false;
+let bpHistory = [], bpLoading = false, panelOpen = false, orderShown = false;
 
 function togglePanel() {
   panelOpen = !panelOpen;
   document.getElementById('bois-panel').classList.toggle('open', panelOpen);
-  if (panelOpen && bpHistory.length === 0) {
-    setTimeout(() => addBotMsg("Ciao! 🐧🍕 Sono il Pinguino di BoisPizza!\nDimmi cosa hai voglia di mangiare e ti dico subito le calorie. O se vuoi, ti aiuto a scegliere la pizza più adatta a te!"), 300);
-  }
-}
-
-function showOrderButtons() {
-  if (orderButtonsShown) return;
-  orderButtonsShown = true;
-  const el = document.getElementById('bp-messages');
-  const div = document.createElement('div');
-  div.className = 'bp-msg bot';
-  div.innerHTML = `
-    <div class="bp-msg-av">🐧</div>
-    <div class="bp-bubble" style="display:flex;flex-direction:column;gap:8px;">
-      <div style="font-size:0.78rem;color:#9e7a5a;margin-bottom:2px;">Pronto a ordinare? 👇</div>
-      <a href="https://wa.me/393405327257" target="_blank"
-        style="display:flex;align-items:center;gap:8px;background:linear-gradient(135deg,#25d366,#128c7e);color:white;border-radius:10px;padding:8px 12px;text-decoration:none;font-weight:700;font-size:0.82rem;">
-        <span>💬</span> Ordina su WhatsApp
-      </a>
-      <a href="tel:+390422670631"
-        style="display:flex;align-items:center;gap:8px;background:linear-gradient(135deg,#c0392b,#e67e22);color:white;border-radius:10px;padding:8px 12px;text-decoration:none;font-weight:700;font-size:0.82rem;">
-        <span>📞</span> Chiama 0422 670631
-      </a>
-    </div>`;
-  el.appendChild(div);
-  el.scrollTop = el.scrollHeight;
+  if (panelOpen && bpHistory.length === 0)
+    setTimeout(() => addBotMsg("Ciao! 🐧🍕 Sono il Pinguino di BoisPizza!\nDimmi cosa vuoi mangiare e ti dico calorie e prezzo. O chiedimi qualsiasi cosa sul menù!"), 300);
 }
 
 function addBotMsg(text) {
@@ -584,44 +193,34 @@ function addBotMsg(text) {
   const div = document.createElement('div');
   div.className = 'bp-msg bot';
   div.innerHTML = `<div class="bp-msg-av">🐧</div><div class="bp-bubble">${fmt(text)}</div>`;
-  el.appendChild(div);
-  el.scrollTop = el.scrollHeight;
-  bpHistory.push({ role: 'assistant', content: text });
-
-  // Show order buttons if conversation suggests readiness to order
-  const orderKeywords = ['ordina', 'prendo', 'voglio', 'prenoto', 'come ordino', 'posso ordinare', 'vorrei'];
-  const recentMsgs = bpHistory.slice(-4).map(m => m.content.toLowerCase()).join(' ');
-  if (!orderButtonsShown && orderKeywords.some(k => recentMsgs.includes(k))) {
-    setTimeout(showOrderButtons, 400);
-  }
+  el.appendChild(div); el.scrollTop = el.scrollHeight;
+  bpHistory.push({ role:'assistant', content:text });
 }
-
 function addUserMsg(text) {
   const el = document.getElementById('bp-messages');
   const div = document.createElement('div');
   div.className = 'bp-msg user';
   div.innerHTML = `<div class="bp-msg-av">👤</div><div class="bp-bubble">${esc(text)}</div>`;
-  el.appendChild(div);
-  el.scrollTop = el.scrollHeight;
-  bpHistory.push({ role: 'user', content: text });
+  el.appendChild(div); el.scrollTop = el.scrollHeight;
+  bpHistory.push({ role:'user', content:text });
 }
-
+function showOrderButtons() {
+  if (orderShown) return; orderShown = true;
+  const el = document.getElementById('bp-messages');
+  const div = document.createElement('div');
+  div.className = 'bp-msg bot';
+  div.innerHTML = `<div class="bp-msg-av">🐧</div><div class="bp-bubble"><div style="font-size:0.78rem;color:#9e7a5a;margin-bottom:8px;">Scegli come contattarci 👇</div><div class="order-btns"><a href="${WA}" target="_blank" class="btn-wa"><span>💬</span> WhatsApp (info)</a><a href="${TEL}" class="btn-tel"><span>📞</span> Chiama 0422 670631</a></div></div>`;
+  el.appendChild(div); el.scrollTop = el.scrollHeight;
+}
 function showTyping() {
   const el = document.getElementById('bp-messages');
   const div = document.createElement('div');
   div.className = 'bp-msg bot'; div.id = 'bp-typing';
   div.innerHTML = `<div class="bp-msg-av">🐧</div><div class="bp-bubble"><div class="bp-typing"><span></span><span></span><span></span></div></div>`;
-  el.appendChild(div);
-  el.scrollTop = el.scrollHeight;
+  el.appendChild(div); el.scrollTop = el.scrollHeight;
 }
 function removeTyping() { const t = document.getElementById('bp-typing'); if(t) t.remove(); }
-
-function fmt(t) {
-  return esc(t)
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    .replace(/(\d+)\s*kcal/gi, '<span class="cal-box">$1 kcal</span>')
-    .replace(/\n/g, '<br>');
-}
+function fmt(t) { return esc(t).replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/(\d+)\s*kcal/gi,'<span class="cal-box">$1 kcal</span>').replace(/\n/g,'<br>'); }
 function esc(t) { return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 async function bpSend() {
@@ -630,65 +229,59 @@ async function bpSend() {
   if (!text || bpLoading) return;
   input.value = '';
   addUserMsg(text);
-  await callGroq();
-}
 
-function quickSend(text) {
-  if (!panelOpen) togglePanel();
-  setTimeout(() => {
-    document.getElementById('bp-input').value = text;
-    bpSend();
-  }, 350);
-}
+  // LIVELLO 1 — risposta fissa
+  const fissa = rispostaFissa(text);
+  if (fissa === 'ORDER') {
+    addBotMsg("Ecco come contattarci per ordinare o prenotare! 🐧");
+    setTimeout(showOrderButtons, 300); return;
+  }
+  if (fissa) { setTimeout(() => addBotMsg(fissa), 300); return; }
 
-async function callGroq() {
+  // LIVELLO 2/3 — AI
   bpLoading = true;
   document.getElementById('bp-send').disabled = true;
   showTyping();
 
-  const msgs = [{ role: 'system', content: SYSTEM }, ...bpHistory.filter(m => m.role === 'user' || m.role === 'assistant')];
+  const complesso = isComplesso(text);
+  const model70b = 'llama-3.3-70b-versatile';
+  const model8b = 'llama-3.1-8b-instant';
+  const systemPrompt = SYSTEM_BASE + '\n' + SYSTEM_MENU + (complesso ? '\n' + SYSTEM_CALCOLI : '');
+  const msgs = [{ role:'system', content:systemPrompt }, ...bpHistory.filter(m => m.role==='user'||m.role==='assistant').slice(-6)];
 
-  try {
-    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${GROQ_KEY}` },
-      body: JSON.stringify({ model: 'llama-3.3-70b-versatile', messages: msgs, max_tokens: 400 })
-    });
-    const data = await res.json();
-    removeTyping();
-    const text = data.choices?.[0]?.message?.content || '';
-    if (text) addBotMsg(text);
-    else addBotMsg("DEBUG: " + JSON.stringify(data).substring(0, 200));
-  } catch(e) {
-    removeTyping();
-    addBotMsg("Connessione persa! 😬 Riprova tra un secondo.");
+  let testo = await callGroq(complesso ? model70b : model8b, msgs);
+  if (!testo) testo = await callGroq(model8b, msgs); // fallback
+
+  removeTyping();
+  if (testo) {
+    addBotMsg(testo);
+    const ultimi = bpHistory.slice(-4).map(m => m.content.toLowerCase()).join(' ');
+    if (!orderShown && ['ordina','prendo','voglio ordinar','come ordino'].some(k => ultimi.includes(k)))
+      setTimeout(showOrderButtons, 500);
+  } else {
+    addBotMsg("Ops, problema tecnico! 😅 Riprova o chiamaci al 0422 670631 🐧");
   }
 
   bpLoading = false;
   document.getElementById('bp-send').disabled = false;
 }
+
+async function callGroq(model, msgs) {
+  try {
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${GROQ_KEY}`},
+      body:JSON.stringify({ model, messages:msgs, max_tokens:350 })
+    });
+    const data = await res.json();
+    return data.choices?.[0]?.message?.content || '';
+  } catch(e) { return ''; }
+}
+
+function quickSend(text) {
+  if (!panelOpen) togglePanel();
+  setTimeout(() => { document.getElementById('bp-input').value = text; bpSend(); }, 350);
+}
 </script>
-
-<!--
-══════════════════════════════════════════════════════
-  CODICE EMBED PER IL TUO SITO boispizza.it
-  Copia tutto il blocco qui sotto e incollalo prima
-  del tag </body> del tuo sito
-══════════════════════════════════════════════════════
-
-<script>
-(function() {
-  var iframe = document.createElement('iframe');
-  iframe.src = 'URL_DEL_TUO_FILE_SU_GITHUB_PAGES_O_VERCEL';
-  iframe.style.cssText = 'position:fixed;bottom:0;right:0;width:400px;height:600px;border:none;z-index:99999;background:transparent;';
-  iframe.allow = 'microphone';
-  document.body.appendChild(iframe);
-})();
-</script>
-
-OPPURE (più semplice): carica questo file su Vercel/GitHub Pages
-e incolla il tag <script> sopra nel tuo sito.
-══════════════════════════════════════════════════════
--->
 </body>
 </html>
