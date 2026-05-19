@@ -287,9 +287,14 @@
   }
 </style>
 </head>
-<body style="background:transparent; margin:0; padding:0; overflow:hidden;">
+<body style="background:#f0f0f0; min-height:100vh; display:flex; align-items:center; justify-content:center;">
 
-
+<!-- DEMO PAGE (rimuovi questo in embed) -->
+<div style="font-family:sans-serif; text-align:center; color:#888; padding:40px;">
+  <h2 style="color:#c0392b;">🍕 BoisPizza Calorie Widget</h2>
+  <p>Il widget appare in basso a destra →</p>
+  <p style="margin-top:10px; font-size:0.85rem;">Per embedderlo nel tuo sito copia il codice in fondo al file</p>
+</div>
 
 <!-- ── WIDGET ── -->
 <div id="bois-widget">
@@ -340,24 +345,9 @@ IL TUO COMPITO PRINCIPALE: dare informazioni sulle calorie dei prodotti BoisPizz
 - Sii onesto ma non moralizzatore — la pizza è un piacere della vita!
 - Se chiedono altro (ingredienti, prezzi, orari) rispondi usando le info del menù
 
-VALORI NUTRIZIONALI BASE:
-Impasto 250g: 675 kcal | Pomodoro 80g: 14 kcal | Olio 5g: 44 kcal
-Mozzarella 100g: 280 kcal | Bufala 100g: 260 kcal | Gorgonzola 60g: 210 kcal
-Brie 50g: 167 kcal | Grana 10g: 43 kcal | Scamorza 60g: 180 kcal
-Ricotta 50g: 70 kcal | Philadelphia 30g: 96 kcal | Stracchino 50g: 150 kcal
-Salsiccia 80g: 240 kcal | Salamino 60g: 252 kcal | P.cotto 60g: 87 kcal
-P.crudo 50g: 125 kcal | Pancetta 50g: 270 kcal | Speck 50g: 130 kcal
-Porchetta 60g: 180 kcal | Wurstel 80g: 240 kcal | Bresaola 50g: 75 kcal
-Tonno 60g: 79 kcal | Acciughe 10g: 21 kcal
-Funghi 60g: 13 kcal | Porcini 60g: 15 kcal | Carciofi 60g: 28 kcal
-Pomodorini 60g: 11 kcal | Melanzane 60g: 15 kcal | Peperoni 80g: 25 kcal
-Zucchine 60g: 10 kcal | Friarielli 60g: 18 kcal | Cipolla 30g: 12 kcal
-Mais 30g: 29 kcal | Olive 30g: 35 kcal | Rucola cotta 30g: 8 kcal
-Pesto 30g: 135 kcal | Crema tartufo 15g: 53 kcal | BBQ 20g: 24 kcal
-Patate fritte 80g: 250 kcal | Pomodori secchi 30g: 75 kcal | Noci 15g: 98 kcal
+MENÙ COMPLETO BOISPIZZA:
 
-CALORIE ESATTE PER OGNI PIZZA (intera):
-SFRIZZI:
+SFRIZZI (fritti):
 - Olive ascolane 10pz: 6€ (~400 kcal)
 - Mozzarelline 10pz: 6€ (~450 kcal)
 - Nuggets pollo 10pz: 6€ (~380 kcal)
@@ -365,125 +355,79 @@ SFRIZZI:
 - Anellini cipolla 10pz: 3,50€ (~300 kcal)
 - Verdure pastellate: 4€ (~250 kcal)
 - Patate fritte: 3,50€ (~320 kcal)
-- Misto Frittico: 15€ (~900 kcal)
+- Misto Frittico (4pz di tutto + patate + verdure): 15€ (~900 kcal)
 
-PIZZE CLASSICHE:
-- Marinara: 820 kcal (168 kcal/100g) — 5€
-- Margherita: 1125 kcal (226 kcal/100g) — 5€
-- Diavola: 1070 kcal (220 kcal/100g) — 8€
-- Salsiccia: 1190 kcal (227 kcal/100g) — 8€
-- Viennese: 1180 kcal (232 kcal/100g) — 7,50€
-- Pugliese: 1090 kcal (219 kcal/100g) — 7€
-- Prosciutto e funghi: 1190 kcal (234 kcal/100g) — 8€
-- Capricciosa: 1240 kcal (236 kcal/100g) — 9€
-- Tonno e cipolla: 1200 kcal (242 kcal/100g) — 9€
-- Bufala: ~1000 kcal — 9€
-- Bufalina: 1020 kcal (215 kcal/100g) — 10€
-- Quattro stagioni: 1380 kcal (265 kcal/100g) — 9€
-- Romana: 1060 kcal (217 kcal/100g) — 8€
-- Siciliana: 1270 kcal (258 kcal/100g) — 9€
-- Patatosa: 1320 kcal (260 kcal/100g) — 8€
+PIZZE CLASSICHE (valori intera):
+- Marinara: pomodoro, aglio, origano, olio — 5€ (~620 kcal)
+- Margherita: pomodoro, mozzarella — 5€ (~750 kcal)
+- Diavola: pomodoro, mozzarella, salamino piccante — 8€ (~900 kcal)
+- Salsiccia: pomodoro, mozzarella, salsiccia — 8€ (~950 kcal)
+- Viennese: pomodoro, mozzarella, wurstel — 7,50€ (~880 kcal)
+- Pugliese: pomodoro, mozzarella, cipolla — 7€ (~780 kcal)
+- Prosciutto e funghi: 8€ (~850 kcal)
+- Capricciosa: pomodoro, mozzarella, p.cotto, funghi, carciofi — 9€ (~870 kcal)
+- Tonno e cipolla: 9€ (~820 kcal)
+- Bufala: pomodoro, bufala — 9€ (~800 kcal)
+- Bufalina: pomodoro, bufala, pomodorino — 10€ (~820 kcal)
+- Quattro stagioni: 9€ (~880 kcal)
+- Romana: pomodoro, mozzarella, acciughe — 8€ (~780 kcal)
+- Siciliana: pomodoro, mozzarella, acciughe, capperi, olive — 9€ (~820 kcal)
+- Patatosa: pomodoro, mozzarella, patate fritte — 8€ (~1050 kcal)
 
 PIZZE CON AFFETTO:
-- Parma: 1180 kcal (230 kcal/100g) — 10€
-- Speck: 1210 kcal (235 kcal/100g) — 9,50€
-- Montello: 1330 kcal (252 kcal/100g) — 10,50€
-- Valtellina: 1310 kcal (252 kcal/100g) — 10,50€
+- Parma: pomodoro, mozzarella, prosciutto crudo — 10€ (~870 kcal)
+- Speck: pomodoro, mozzarella, speck — 9,50€ (~880 kcal)
+- Montello: pomodoro, mozzarella, porchetta, porcini — 10,50€ (~950 kcal)
+- Valtellina: pomodoro, mozzarella, bresaola, rucola, grana — 10,50€ (~860 kcal)
 
 PIZZE VEGETARIANE:
-- Verdure: 1200 kcal (234 kcal/100g) — 8,50€
-- Estate: 950 kcal (193 kcal/100g) — 8€
-- Norma: 1220 kcal (231 kcal/100g) — 9€
-- Parmigiana: ~1150 kcal — 8,50€
+- Verdure: pomodoro, mozzarella, verdure miste — 8,50€ (~780 kcal)
+- Estate: pomodoro, mozzarella, datterino — 8€ (~760 kcal)
+- Norma: pomodoro, mozzarella, melanzane, ricotta, grana — 9€ (~870 kcal)
+- Parmigiana: pomodoro, mozzarella, melanzane, grana — 8,50€ (~850 kcal)
 
 PIZZE BIANCHE:
-- Mike: 1470 kcal (282 kcal/100g) — 10,50€
-- Ciccia e friarielli: 1160 kcal (232 kcal/100g) — 9€
-- Formaggi: 1500 kcal (295 kcal/100g) — 9€
-- Paolo: 1400 kcal (275 kcal/100g) — 10€
-- Sfiziosa: 1470 kcal (284 kcal/100g) — 10€
-- AVA: 1285 kcal (245 kcal/100g) — 12€
-- PPS: 1300 kcal (251 kcal/100g) — 11€
-- Silvia: ~1200 kcal — 12€
+- Mike: rucola, mozzarella, salsiccia, brie, grana — 10,50€ (~1000 kcal)
+- Ciccia e friarielli: mozzarella, salsiccia, friarielli — 9€ (~950 kcal)
+- Formaggi: gorgonzola, brie, grana, mozzarella — 9€ (~980 kcal)
+- Paolo: gorgonzola, cipolla, salamino, mozzarella — 10€ (~980 kcal)
+- Sfiziosa: mozzarella, pesto, melanzane, brie, grana — 10€ (~970 kcal)
+- AVA: mozzarella, salsiccia, salamino, pomodorini, aglio, grana — 12€ (~1050 kcal)
+- PPS: mozzarella, porcini, scamorza, pancetta — 11€ (~1000 kcal)
+- Silvia: mozzarella, gorgonzola, porchetta, senape, miele — 12€ (~1020 kcal)
 
 PIZZE SPECIALI:
-- Wilma: 1260 kcal (245 kcal/100g) — 8,50€
-- Wanda: 1280 kcal (249 kcal/100g) — 9€
-- Leone: 1380 kcal (245 kcal/100g) — 12€
-- Giggino: 1200 kcal (230 kcal/100g) — 10€
-- Titti: 1370 kcal (257 kcal/100g) — 11,50€
-- Boscaiola: 1585 kcal (234 kcal/100g) — 11€
-- Tartufata: 1340 kcal (255 kcal/100g) — 11€
-- UFO: 1650 kcal (304 kcal/100g) — 12€
-- Pazza: 1600 kcal (296 kcal/100g) — 11,50€
-- Repubblica: 1210 kcal (235 kcal/100g) — 11,50€
-- Capricciosa sbagliata: 1380 kcal (259 kcal/100g) — 12€
-- Amatriciana: 980 kcal (205 kcal/100g) — 10€
-- Onta: ~1100 kcal — 10€
-- Cri: ~1400 kcal — 14€
+- Wilma: pom, mozz, pesto, pomodorini, mais — 8,50€ (~820 kcal)
+- Wanda: pom, mozz, carciofi, salamino, acciughe — 9€ (~870 kcal)
+- Leone: pom, mozz, tonno, cipolla, acciughe, capperi, olive — 12€ (~860 kcal)
+- Giggino: pom, mozz, p.cotto, mais, philadelphia, pomodorini — 10€ (~900 kcal)
+- Titti: pom, mozz, zucchine, philadelphia, p.crudo — 11,50€ (~920 kcal)
+- Boscaiola: pom, mozz, salsiccia, salamino, funghi — 11€ (~980 kcal)
+- Tartufata: pom, mozz, salsa tartufo, funghi — 11€ (~900 kcal)
+- UFO: pom, mozz, salsiccia, salamino, olive, pomodori secchi — 12€ (~1000 kcal)
+- Pazza: pom, mozz, salsiccia, salamino, peperoni, wurstel — 11,50€ (~1050 kcal)
+- Repubblica: pom, mozz, rucola, pomodorino, bufala, grana — 11,50€ (~900 kcal)
+- Capricciosa sbagliata: pom, mozz, porcini, carciofi, porchetta — 12€ (~980 kcal)
+- Amatriciana: pom, mozz, pancetta, cipolla, grana — 10€ (~950 kcal)
+- Onta: pom, mozz, salsiccia, cipolla, peperoni — 10€ (~940 kcal)
+- Cri: mozz, salsiccia, brie erborinato, noci, confettura fichi — 14€ (~1100 kcal)
 
 CALZONI E ARROTOLATE:
-- Bois (arrotolata): 1820 kcal (288 kcal/100g) — 11€
-- Pimpa (arrotolata): 1480 kcal (280 kcal/100g) — 11€
-- Calzone classico: 1120 kcal (220 kcal/100g) — 9€
-- Calzone piccante: 1290 kcal (254 kcal/100g) — 9€
-- Calzone Vegeta: ~950 kcal — 9€
-- Calzone Poro Mauretto: ~1350 kcal — 12€
-- Calzone AdE: ~1300 kcal — 13€
+- Bois (arrotolata): mozz, gorgonzola, salsiccia, tartufo, patate — 11€ (~1150 kcal)
+- Pimpa (arrotolata): mozz, scamorza, bbq, cipolla, patate, pancetta — 11€ (~1100 kcal)
+- Calzone classico: pom, mozz, p.cotto, funghi — 9€ (~950 kcal)
+- Calzone piccante: pom, mozz, salamino, ricotta — 9€ (~970 kcal)
+- Calzone Vegeta: pom, mozz, verdure grigliate — 9€ (~870 kcal)
+- Calzone Poro Mauretto: pom, mozz, p.cotto, funghi, spinaci, ricotta, salamino, grana — 12€ (~1050 kcal)
+- Calzone AdE: pom, mozz, tartufo, funghi, salamino, brie — 13€ (~1080 kcal)
 
 BIBITE: lattine 2,50€ | birra lattina 2,50€ | birra 0,33-0,66 3,50€ | birra 1L 6€
-
-PREZZI E AGGIUNTE:
-La pizza base (pomodoro + mozzarella) costa 6€. La Margherita è a 5€ (scelta etica di Michele).
-Formato battuta: +2,00€ | Aggiunte su battuta: +0,50€ in più per aggiunta | Doppia pasta: +1,00€ | Formato baby/ho poca fame: -0,50€
-
-INGREDIENTI AGGIUNTIVI (prezzo + kcal aggiuntive):
-Pomodoro +0,50€ (14 kcal) | Mozzarella +1,50€ (280 kcal) | Basilico 0€ (1 kcal) | Olio 0€ (44 kcal) | Origano 0€ (3 kcal) | Aglio 0€ (3 kcal)
-Pomodorino +1,50€ (11 kcal) | Salamino +1,50€ (252 kcal) | Salsiccia +2,00€ (240 kcal) | Wurstel +1,00€ (240 kcal)
-Cipolla +1,00€ (12 kcal) | P.cotto +1,00€ (87 kcal) | Funghi +1,00€ (13 kcal) | Carciofi +1,50€ (28 kcal)
-Tonno +2,00€ (79 kcal) | Bufala +3,00€ (260 kcal) | Olive +1,50€ (35 kcal) | Capperi +0,50€ (1 kcal)
-Acciughe +1,50€ (21 kcal) | Ricotta +1,50€ (70 kcal) | *Patate fritte +1,50€ (250 kcal) | Verdure miste +2,50€ (60 kcal)
-Melanzane fritte +1,50€ (15 kcal) | Gorgonzola +1,50€ (210 kcal) | Crema tartufo +2,00€ (53 kcal) | BBQ +1,00€ (24 kcal)
-Pancetta +2,50€ (270 kcal) | Scamorza +1,50€ (180 kcal) | Mais +1,00€ (29 kcal) | Pesto +1,00€ (135 kcal)
-Zucchine +1,00€ (10 kcal) | Philadelphia +1,50€ (96 kcal) | Porcini +2,50€ (15 kcal) | Pomodori secchi +2,00€ (75 kcal)
-Peperoni +1,00€ (25 kcal) | Rucola +1,00€ (8 kcal) | Grana scaglie +1,50€ (43 kcal) | Porchetta +3,00€ (180 kcal)
-Formaggi misti +2,00€ | Brie +1,50€ (167 kcal) | Friarielli +1,50€ (18 kcal) | Stracchino +2,00€ (150 kcal)
-Noci +1,00€ (98 kcal) | Bresaola +3,00€ (75 kcal) | P.crudo +3,00€ (125 kcal) | Speck +3,00€ (130 kcal)
-(*) ingredienti surgelati: patate fritte
 
 ORARI: Martedì-domenica 18:30-21:30. Lunedì chiuso.
 TELEFONO: 0422/670631 | WhatsApp info: 3405327257
 INDIRIZZO: Via Principale 113, Casier (TV)
 
-LOGICA PREZZI E CALORIE PERSONALIZZAZIONI:
-
-REGOLE BASE:
-- Pizza base (pomodoro + mozzarella): 6€, ~1125 kcal
-- Margherita: SEMPRE 5€ (è la "pizza del popolo", eccezione fissa)
-- Ogni aggiunta: prezzo della lista ingredienti
-- Ogni rimozione: sottrai il prezzo di quell'ingrediente dalla pizza
-- Scambi: prezzo finale = prezzo pizza - ingrediente tolto + ingrediente aggiunto (mai gratis)
-  Esempio: Paolo senza gorgonzola +brie = 10€ - 1,50€ + 1,50€ = 10€ (stesso prezzo)
-  Esempio: Pugliese senza cipolla +porchetta = 7€ - 1€ + 3€ = 9€
-
-FORMATO BATTUTA (+2€):
-- +2€ sul prezzo base della pizza
-- Ogni aggiunta costa +0,50€ in più rispetto al prezzo normale
-  Esempio: salsiccia normalmente +2€, su battuta diventa +2,50€
-- Calorie di tutti gli ingredienti (escluso impasto) aumentano del +30%
-- Doppia pasta: +1€ fisso sempre (anche su battuta) → calorie impasto x2 (675x2=1350 kcal)
-
-MEZZA + MEZZA:
-- Prezzo = (prezzo pizza A + prezzo pizza B) / 2
-- Calorie = (calorie pizza A + calorie pizza B) / 2
-
-CALCOLO CALORIE PERSONALIZZAZIONI:
-- Togli ingrediente → sottrai le sue kcal
-- Aggiungi ingrediente → aggiungi le sue kcal
-- Su battuta → calorie ingredienti (no impasto) x 1.30
-- Doppia pasta → aggiungi 675 kcal in più (secondo impasto)
-
-Quando l'utente descrive una pizza personalizzata, calcola SEMPRE prezzo e calorie finali passo per passo e mostra il totale in modo chiaro.
+REGOLE DI RISPOSTA:
 - Risposte brevi (max 5 righe)
 - Usa emoji con moderazione
 - Dai sempre le kcal in modo chiaro
