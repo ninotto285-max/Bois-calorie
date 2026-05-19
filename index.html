@@ -137,13 +137,17 @@ const MENU_PREZZI = {
 
 function trovaPizza(t) {
   t = t.toLowerCase();
-  for (const p of Object.keys(MENU_CALORIE)) { if (t.includes(p)) return p; }
+  // Ordina per lunghezza decrescente per evitare conflitti (es: "capricciosa sbagliata" non attiverà la "capricciosa" classica)
+  const chiaviOrdinate = Object.keys(MENU_CALORIE).sort((a, b) => b.length - a.length);
+  for (const p of chiaviOrdinate) { if (t.includes(p)) return p; }
   return null;
 }
+
 function isComplesso(t) {
   t = t.toLowerCase();
   return ['battuta','mezza','doppia pasta','senza ','aggiungi','personaliz','al posto','metà','mezzo','calzone','arrotolat'].some(k => t.includes(k));
 }
+
 function rispostaFissa(testo) {
   const t = testo.toLowerCase().trim();
   if (['ordina','ordinare','prenotare','come ordino','voglio ordinare','posso ordinare','contatti','come posso'].some(k => t.includes(k))) return 'ORDER';
@@ -151,7 +155,7 @@ function rispostaFissa(testo) {
   if (['dove','indirizzo','via','casier'].some(k => t.includes(k))) return "Siamo in Via Principale 113, Casier (TV) 📍";
   if (['telefono','numero','chiamo','chiama'].some(k => t.includes(k))) return "Puoi chiamarci al 0422 670631 📞\nO scriverci su WhatsApp al 3405327257 (solo info, no prenotazioni)";
   if (['fritti','frittin','olive','mozzarellin','nuggets','crocch','anellin'].some(k => t.includes(k)) && !isComplesso(t)) {
-    return "I nostri fritti 🍟\n• Olive/Mozzarelline/Nuggets/Crocchette: 6€ (10pz)\n• Anellini cipolla: 3,50€ (10pz)\n• Verdure pastellate: 4€\n• Patate fritte: 3,50€\n• Misto Frittico: 15€\n\nCon la pizza puoi aggiungere un fritino da 5pz misti a soli 2,50€! 🐧";
+    return "I nostri fritti 🍟\n• Olive/Mozzarelline/Nuggets/Crocchette: 6€ (10pz)\n• Anellini cipolla: 3,50€ (10pz)\n• Verdure pastellate: 4€\n• Patate fritte: 3,50€\n• Misto Frittico: 15€\n\nCon la pizza puoi aggiungere un frittino da 5pz misti a soli 2,50€! 🐧";
   }
   const pizza = trovaPizza(t);
   if (pizza && !isComplesso(t)) {
@@ -168,7 +172,7 @@ Non dire "conviene questo". Non moralizzare sulle calorie. La pizza è un piacer
 ORARI: mar-dom 18:30-21:30. Lun chiuso. CONTATTI: WA 3405327257 (info), Tel 0422670631 (prenotazioni).
 PIZZA LEGGERA: suggerisci Bufalina, Estate, Repubblica, Valtellina o combo creativi (bufala+pomodorini, rucola+brie ecc) — non la Marinara.
 Pomodorini→Estate,Bufalina,Wilma,Repubblica | Brie→Mike,Sfiziosa,Cri
-COMBO(solo con pizza): Fritino 5pz 2,50€ | +bibita 2,50€ | entrambi 4€
+COMBO(solo con pizza): Frittino 5pz 2,50€ | +bibita 2,50€ | entrambi 4€
 FRITTI STANDALONE: Olive/Mozz/Nuggets/Crocch 6€(10pz) | Anellini 3,50€ | Verdure 4€ | Patate 3,50€ | Misto Frittico 15€`;
 
 const SYSTEM_MENU = `CALORIE: Marinara 820|Margherita 1125|Diavola 1070|Salsiccia 1190|Viennese 1180|Pugliese 1090|P.funghi 1190|Capricciosa 1240|Tonno&cip 1200|Bufala 1000|Bufalina 1020|4stagioni 1380|Romana 1060|Siciliana 1270|Patatosa 1320|Parma 1180|Speck 1210|Montello 1330|Valtellina 1310|Verdure 1200|Estate 950|Norma 1220|Parmigiana 1150|Mike 1470|Ciccia&friar 1160|Formaggi 1500|Paolo 1400|Sfiziosa 1470|AVA 1285|PPS 1300|Silvia 1200|Wilma 1260|Wanda 1280|Leone 1380|Giggino 1200|Titti 1370|Boscaiola 1585|Tartufata 1340|UFO 1650|Pazza 1600|Repubblica 1210|CapSbagliata 1380|Amatriciana 980|Onta 1100|Cri 1400|Bois 1820|Pimpa 1480|CalzClass 1120|CalzPicc 1290|CalzVeg 950|CalzMauretto 1350|CalzAdE 1300
@@ -196,6 +200,7 @@ function addBotMsg(text) {
   el.appendChild(div); el.scrollTop = el.scrollHeight;
   bpHistory.push({ role:'assistant', content:text });
 }
+
 function addUserMsg(text) {
   const el = document.getElementById('bp-messages');
   const div = document.createElement('div');
@@ -204,6 +209,7 @@ function addUserMsg(text) {
   el.appendChild(div); el.scrollTop = el.scrollHeight;
   bpHistory.push({ role:'user', content:text });
 }
+
 function showOrderButtons() {
   if (orderShown) return; orderShown = true;
   const el = document.getElementById('bp-messages');
@@ -212,6 +218,7 @@ function showOrderButtons() {
   div.innerHTML = `<div class="bp-msg-av">🐧</div><div class="bp-bubble"><div style="font-size:0.78rem;color:#9e7a5a;margin-bottom:8px;">Scegli come contattarci 👇</div><div class="order-btns"><a href="${WA}" target="_blank" class="btn-wa"><span>💬</span> WhatsApp (info)</a><a href="${TEL}" class="btn-tel"><span>📞</span> Chiama 0422 670631</a></div></div>`;
   el.appendChild(div); el.scrollTop = el.scrollHeight;
 }
+
 function showTyping() {
   const el = document.getElementById('bp-messages');
   const div = document.createElement('div');
@@ -219,6 +226,7 @@ function showTyping() {
   div.innerHTML = `<div class="bp-msg-av">🐧</div><div class="bp-bubble"><div class="bp-typing"><span></span><span></span><span></span></div></div>`;
   el.appendChild(div); el.scrollTop = el.scrollHeight;
 }
+
 function removeTyping() { const t = document.getElementById('bp-typing'); if(t) t.remove(); }
 function fmt(t) { return esc(t).replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/(\d+)\s*kcal/gi,'<span class="cal-box">$1 kcal</span>').replace(/\n/g,'<br>'); }
 function esc(t) { return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
