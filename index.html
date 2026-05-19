@@ -202,105 +202,192 @@ function isComplesso(t) {
 }
 
 function rispostaFissa(testo) {
-  const t = testo.toLowerCase().trim();
+  let t = testo.toLowerCase().trim();
   
-  if (['ordina','ordinare','prenotare','come ordino','voglio ordinare','posso ordinare','contatti','come posso'].some(k => t.includes(k))) return 'ORDER';
-  if (['orari','aperto','chiuso','quando'].some(k => t.includes(k))) return "Siamo aperti martedì-domenica dalle 18:30 alle 21:30 🕐\nLunedì siamo chiusi!";
-  if (['dove','indirizzo','via','casier'].some(k => t.includes(k))) return "Siamo in Via Principale 113, Casier (TV) 📍";
-  if (['telefono','numero','chiamo','chiama'].some(k => t.includes(k))) return "Puoi chiamarci al 0422 670631 📞\nO scriverci su WhatsApp al 3405327257 (solo info, no prenotazioni)";
-  if (['fritti','frittin','olive','mozzarellin','nuggets','crocch','anellin'].some(k => t.includes(k)) && !isComplesso(t)) {
-    return "I nostri fritti 🍟\n• Olive/Mozzarelline/Nuggets/Crocchette: 6€ (10pz)\n• Anellini cipolla: 3,50€ (10pz)\n• Verdure pastellate: 4€\n• Patate fritte: 3,50€\n• Misto Frittico: 15€\n\nCon la pizza puoi aggiungere un frittino da 5pz misti a soli 2,50€! 🐧";
-  }
+  // 1. RILEVAMENTO DELLA LINGUA (Default: it)
+  let lang = 'it';
+  if (['price', 'cost', 'hours', 'open', 'where', 'ingredients', 'with', 'without', 'add'].some(k => t.includes(k))) lang = 'en';
+  else if (['preis', 'kosten', 'uhr', 'öffnungszeiten', 'wo', 'zutaten', 'mit', 'ohne', 'hinzufügen'].some(k => t.includes(k))) lang = 'de';
+  else if (['prix', 'horaire', 'ouvert', 'où', 'ingrédients', 'avec', 'sans', 'ajouter'].some(k => t.includes(k))) lang = 'fr';
+  else if (['precio', 'horario', 'abierto', 'donde', 'ingredientes', 'con', 'sin', 'pedir'].some(k => t.includes(k))) lang = 'es';
+  else if (['价格', '多少钱', '卡路里', '热量', '配料', '点餐', '地址', '在哪', '时间', '营业', '加', '去', '不要'].some(k => t.includes(k))) lang = 'zh';
+
+  // DIZIONARIO TESTI DI BASE PER LINGUA
+  const txt = {
+    it: {
+      chiuso: "Siamo aperti martedì-domenica dalle 18:30 alle 21:30 🕐\nLunedì siamo chiusi!",
+      dove: "Siamo in Via Principale 113, Casier (TV) 📍",
+      costa: "La pizza **{N}** costa {P},00€ 🍕",
+      kcal: "La pizza **{N}** ha {K} kcal 🐧",
+      ingr: "La pizza **{N}** è fatta con: {I}. Ha {K} kcal e costa {P},00€! 🍕",
+      full: "La pizza **{N}** costa {P},00€ e ha {K} kcal 🍕\nIngredienti: {I}.",
+      diavola: "La Margherita con salamino è la nostra **Diavola**! Costa 8,00€ e ha 1070 kcal 🍕",
+      salsiccia: "Margherita con salsiccia? Abbiamo la pizza **Salsiccia** a listino! Costa 8,00€ e ha 1190 kcal 🐧",
+      viennese: "La margherita con i wurstel è la nostra **Viennese**! Costa 7,50€ e ha 1180 kcal 🍕",
+      pugliese: "Se aggiungi la cipolla alla base, abbiamo la **Pugliese** a 7,00€ (1090 kcal) 🧅",
+      patatosa: "Margherita più patate fritte è la nostra **Patatosa**! Costa 8,00€ e ha 1320 kcal 🍟",
+      custom: "La **{N}** con aggiunta di **{I}** viene {P}€ e ha circa {K} kcal 🐧🍕"
+    },
+    en: {
+      chiuso: "We are open Tuesday-Sunday from 6:30 PM to 9:30 PM 🕐\nClosed on Mondays!",
+      dove: "We are located in Via Principale 113, Casier (TV) 📍",
+      costa: "Pizza **{N}** costs {P}.00€ 🍕",
+      kcal: "Pizza **{N}** has {K} kcal 🐧",
+      ingr: "Pizza **{N}** is made with: {I}. It has {K} kcal and costs {P}.00€! 🍕",
+      full: "Pizza **{N}** costs {P}.00€ and has {K} kcal 🍕\nToppings: {I}.",
+      diavola: "Margherita with spicy salami is our **Diavola**! It costs 8.00€ and has 1070 kcal 🍕",
+      salsiccia: "Margherita with sausage? We have the **Salsiccia** pizza on the menu! It costs 8.00€ and has 1190 kcal 🐧",
+      viennese: "Margherita with Viennese sausage is our **Viennese**! It costs 7.50€ and has 1180 kcal 🍕",
+      pugliese: "If you add onion to the base, we have the **Pugliese** pizza for 7.00€ (1090 kcal) 🧅",
+      patatosa: "Margherita plus french fries is our **Patatosa**! It costs 8.00€ and has 1320 kcal 🍟",
+      custom: "**{N}** with extra **{I}** is {P}€ and has around {K} kcal 🐧🍕"
+    },
+    de: {
+      chiuso: "Wir haben von Dienstag bis Sonntag von 18:30 bis 21:30 Uhr geöffnet 🕐\nMontags geschlossen!",
+      dove: "Wir befinden uns in Via Principale 113, Casier (TV) 📍",
+      costa: "Pizza **{N}** kostet {P},00€ 🍕",
+      kcal: "Pizza **{N}** hat {K} kcal 🐧",
+      ingr: "Pizza **{N}** wird zubereitet mit: {I}. Sie hat {K} kcal und kostet {P},00€! 🍕",
+      full: "Pizza **{N}** kostet {P},00€ und hat {K} kcal 🍕\nZutaten: {I}.",
+      diavola: "Margherita mit scharfer Salami ist unsere **Diavola**! Sie kostet 8,00€ und hat 1070 kcal 🍕",
+      salsiccia: "Margherita mit Wurst? Wir haben die **Salsiccia** Pizza auf der Karte! Sie kostet 8,00€ und hat 1190 kcal 🐧",
+      viennese: "Margherita mit Würstchen ist unsere **Viennese**! Sie kostet 7,50€ und hat 1180 kcal 🍕",
+      pugliese: "Wenn Sie Zwiebeln hinzufügen, haben wir die **Pugliese** für 7,00€ (1090 kcal) 🧅",
+      patatosa: "Margherita mit Pommes ist unsere **Patatosa**! Sie kostet 8,00€ und hat 1320 kcal 🍟",
+      custom: "**{N}** mit extra **{I}** kostet {P}€ und hat ca. {K} kcal 🐧🍕"
+    },
+    fr: {
+      chiuso: "Nous sommes ouverts du mardi au dimanche de 18h30 à 21h30 🕐\nFermé le lundi !",
+      dove: "Nous siamo situés Via Principale 113, Casier (TV) 📍",
+      costa: "La pizza **{N}** coûte {P},00€ 🍕",
+      kcal: "La pizza **{N}** fait {K} kcal 🐧",
+      ingr: "La pizza **{N}** est faite avec: {I}. Elle fait {K} kcal et coûte {P},00€ ! 🍕",
+      full: "La pizza **{N}** coûte {P},00€ et fait {K} kcal 🍕\nIngrédients: {I}.",
+      diavola: "La Margherita con salame piquant est notre **Diavola** ! Elle coûte 8,00€ et fait 1070 kcal 🍕",
+      salsiccia: "Margherita avec saucisse ? Nous avons la pizza **Salsiccia** ! Elle coûte 8,00€ et fait 1190 kcal 🐧",
+      viennese: "La margherita avec knackis est notre **Viennese** ! Elle coûte 7,50€ et fait 1180 kcal 🍕",
+      pugliese: "Si vous ajoutez de l'oignon, nous avons la **Pugliese** à 7,00€ (1090 kcal) 🧅",
+      patatosa: "Margherita avec frites est notre **Patatosa** ! Elle coûte 8,00€ et fait 1320 kcal 🍟",
+      custom: "La **{N}** avec supplément **{I}** coûte {P}€ et fait environ {K} kcal 🐧🍕"
+    },
+    es: {
+      chiuso: "Estamos abiertos de martes a domingo de 18:30 a 21:30 🕐\n¡Lunes cerrado!",
+      dove: "Estamos en Via Principale 113, Casier (TV) 📍",
+      costa: "La pizza **{N}** cuesta {P},00€ 🍕",
+      kcal: "La pizza **{N}** tiene {K} kcal 🐧",
+      ingr: "La pizza **{N}** lleva: {I}. Tiene {K} kcal y cuesta {P},00€! 🍕",
+      full: "La pizza **{N}** cuesta {P},00€ y tiene {K} kcal 🍕\nIngredientes: {I}.",
+      diavola: "¡La Margherita con salame picante es nuestra **Diavola**! Cuesta 8,00€ y tiene 1070 kcal 🍕",
+      salsiccia: "¿Margherita con salchicha? ¡Tenemos la pizza **Salsiccia**! Cuesta 8,00€ y tiene 1190 kcal 🐧",
+      viennese: "La margherita con salchichas de Viena es nuestra **Viennese**. Cuesta 7,50€ y tiene 1180 kcal 🍕",
+      pugliese: "Si adds cebolla a la base, tenemos la **Pugliese** a 7,00€ (1090 kcal) 🧅",
+      patatosa: "¡Margherita más patatas fritas es nuestra **Patatosa**! Cuesta 8,00€ y tiene 1320 kcal 🍟",
+      custom: "La **{N}** con extra de **{I}** cuesta {P}€ y tiene unas {K} kcal 🐧🍕"
+    },
+    zh: {
+      chiuso: "我们的营业时间是周二至周日 18:30 至 21:30 🕐\n周一休息！",
+      dove: "我们的地址是：Via Principale 113, Casier (TV) 📍",
+      costa: "**{N}** 披萨的价格是 {P}.00 欧元 🍕",
+      kcal: "**{N}** 披萨的热量是 {K} 卡路里 🐧",
+      ingr: "**{N}** 披萨的配料有：{I}。热量为 {K} 卡路里，价格为 {P}.00 欧元！🍕",
+      full: "**{N}** 披萨价格为 {P}.00 欧元，热量约 {K} 卡路里 🍕\n配料：{I}。",
+      diavola: "玛格丽特披萨加意大利香肠就是我们的 **Diavola**（恶魔披萨）！价格为 8.00 欧元，热量为 1070 卡路里 🍕",
+      salsiccia: "玛格丽特加意式香肠？我们菜单上有专门的 **Salsiccia** 披萨！价格为 8.00 欧元，热量为 1190 卡路里 🐧",
+      viennese: "玛格丽特加维也纳香肠就是我们的 **Viennese** 披萨！价格为 7.50 欧元，热量为 1180 卡路里 🍕",
+      pugliese: "如果在饼底上加洋葱，就是我们的 **Pugliese** 披萨，价格为 7.00 欧元（1090 卡路里）🧅",
+      patatosa: "玛格丽特加薯条就是我们的 **Patatosa** 披萨！价格为 8.00 欧元，热量为 1320 卡路里 🍟",
+      custom: "**{N}** 披萨额外加 **{I}** 的价格是 {P} 欧元，热量大约是 {K} 卡路里 🐧🍕"
+    }
+  };
+
+  // Nomi tradotti degli ingredienti per la risposta finale delle aggiunte
+  const ingNames = {
+    it: {salmin:'salamino', patat:'patate fritte', porcin:'porcini', wurst:'wurstel', cipoll:'cipolla', salsic:'salsiccia'},
+    en: {salmin:'spicy salami', patat:'french fries', porcin:'porcini mushrooms', wurst:'viennese sausage', cipoll:'onion', salsic:'sausage'},
+    de: {salmin:'scharfe Salami', patat:'Pommes', porcin:'Steinpilzen', wurst:'Würstchen', cipoll:'Zwiebeln', salsic:'Wurst'},
+    fr: {salmin:'salame piquant', patat:'frites', porcin:'cèpes', wurst:'knackis', cipoll:'oignon', salsic:'saucisse'},
+    es: {salmin:'salame picante', patat:'patatas fritas', porcin:'boletus', wurst:'salchichas de Viena', cipoll:'cebolla', salsic:'salchicha'},
+    zh: {salmin:'意大利香肠', patat:'薯条', porcin:'牛肝菌', wurst:'维也纳香肠', cipoll:'洋葱', salsic:'意式鲜香肠'}
+  };
+
+  // INTERNAL TRANSLATION / NORMALIZZAZIONE
+  t = t.replace(/\b(with|mit|avec|con)\b/g, ' con ');
+  t = t.replace(/(加|有|带有)/g, ' con ');
+  t = t.replace(/\b(without|ohne|sans|sin|senza)\b/g, ' senza ');
+  t = t.replace(/(去|不要|不加)/g, ' senza ');
+  
+  t = t.replace(/\b(pepperoni|spicy salami|scharfe salami|salami picante|salame picante|意大利香肠|辣香肠|腊肠)\b/g, 'salmin');
+  t = t.replace(/\b(chips|fries|pommes|frites|papas|薯条|土豆条)\b/g, 'patat');
+  t = t.replace(/\b(sausage|wurst|saucisse|salchicha|香肠|鲜香肠|肉肠)\b/g, 'salsic');
+  t = t.replace(/\b(onion|zwiebel|oignon|cebolla|洋葱)\b/g, 'cipoll');
+
+  // Mappatura intenzioni Cinese
+  if (['价格', '多少钱'].some(k => t.includes(k))) t += ' prezzo';
+  if (['卡路里', '热量'].some(k => t.includes(k))) t += ' calorie';
+  if (['配料', '成分'].some(k => t.includes(k))) t += ' ingredienti';
+  if (['时间', '营业'].some(k => t.includes(k))) t += ' orari';
+  if (['地址', '在哪'].some(k => t.includes(k))) t += ' dove';
+  if (['点餐', '订餐', '预订'].some(k => t.includes(k))) t += ' ordina';
+
+  // 2. LOGICA DELLE RISPOSTE LOCALIZZATE
+  if (['ordina','order','bestellen','commander','pedir'].some(k => t.includes(k))) return 'ORDER';
+  if (['orari','hours','uhr','horaire','horario'].some(k => t.includes(k))) return txt[lang].chiuso;
+  if (['dove','where','wo','où','donde'].some(k => t.includes(k))) return txt[lang].dove;
 
   const pizza = trovaPizza(t);
   if (pizza) {
     const nome = pizza.charAt(0).toUpperCase() + pizza.slice(1);
     
-    if (['quanto costa', 'prezzo', 'prezzi', 'costano', 'euro', '€'].some(k => t.includes(k)) && !t.includes('calori') && !t.includes('kcal')) {
-      return `La pizza **${nome}** costa ${MENU_PREZZI[pizza]}€ 🍕`;
+    // Filtri solo prezzo / solo calorie / solo ingredienti
+    if (['prezzo','cost','preis','prix','precio'].some(k => t.includes(k)) && !t.includes('calor') && !t.includes('kcal')) {
+      return txt[lang].costa.replace('{N}', nome).replace('{P}', MENU_PREZZI[pizza]);
     }
-    if (['calorie', 'calorici', 'kcal', 'ingrassa'].some(k => t.includes(k)) && !t.includes('cost') && !t.includes('€')) {
-      return `La pizza **${nome}** ha ${MENU_CALORIE[pizza]} kcal 🐧`;
+    if (['calor','kcal'].some(k => t.includes(k)) && !t.includes('prezz') && !t.includes('cost') && !t.includes('prix') && !t.includes('precio')) {
+      return txt[lang].kcal.replace('{N}', nome).replace('{K}', MENU_CALORIE[pizza]);
     }
-    if (['ingredienti', 'cosa c\'è', 'cosa metti', 'condimento', 'cosa ha', 'ricetta', 'fatta con'].some(k => t.includes(k)) && !t.includes('+') && !t.includes('con')) {
-      return `La pizza **${nome}** è fatta con: ${MENU_INGREDIENTI[pizza]}. Ha ${MENU_CALORIE[pizza]} kcal e costa ${MENU_PREZZI[pizza]}€! 🍕`;
+    if (['ingred','zutat'].some(k => t.includes(k))) {
+      return txt[lang].ingr.replace('{N}', nome).replace('{I}', MENU_INGREDIENTI[pizza]).replace('{K}', MENU_CALORIE[pizza]).replace('{P}', MENU_PREZZI[pizza]);
     }
 
-    // INTERCETTAZIONE LOGICA AGGIUNTE LOCALI
-    if (t.includes('+') || t.includes(' con ') || t.includes('aggiungi')) {
+    // LOGICA AGGIUNTE LOCALI
+    if (t.includes('+') || t.includes(' con ') || t.includes('add') || t.includes('ajouter')) {
       if (pizza === 'margherita' || t.includes('base')) {
-        if (t.includes('salamino')) return `La Margherita con salamino è la nostra **Diavola**! Costa 8,00€ e ha 1070 kcal 🍕`;
-        if (t.includes('salsiccia')) return `Margherita con salsiccia? Abbiamo la pizza **Salsiccia** a listino! Costa 8,00€ e ha 1190 kcal 🐧`;
-        if (t.includes('wurstel')) return `La margherita con i wurstel è la nostra **Viennese**! Costa 7,50€ e ha 1180 kcal 🍕`;
-        if (t.includes('cipolla')) return `Se aggiungi la cipolla alla base, abbiamo la **Pugliese** a 7,00€ (1090 kcal) 🧅`;
-        if (t.includes('patate') || t.includes('patatine')) return `Margherita più patate fritte è la nostra **Patatosa**! Costa 8,00€ e ha 1320 kcal 🍟`;
-        if (t.includes('crudo')) return `Base più prosciutto crudo è la nostra **Parma**! Costa 10,00€ e ha 1180 kcal 🍕`;
-        if (t.includes('speck')) return `Se vuoi lo speck, abbiamo direttamente la pizza **Speck** a 9,50€ (1210 kcal) 🥓`;
-        if (t.includes('verdure')) return `Per le verdure grigliate abbiamo la pizza **Verdure** a 8,50€ e 1200 kcal! 🥗`;
-      }
-      if (pizza === 'prosciutto e funghi' && t.includes('carciofi')) {
-        return `Prosciutto e funghi con i carciofi? È la nostra **Capricciosa**! Costa 9,00€ e ha 1240 kcal 🍕`;
+        if (t.includes('salmin')) return txt[lang].diavola;
+        if (t.includes('salsic')) return txt[lang].salsiccia;
+        if (t.includes('wurst')) return txt[lang].viennese;
+        if (t.includes('cipoll')) return txt[lang].pugliese;
+        if (t.includes('patat')) return txt[lang].patatosa;
       }
 
-      const kcalAggiunte = {'salamino':252, 'patate':250, 'patatine':250, 'porcini':15, 'wurstel':240, 'cipolla':12, 'pancetta':270, 'scamorza':180, 'gorgonzola':210, 'brie':167, 'salsiccia':240};
-      const prezziAggiunte = {'salamino':1.5, 'patate':1.5, 'patatine':1.5, 'porcini':2.5, 'wurstel':1, 'cipolla':1, 'pancetta':2.5, 'scamorza':1.5, 'gorgonzola':1.5, 'brie':1.5, 'salsiccia':2};
+      const kcalAggiunte = {'salmin':252, 'patat':250, 'porcin':15, 'wurst':240, 'cipoll':12, 'salsic':240};
+      const prezziAggiunte = {'salmin':1.5, 'patat':1.5, 'porcin':2.5, 'wurst':1, 'cipoll':1, 'salsic':2};
       
       for (let ing in prezziAggiunte) {
         if (t.includes(ing)) {
           let prezzoPartenza = MENU_PREZZI[pizza];
           let kcalPartenza = MENU_CALORIE[pizza];
-          let notaBase = "";
-
-          if (pizza === 'margherita' || t.includes('base')) {
-            prezzoPartenza = 6.00;
-            kcalPartenza = 1125; 
-            if (['perche', 'perché', 'motivo', 'come mai', 'spiega'].some(k => t.includes(k))) {
-              notaBase = " *(Il calcolo parte dalla pizza base a 6€: la Margherita a 5€ è la pizza del popolo ed è bloccata così senza modifiche)*";
-            }
-          }
+          if (pizza === 'margherita' || t.includes('base')) { prezzoPartenza = 6.00; kcalPartenza = 1125; }
 
           const nuovoPrezzo = (prezzoPartenza + prezziAggiunte[ing]).toFixed(2);
           const nuoveKcal = kcalPartenza + kcalAggiunte[ing];
-          return `La **${nome}** con aggiunta di **${ing}** viene ${nuovoPrezzo}€ e ha circa ${nuoveKcal} kcal. ${notaBase}🐧🍕`;
+          const ingredienteTradotto = ingNames[lang][ing] || ing;
+
+          return txt[lang].custom.replace('{N}', nome).replace('{I}', ingredienteTradotto).replace('{P}', nuovoPrezzo).replace('{K}', nuoveKcal);
         }
       }
     }
 
-    if (t.includes('-') || t.includes('senza') || t.includes('no ')) {
-      const kcalAggiunte = {'salamino':252, 'mozzarella':280, 'cipolla':12, 'peperoni':25, 'wurstel':240, 'funghi':13};
-      for (let ing in kcalAggiunte) {
-        if (t.includes(ing) && MENU_INGREDIENTI[pizza].includes(ing)) {
-          const nuoveKcal = MENU_CALORIE[pizza] - kcalAggiunte[ing];
-          return `Fatto! Una **${nome}** senza ${ing} mantiene lo stesso prezzo (${MENU_PREZZI[pizza]}€) ma le calorie scendono a circa ${nuoveKcal} kcal! 🐧`;
-        }
-      }
-    }
-
-    return `La **${nome}** ha ${MENU_CALORIE[pizza]} kcal e costa ${MENU_PREZZI[pizza]}€ 🍕\nIngredienti: ${MENU_INGREDIENTI[pizza]}.`;
+    return txt[lang].full.replace('{N}', nome).replace('{P}', MENU_PREZZI[pizza]).replace('{K}', MENU_CALORIE[pizza]).replace('{I}', MENU_INGREDIENTI[pizza]);
   }
 
-  if (t.includes(' o ') || t.includes(' meglio ')) {
-    let pizzeTrovate = [];
-    for (let p in MENU_CALORIE) { if (t.includes(p)) pizzeTrovate.push(p); }
-    if (pizzeTrovate.length === 2) {
-      const p1 = pizzeTrovate[0]; const p2 = pizzeTrovate[1];
-      const n1 = p1.charAt(0).toUpperCase() + p1.slice(1);
-      const n2 = p2.charAt(0).toUpperCase() + p2.slice(1);
-      return `Mettiamole a confronto! 🐧\n• **${n1}**: ${MENU_PREZZI[p1]}€ | ${MENU_CALORIE[p1]} kcal\n• **${n2}**: ${MENU_PREZZI[p2]}€ | ${MENU_CALORIE[p2]} kcal\n\nQuale ti ispira di più?`;
-    }
-  }
   return null;
 }
 
-const SYSTEM_BASE = `Sei Pinguino 🐧, assistente di BoisPizza pizzeria artigianale a Casier (TV) di Michele Boller.
-Stile: simpatico, caldo, diretto. Risposte brevi e naturali. No elenchi se non richiesti.
-Dai kcal e prezzo totale nel discorso, non ingrediente per ingrediente (a meno che non venga chiesto).
-Non dire "conviene questo". Non moralizzare sulle calorie. La pizza è un piacere!
-ORARI: mar-dom 18:30-21:30. Lun chiuso. CONTATTI: WA 3405327257 (info), Tel 0422670631 (prenotazioni).
-PIZZA LEGGERA: suggerisci Bufalina, Estate, Repubblica, Valtellina o combo creativi (bufala+pomodorini, rucola+brie ecc) — non la Marinara.
-Pomodorini→Estate,Bufalina,Wilma,Repubblica | Brie→Mike,Sfiziosa,Cri
-COMBO(solo con pizza): Frittino 5pz 2,50€ | +bibita 2,50€ | entrambi 4€
-FRITTI STANDALONE: Olive/Mozz/Nuggets/Crocch 6€(10pz) | Anellini 3,50€ | Verdure 4€ | Patate 3,50€ | Misto Frittico 15€`;
+const SYSTEM_BASE = `Sei Pinguino 🐧, assistente di BoisPizza pizzeria artigianale a Casier (TV).
+Stile: simpatico, caldo, diretto. Risposte brevi e naturali. 
+RISPONDI SEMPRE NELLA STESSA LINGUA DELL'UTENTE (Italiano, English, Deutsch, Français, Español, 中文).
+Se ti parlano in lingua straniera, traduci i concetti ma mantieni i nomi delle pizze originali (es. Margherita, Diavola).
+ORARI: mar-dom 18:30-21:30. Lun chiuso. CONTATTI: WA 3405327257 (info), Tel 0422670631 (prenotazioni).`;
 
 const SYSTEM_MENU = `CALORIE: Marinara 820|Margherita 1125|Diavola 1070|Salsiccia 1190|Viennese 1180|Pugliese 1090|P.funghi 1190|Capricciosa 1240|Tonno&cip 1200|Bufala 1000|Bufalina 1020|4stagioni 1380|Romana 1060|Siciliana 1270|Patatosa 1320|Parma 1180|Speck 1210|Montello 1330|Valtellina 1310|Verdure 1200|Estate 950|Norma 1220|Parmigiana 1150|Mike 1470|Ciccia&friar 1160|Formaggi 1500|Paolo 1400|Sfiziosa 1470|AVA 1285|PPS 1300|Silvia 1200|Wilma 1260|Wanda 1280|Leone 1380|Giggino 1200|Titti 1370|Boscaiola 1585|Tartufata 1340|UFO 1650|Pazza 1600|Repubblica 1210|CapSbagliata 1380|Amatriciana 980|Onta 1100|Cri 1400|Bois 1820|Pimpa 1480|CalzClass 1120|CalzPicc 1290|CalzVeg 950|CalzMauretto 1350|CalzAdE 1300
 PREZZI: Marinara/Margherita 5€|Diavola/Salsiccia/P.funghi/Romana 8€|Viennese 7,50€|Pugliese 7€|Capricciosa/Bufala/4stagioni/Siciliana 9€|Bufalina/Parma 10€|Speck 9,50€|Montello/Valtellina 10,50€|Verdure 8,50€|Estate/Norma/Ciccia/Formaggi 9€|Parmigiana 8,50€|Mike/Sfiziosa 10€|AVA 12€|PPS 11€|Silvia 12€|Wilma 8,50€|Wanda 9€|Leone/CapSbagliata/UFO 12€|Giggino/Amatriciana/Onta 10€|Titti/Repubblica 11,50€|Boscaiola/Tartufata 11€|Pazza 11,50€|Cri 14€|Bois/Pimpa 11€|CalzClass/Picc/Veg 9€|CalzMauretto 12€|CalzAdE 13€`;
@@ -317,7 +404,7 @@ function togglePanel() {
   panelOpen = !panelOpen;
   document.getElementById('bois-panel').classList.toggle('open', panelOpen);
   if (panelOpen && bpHistory.length === 0)
-    setTimeout(() => addBotMsg("Ciao! 🐧🍕 Sono il Pinguino di BoisPizza!\nDimmi cosa vuoi mangiare e ti dico calorie e prezzo. O chiedimi qualsiasi cosa sul menù!"), 300);
+    setTimeout(() => addBotMsg("Ciao! 🐧🍕 Sono il Pinguino di BoisPizza!\nChiedimi calorie e prezzi delle pizze.\n\nI speak: 🇮🇹 Italiano | 🇬🇧 English | 🇩🇪 Deutsch | 🇫🇷 Français | 🇪🇸 Español | 🇨🇳 中文!"), 300);
 }
 
 function addBotMsg(text) {
@@ -343,7 +430,7 @@ function showOrderButtons() {
   const el = document.getElementById('bp-messages');
   const div = document.createElement('div');
   div.className = 'bp-msg bot';
-  div.innerHTML = `<div class="bp-msg-av">🐧</div><div class="bp-bubble"><div style="font-size:0.78rem;color:#9e7a5a;margin-bottom:8px;">Scegli come contattarci 👇</div><div class="order-btns"><a href="${WA}" target="_blank" class="btn-wa"><span>💬</span> WhatsApp (info)</a><a href="${TEL}" class="btn-tel"><span>📞</span> Chiama 0422 670631</a></div></div>`;
+  div.innerHTML = `<div class="bp-msg-av">🐧</div><div class="bp-bubble"><div style="font-size:0.78rem;color:#9e7a5a;margin-bottom:8px;">Scegli come contattarci / Contact us 👇</div><div class="order-btns"><a href="${WA}" target="_blank" class="btn-wa"><span>💬</span> WhatsApp (info)</a><a href="${TEL}" class="btn-tel"><span>📞</span> Chiama / Call</a></div></div>`;
   el.appendChild(div); el.scrollTop = el.scrollHeight;
 }
 
@@ -368,7 +455,7 @@ async function bpSend() {
 
   const fissa = rispostaFissa(text);
   if (fissa === 'ORDER') {
-    addBotMsg("Ecco come contattarci per ordinare o prenotare! 🐧");
+    addBotMsg("Ecco come contattarci per ordinare! / Here is how to contact us! 🐧");
     setTimeout(showOrderButtons, 300); return;
   }
   if (fissa) { setTimeout(() => addBotMsg(fissa), 300); return; }
@@ -391,10 +478,10 @@ async function bpSend() {
   if (testo) {
     addBotMsg(testo);
     const ultimi = bpHistory.slice(-4).map(m => m.content.toLowerCase()).join(' ');
-    if (!orderShown && ['ordina','prendo','voglio ordinar','come ordino'].some(k => ultimi.includes(k)))
+    if (!orderShown && ['ordina','prendo','voglio ordinar','order','点餐'].some(k => ultimi.includes(k)))
       setTimeout(showOrderButtons, 500);
   } else {
-    addBotMsg("Ops, problema tecnico! 😅 Riprova o chiamaci al 0422 670631 🐧");
+    addBotMsg("Ops, errore tecnico! Per favore riprova o chiamaci. / Technical error, please try again or call us! 🐧");
   }
 
   bpLoading = false;
