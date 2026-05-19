@@ -173,9 +173,17 @@ const TRADUZIONI_PIZZE = {
   'sausage':'salsiccia', 'wurst':'salsiccia', 'saucisse':'salsiccia', 'salchicha':'salsiccia', '香肠':'salsiccia'
 };
 
+const SINONIMI_PIZZE = {
+  'margherita_cipoll': 'pugliese',
+  'margherita_salmin': 'diavola',
+  'margherita_salsic': 'salsiccia',
+  'margherita_wurst': 'viennese',
+  'margherita_patat': 'patatosa'
+};
+
 const DIZIONARIO_INGREDIENTI = {
   'salamino': 'salmin', 'diavola': 'salmin', 'salami': 'salmin', 'patate': 'patat', 'patatine': 'patat', 'porcini': 'porcin', 
-  'wurstel': 'wurst', 'cipolla': 'cipoll', 'salsiccia': 'salsic', 'mozzarella': 'mozz', 'pomodoro': 'pomodoro',
+  'wurstel': 'wurst', 'cipolla': 'cipoll', 'salsiccia': 'salsic', 'mozzarella': 'mozz', 'pomodoro': 'pomodoro', 'speck': 'porcin', 'porchetta': 'porcin',
   'spicy salami': 'salmin', 'pepperoni': 'salmin', 'french fries': 'patat', 'chips': 'patat', 'porcini mushrooms': 'porcin', 
   'onion': 'cipoll', 'mozzarella cheese': 'mozz', 'scharfe salami': 'salmin', 'pommes': 'patat', 'steinpilzen': 'porcin', 
   'wurst': 'salsic', 'zwiebeln': 'cipoll', 'salame piquant': 'salmin', 'frites': 'patat', 'cèpes': 'porcin', 
@@ -183,8 +191,8 @@ const DIZIONARIO_INGREDIENTI = {
   '意大利香肠': 'salmin', '辣香肠': 'salmin', '薯条': 'patat', '牛肝菌': 'porcin', '洋葱': 'cipoll', '芝士': 'mozz', '马苏里拉': 'mozz'
 };
 
-const KCAL_AGGIUNTE = { 'salmin': 252, 'patat': 250, 'porcin': 15, 'wurst': 240, 'cipoll': 12, 'salsic': 240, 'mozz': 280 };
-const PREZZI_AGGIUNTE = { 'salmin': 1.5, 'patat': 1.5, 'porcin': 2.5, 'wurst': 1, 'cipoll': 1, 'salsic': 2, 'mozz': 1.5 };
+const KCAL_AGGIUNTE = { 'salmin': 252, 'patat': 250, 'porcin': 150, 'wurst': 240, 'cipoll': 12, 'salsic': 240, 'mozz': 280 };
+const PREZZI_AGGIUNTE = { 'salmin': 1.5, 'patat': 1.5, 'porcin': 3.0, 'wurst': 1, 'cipoll': 1, 'salsic': 2, 'mozz': 1.5 };
 
 let bpHistory = [], bpLoading = false, panelOpen = false, orderShown = false;
 
@@ -206,12 +214,12 @@ function rispostaFissa(testo) {
   
   // 1. SISTEMA DI RILEVAMENTO LINGUA A PUNTEGGIO
   const dizionariLingue = {
-    en: ['price', 'cost', 'hours', 'open', 'where', 'ingredients', 'how much', 'menu', 'with', 'whit', 'wth', 'add', 'remove', 'pizza', 'one', 'please', 'hi', 'hello', 'salami'],
+    en: ['price', 'cost', 'hours', 'open', 'where', 'ingredients', 'how much', 'menu', 'with', 'whit', 'wth', 'add', 'remove', 'pizza', 'one', 'please', 'hi', 'hello', 'salami', 'speck'],
     de: ['preis', 'kosten', 'uhr', 'öffnungszeiten', 'wo', 'zutaten', 'speisekarte', 'mit', 'ohne', 'bitte', 'hallo'],
     fr: ['prix', 'horaire', 'ouvert', 'où', 'ingrédients', 'carte', 'avec', 'sans', 's\'il vous plaît', 'bonjour'],
     es: ['precio', 'horario', 'abierto', 'donde', 'ingredientes', 'cuanto', 'carta', 'con', 'sin', 'por favor', 'hola'],
     zh: ['价格', '多少钱', '卡路里', '热量', '配料', '地址', '时间', '营业', '菜单', '加', '去', '不要', '不加', '请', '你好'],
-    it: ['quanto', 'costa', 'prezzo', 'orari', 'aperto', 'chiuso', 'dove', 'indirizzo', 'ingredienti', 'con', 'senza', 'aggiungi', 'togli', 'per favore', 'ciao', 'una', 'un']
+    it: ['quanto', 'costa', 'prezzo', 'orari', 'aperto', 'chiuso', 'dove', 'indirizzo', 'ingredienti', 'con', 'senza', 'aggiungi', 'togli', 'per favore', 'ciao', 'una', 'un', 'speck', 'porchetta']
   };
 
   let punteggi = { it: 0, en: 0, de: 0, fr: 0, es: 0, zh: 0 };
@@ -289,6 +297,8 @@ function rispostaFissa(testo) {
     let prezzoFinale = MENU_PREZZI[pizza];
     let kcalFinali = MENU_CALORIE[pizza];
     let haModifiche = false;
+    let ingredienteRilevato = null;
+    let tipoModifica = null;
 
     const regexAggiunta = /\b(con|add|mit|avec|ajouter|agregar|加|with|whit|wth)\b|(\+)/g;
     const regexRimozione = /\b(senza|without|ohne|sans|sin|去|不要|不加)\b|(-)/g;
@@ -298,27 +308,50 @@ function rispostaFissa(testo) {
       let segmentoAggiunte = parti[parti.length - 1]; 
       for (let ingredienteUtente in DIZIONARIO_INGREDIENTI) {
         if (segmentoAggiunte && segmentoAggiunte.includes(ingredienteUtente)) {
-          let idIngrediente = DIZIONARIO_INGREDIENTI[ingredienteUtente];
-          if (PREZZI_AGGIUNTE[idIngrediente]) {
-            prezzoFinale += PREZZI_AGGIUNTE[idIngrediente];
-            kcalFinali += KCAL_AGGIUNTE[idIngrediente];
-            haModifiche = true;
-          }
+          ingredienteRilevato = DIZIONARIO_INGREDIENTI[ingredienteUtente];
+          tipoModifica = 'aggiunta';
+          break; 
         }
       }
     }
 
-    if (regexRimozione.test(t)) {
+    if (!tipoModifica && regexRimozione.test(t)) {
       let parti = t.split(regexRimozione);
       let segmentoRimozioni = parti[parti.length - 1];
       for (let ingredienteUtente in DIZIONARIO_INGREDIENTI) {
         if (segmentoRimozioni && segmentoRimozioni.includes(ingredienteUtente)) {
-          let idIngrediente = DIZIONARIO_INGREDIENTI[ingredienteUtente];
-          if (KCAL_AGGIUNTE[idIngrediente]) {
-            kcalFinali -= KCAL_AGGIUNTE[idIngrediente];
-            haModifiche = true;
-          }
+          ingredienteRilevato = DIZIONARIO_INGREDIENTI[ingredienteUtente];
+          tipoModifica = 'rimozione';
+          break;
         }
+      }
+    }
+
+    if (tipoModifica === 'aggiunta' && ingredienteRilevato) {
+      const chiaveSinonimo = `${pizza}_${ingredienteRilevato}`;
+      if (SINONIMI_PIZZE[chiaveSinonimo]) {
+        const pizzaEquivalente = SINONIMI_PIZZE[chiaveSinonimo];
+        nomePizza = pizzaEquivalente.charAt(0).toUpperCase() + pizzaEquivalente.slice(1);
+        prezzoFinale = MENU_PREZZI[pizzaEquivalente];
+        kcalFinali = MENU_CALORIE[pizzaEquivalente];
+        return txt[lang].full.replace('{N}', nomePizza).replace('{P}', prezzoFinale).replace('{K}', kcalFinali).replace('{I}', MENU_INGREDIENTI[pizzaEquivalente]);
+      }
+    }
+
+    if (tipoModifica === 'aggiunta' && pizza === 'margherita') {
+      prezzoFinale = 6.0; 
+    }
+
+    if (tipoModifica === 'aggiunta' && ingredienteRilevato) {
+      if (PREZZI_AGGIUNTE[ingredienteRilevato]) {
+        prezzoFinale += PREZZI_AGGIUNTE[ingredienteRilevato];
+        kcalFinali += KCAL_AGGIUNTE[ingredienteRilevato];
+        haModifiche = true;
+      }
+    } else if (tipoModifica === 'rimozione' && ingredienteRilevato) {
+      if (KCAL_AGGIUNTE[ingredienteRilevato]) {
+        kcalFinali -= KCAL_AGGIUNTE[ingredienteRilevato];
+        haModifiche = true;
       }
     }
 
