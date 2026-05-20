@@ -608,6 +608,35 @@ function rispostaLocale(input){
   if(['quanto costa aggiungere','prezzo aggiunta','costo aggiunta','prezzi aggiunte','lista aggiunte'].some(k=>t.includes(norm(k))))
     return rispostaAggiunte();
 
+  // Consigli pizza — risposta locale usando il database, mai AI
+  const chiedeConsiglio = ['consig','quale prendo','cosa prendo','cosa ordino','quale ordino','quale scegli','cosa scegli','quale mi dai','suggeris','quale pizza','cosa mangio','cosa mi dai','non so cosa','non so quale'].some(k=>t.includes(norm(k)));
+  if(chiedeConsiglio){
+    // Cerca preferenze nel testo
+    const vuolePiccante  = ['piccante','diavola','speziata'].some(k=>t.includes(norm(k)));
+    const vuoleLeggera   = ['leggera','light','dieta','poche calorie','meno calorie'].some(k=>t.includes(norm(k)));
+    const vuoleCarne     = ['carne','salumi','salume','salsicc'].some(k=>t.includes(norm(k)));
+    const vuoleVerdure   = ['verdure','vegetarian','vegeta'].some(k=>t.includes(norm(k)));
+    const vuoleFormaggi  = ['formag','cheese'].some(k=>t.includes(norm(k)));
+    const vuoleMare      = ['mare','pesce','tonno','acciughe'].some(k=>t.includes(norm(k)));
+
+    let scelta, motivo;
+    if(vuolePiccante)     { scelta='diavola';    motivo='se ti piace il piccante'; }
+    else if(vuoleLeggera) { scelta='estate';     motivo='se vuoi stare leggero/a'; }
+    else if(vuoleCarne)   { scelta='boscaiola';  motivo='se ami i salumi'; }
+    else if(vuoleVerdure) { scelta='verdure';    motivo='se preferisci le verdure'; }
+    else if(vuoleFormaggi){ scelta='formaggi';   motivo='se sei un amante dei formaggi'; }
+    else if(vuoleMare)    { scelta='leone';      motivo='se ami i sapori di mare'; }
+    else {
+      // Consiglio casuale tra le più amate
+      const top=['boscaiola','ufo','capricciosa sbagliata','ava','repubblica','tartufata','pazza'];
+      scelta = top[Math.floor(Math.random()*top.length)];
+      motivo = 'tra le più amate';
+    }
+    const p = PIZZE[scelta];
+    const nd = scelta.charAt(0).toUpperCase()+scelta.slice(1);
+    return 'Ti consiglio la **'+nd+'** 🍕 ('+motivo+')\nIngredienti: '+p.ing.join(', ')+'\n\n**'+p.kcal+' kcal** · **'+fmtE(p.prezzo)+'€**';
+  }
+
   // Pizza dal nome
   const nomePizza = trovaNomePizza(input);
   if(nomePizza){
