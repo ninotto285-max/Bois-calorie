@@ -636,7 +636,7 @@ const GROQ_SYS='Sei Pinguino, assistente simpatico di BoisPizza a Casier (TV). R
 async function callGroq(msgs){
   for(const model of['llama-3.1-8b-instant','llama-3.3-70b-versatile']){
     try{
-      const r=await fetch('https://bois-calorie-nvdk.vercel.app/api/chat',{
+      const r=await fetch('/api/chat',{
         method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({model,messages:msgs,max_tokens:400})
       });
