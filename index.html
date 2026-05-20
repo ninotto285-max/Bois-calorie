@@ -104,7 +104,7 @@
 <script>
 const WA  = 'https://wa.me/393405327257';
 const TEL = 'tel:+390422670631';
-const GROQ_KEY = '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';
+// chiave Groq rimossa — gestita dal proxy /api/chat su Vercel
 
 // ============================================================
 // DATABASE PIZZE — nome esatto : { kcal, prezzo, ing[], tipo? }
@@ -636,8 +636,8 @@ const GROQ_SYS='Sei Pinguino, assistente simpatico di BoisPizza a Casier (TV). R
 async function callGroq(msgs){
   for(const model of['llama-3.1-8b-instant','llama-3.3-70b-versatile']){
     try{
-      const r=await fetch('https://api.groq.com/openai/v1/chat/completions',{
-        method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+GROQ_KEY},
+      const r=await fetch('/api/chat',{
+        method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({model,messages:msgs,max_tokens:400})
       });
       const d=await r.json(); const txt=d.choices?.[0]?.message?.content||'';
