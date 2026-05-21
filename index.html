@@ -781,6 +781,8 @@ const NON_ABBIAMO = ['nduja','burrata','asparagi','uovo','uova','ananas','patate
 
 // ============================================================
 function correggiTypo(s){
+  // Rimuovi prefissi comuni che confondono il router
+  s = s.replace(/^(una pizza|un pizza|la pizza|il pizza|voglio la|voglio una|voglio un|vorrei la|vorrei una|vorrei un|dammi la|dammi una|dammi un|dimmi la|dimmi della|dimmi del|parlami di|info su|info sulla|info sul|una |un |la |il |lo )\s*/i, '');
   // Correzioni typo tastiera mobile comuni
   return s
     .replace(/\bcosq\b/gi,'cosa')
@@ -1056,6 +1058,9 @@ function rispostaLocale(input){
       if(bestMatch) nomePizza = bestMatch;
     }
   }
+
+  const pizzaContesto = nomePizza || ultimaPizzaMenzionata;
+  aggiornaContestoPizza(nomePizza);
 
   // Messaggi corti/vaghi in contesto pizza — "che?", "e?", "tipo?", "cioè?"
   if(pizzaContesto && ['che','e','tipo','cioe','nel senso','ovvero','cioè','eh','ah','ok e'].some(k=>t===norm(k)||t.startsWith(norm(k)+' '))){
