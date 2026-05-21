@@ -1214,6 +1214,14 @@ let bpHistory=[], bpLoading=false, panelOpen=false, orderShown=false, msgsSinceF
 let ultimaPizzaMenzionata = null;
 let contatorContestoPizza = 0;
 
+// FIX
+function aggiornaContestoPizza(nome) {
+  if (nome) {
+    ultimaPizzaMenzionata = nome;
+    contatorContestoPizza = 0;
+  }
+}
+
 // ── STATO ORDINE ──
 let ordineAttivo = false;
 let ordine = { nome:'', orario:'', pizze:[], note:'' };
