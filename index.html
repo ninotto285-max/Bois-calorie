@@ -93,6 +93,7 @@
       <span class="bp-chip" onclick="quickSend('pizza leggera')">🥗 Leggera</span>
       <span class="bp-chip" onclick="quickSend('fritti')">🍟 Fritti</span>
       <span class="bp-chip" onclick="quickSend('ordina')">📞 Ordina</span>
+      <span class="bp-chip" onclick="quickSend('cosa sai fare')">🤔 Cosa sai fare?</span>
     </div>
     <div class="bp-input-row">
       <input type="text" id="bp-input" placeholder="Scrivi qui..." onkeydown="if(event.key==='Enter') bpSend()" />
@@ -782,6 +783,10 @@ const NON_ABBIAMO = ['nduja','burrata','asparagi','uovo','uova','ananas','patate
 function rispostaLocale(input){
   const t = norm(input);
 
+  // Cosa sai fare — risposta locale + descrizione AI
+  if(['cosa sai fare','cosa puoi fare','a cosa servi','come funzioni','come usi','aiuto','help','funzioni'].some(k=>t.includes(norm(k))))
+    return 'COSA_SAI_FARE';
+
   // Ordine/contatti
   if(['ordina','ordinare','prenotare','come ordino','voglio ordinare','posso ordinare','contatti','chiamare'].some(k=>t.includes(norm(k)))) return 'ORDER';
   // Orari
@@ -848,20 +853,31 @@ function rispostaLocale(input){
   }
 
   // Allergeni — solo se richiesti esplicitamente
-  const chiedeAllergeni = ['allergen','allergico','allergica','intollerante','intolleranza','celiaco','celiachia','latte','glutine','senza lattosio','senza glutine'].some(k=>t.includes(norm(k)));
+  const chiedeAllergeni = ['allergen','allergico','allergica','intollerante','intolleranza','celiaco','celiachia'].some(k=>t.includes(norm(k)));
   if(chiedeAllergeni){
-    // Senza glutine → risposta fissa
     if(['senza glutine','celiaco','celiachia'].some(k=>t.includes(norm(k))))
       return 'Non offriamo pizze senza glutine 🙏\nAbbiamo però la **mozzarella senza lattosio** (+3,00€) per chi è intollerante al lattosio!';
-    const nomePizzaA = trovaNomePizza(input);
-    if(nomePizzaA){
-      const pizza = PIZZE[nomePizzaA];
-      const nd = nomePizzaA.charAt(0).toUpperCase()+nomePizzaA.slice(1);
-      const allergeni = calcolaAllergeni(pizza.ing);
-      return '**'+nd+'** — Allergeni presenti ⚠️\n'+allergeni.map(a=>'• '+a).join('\n')+'\n\nPer allergie gravi contattaci direttamente al **0422 670631** 🐧';
+
+    // "Sono allergico a X cosa posso mangiare?"
+    let allergeneRicercato = null;
+    const allergeniNoti = ['latte','lattosio','uova','uovo','pesce','glutine','frutta a guscio','solfiti','soia','senape','sedano','sesamo','arachidi'];
+    for(const a of allergeniNoti){
+      if(t.includes(norm(a))){ allergeneRicercato = a === 'lattosio' ? 'latte' : a === 'uovo' ? 'uova' : a; break; }
     }
-    // Chiede allergeni senza specificare la pizza
-    return 'Dimmi quale pizza vuoi controllare e ti dico tutti gli allergeni presenti! ⚠️\nPer allergie gravi ti consiglio di contattarci direttamente al **0422 670631** 🐧';
+    if(allergeneRicercato){
+      const pizzeSicure = [];
+      for(const [nome,p] of Object.entries(PIZZE)){
+        const allergeni = calcolaAllergeni(p.ing);
+        if(!allergeni.includes(allergeneRicercato)){
+          const nd = nome.charAt(0).toUpperCase()+nome.slice(1);
+          pizzeSicure.push('**'+nd+'** — '+fmtE(p.prezzo)+'€');
+        }
+      }
+      return '🍕 Pizze **senza '+allergeneRicercato+'**\n\n'+pizzeSicure.join('\n')+'\n\n⚠️ Attenzione: lavoriamo in un ambiente dove tutti gli allergeni possono essere presenti per contaminazione crociata. Per allergie gravi contattaci al **0422 670631** prima di ordinare 🐧';
+    }
+
+    // Allergeni su pizza specifica già gestiti sopra nel contesto pizza
+    return 'Dimmi quale pizza vuoi controllare e ti dico tutti gli allergeni! ⚠️\nOppure dimmi a cosa sei allergico e ti mostro le pizze compatibili 🐧';
   }
 
   // Senza glutine — risposta fissa, mai AI
@@ -983,34 +999,48 @@ function rispostaLocale(input){
 
   // Pizza dal nome
   const nomePizza = trovaNomePizza(input);
-  if(nomePizza){
-    const pizza = PIZZE[nomePizza];
-    const nd = nomePizza.charAt(0).toUpperCase()+nomePizza.slice(1);
+  const pizzaContesto = nomePizza || ultimaPizzaMenzionata;
+
+  if(nomePizza) ultimaPizzaMenzionata = nomePizza; // salva memoria
+
+  if(pizzaContesto){
+    const pizza = PIZZE[pizzaContesto];
+    const nd = pizzaContesto.charAt(0).toUpperCase()+pizzaContesto.slice(1);
     const tipo = pizza.tipo==='arrotolata'?' 🥙 arrotolata':pizza.tipo==='calzone'?' 🫓 calzone':'';
+    const prefisso = (!nomePizza && ultimaPizzaMenzionata) ? '(parlando della **'+nd+'**)\n' : '';
 
     // Domanda ingredienti → risposta locale, mai AI
     const chiedeIng = ['ingredient','cosa ha','cosa c e','cosa ce','com e fatta','come e fatta','cosa mette','cosa ci mette','cosa contiene','contiene','ha dentro','dentro cosa','cosa dentro','descrivi','dimmi la','parlami','raccontami'].some(k=>t.includes(norm(k)));
     if(chiedeIng)
-      return '**'+nd+'**'+tipo+' 🍕\nIngredienti: '+pizza.ing.join(', ')+'\n\n**'+pizza.kcal+' kcal** · **'+fmtE(pizza.prezzo)+'€**';
+      return prefisso+'**'+nd+'**'+tipo+' 🍕\nIngredienti: '+pizza.ing.join(', ')+'\n\n**'+pizza.kcal+' kcal** · **'+fmtE(pizza.prezzo)+'€**';
 
     // Domanda solo prezzo
     const chiedePrezzo = ['quanto costa','quanto viene','prezzo','costa quanto'].some(k=>t.includes(norm(k))) && !['calorie','kcal'].some(k=>t.includes(norm(k)));
     if(chiedePrezzo)
-      return '**'+nd+'** costa **'+fmtE(pizza.prezzo)+'€** 🍕';
+      return prefisso+'**'+nd+'** costa **'+fmtE(pizza.prezzo)+'€** 🍕';
 
     // Domanda solo calorie
-    const chiedeKcal = ['calorie','kcal','quante cal','fa ingrassare','pesante','calorica'].some(k=>t.includes(norm(k))) && !['prezzo','costa'].some(k=>t.includes(norm(k)));
+    const chiedeKcal = ['calorie','kcal','quante cal','fa ingrassare','calorica'].some(k=>t.includes(norm(k))) && !['prezzo','costa'].some(k=>t.includes(norm(k)));
     if(chiedeKcal)
-      return '**'+nd+'** ha **'+pizza.kcal+' kcal** 🍕';
+      return prefisso+'**'+nd+'** ha **'+pizza.kcal+' kcal** 🍕';
 
-    const rimozioni = estraiRimozioni(t);
-    const aggiunte  = estraiAggiunte(t);
-    const formato = {
-      battuta:     t.includes('battuta'),
-      doppiaPasta: t.includes('doppia pasta')||t.includes('doppio impasto'),
-      baby:        t.includes('baby')||t.includes('poca fame'),
-    };
-    return rispostaPizza(nomePizza, rimozioni, aggiunte, formato);
+    // Domanda allergeni sulla pizza in contesto
+    const chiedeAllergeniPizza = ['allergen','allergico','allergica','intollerante'].some(k=>t.includes(norm(k)));
+    if(chiedeAllergeniPizza){
+      const allergeni = calcolaAllergeni(pizza.ing);
+      return prefisso+'**'+nd+'** — Allergeni presenti ⚠️\n'+allergeni.map(a=>'• '+a).join('\n')+'\n\n⚠️ Lavoriamo in un ambiente dove tutti gli allergeni possono essere presenti per contaminazione crociata.\nPer allergie gravi contattaci al **0422 670631** 🐧';
+    }
+
+    if(nomePizza){
+      const rimozioni = estraiRimozioni(t);
+      const aggiunte  = estraiAggiunte(t);
+      const formato = {
+        battuta:     t.includes('battuta'),
+        doppiaPasta: t.includes('doppia pasta')||t.includes('doppio impasto'),
+        baby:        t.includes('baby')||t.includes('poca fame'),
+      };
+      return rispostaPizza(nomePizza, rimozioni, aggiunte, formato);
+    }
   }
 
   // Composizione libera da ingredienti
@@ -1060,6 +1090,7 @@ async function callGroq(msgs){
 // UI
 // ============================================================
 let bpHistory=[], bpLoading=false, panelOpen=false, orderShown=false, msgsSinceFritino=0;
+let ultimaPizzaMenzionata = null; // memoria contesto pizza
 
 function togglePanel(){
   panelOpen=!panelOpen;
@@ -1108,6 +1139,17 @@ async function bpSend(){
   if(locale==='ORDER'){
     addBotMsg('Ecco come contattarci per ordinare! 🐧');
     setTimeout(showOrderButtons,300); return;
+  }
+  if(locale==='COSA_SAI_FARE'){
+    const base = '🐧 **Cosa so fare:**\n\n🍕 Calorie e prezzo di ogni pizza\n➕ Calcolo modifiche (senza/con ingredienti)\n🥗 Pizze per carattere: leggera, pesante, piccante, elegante...\n🔍 Pizze con un ingrediente specifico\n⚠️ Allergeni per ogni pizza\n🌿 Ingredienti stagionali\n🍷 Abbinamenti tra ingredienti\n📞 Orari, indirizzo e contatti\n\n';
+    // AI aggiunge 2 righe golose
+    bpLoading=true; document.getElementById('bp-send').disabled=true; showTyping();
+    const msgs=[{role:'system',content:'Sei il Pinguino di BoisPizza. Scrivi SOLO 2 frasi brevi, golose e simpatiche su di te come assistente pizza. Tipo "sono il tuo complice nei peccati di gola". Niente elenchi, niente altro.'},{role:'user',content:'Presentati in 2 frasi golose'}];
+    const testo = await callGroq(msgs);
+    removeTyping();
+    addBotMsg(base + (testo || 'Sono il tuo complice nei peccati di gola e il tuo personal trainer calorico 🔥'));
+    bpLoading=false; document.getElementById('bp-send').disabled=false;
+    return;
   }
   if(locale){
     msgsSinceFritino++;
