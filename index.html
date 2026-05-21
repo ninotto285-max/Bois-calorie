@@ -780,7 +780,30 @@ const TAG_ALIAS = {
 const NON_ABBIAMO = ['nduja','burrata','asparagi','uovo','uova','ananas','patate dolci','zucca','carciofo fresco','gamberi','gamberetti','cozze','vongole','capesante','salmone','baccala','stoccafisso','feta','taleggio','caciocavallo','provola','scamorza affumicata'];
 
 // ============================================================
+function correggiTypo(s){
+  // Correzioni typo tastiera mobile comuni
+  return s
+    .replace(/\bcosq\b/gi,'cosa')
+    .replace(/\bcsoa\b/gi,'cosa')
+    .replace(/\bcoas\b/gi,'cosa')
+    .replace(/\bche\b/gi,'che')
+    .replace(/\bpotrie\b/gi,'potrei')
+    .replace(/\baggiungerci\b/gi,'aggiungerci')
+    .replace(/\baggiungervi\b/gi,'aggiungerci')
+    .replace(/\bingredientl\b/gi,'ingredienti')
+    .replace(/\bingredietni\b/gi,'ingredienti')
+    .replace(/\bcalroie\b/gi,'calorie')
+    .replace(/\bcalorei\b/gi,'calorie')
+    .replace(/\ballergni\b/gi,'allergeni')
+    .replace(/\ballergein\b/gi,'allergeni')
+    .replace(/\bprzzo\b/gi,'prezzo')
+    .replace(/\bprezoz\b/gi,'prezzo')
+    .replace(/\borgari\b/gi,'orari')
+    .replace(/\borrai\b/gi,'orari');
+}
+
 function rispostaLocale(input){
+  input = correggiTypo(input); // correggi typo prima di tutto
   const t = norm(input);
 
   // Cosa sai fare — risposta locale + descrizione AI
@@ -1034,8 +1057,13 @@ function rispostaLocale(input){
     }
   }
 
-  const pizzaContesto = nomePizza || ultimaPizzaMenzionata;
-  aggiornaContestoPizza(nomePizza);
+  // Messaggi corti/vaghi in contesto pizza — "che?", "e?", "tipo?", "cioè?"
+  if(pizzaContesto && ['che','e','tipo','cioe','nel senso','ovvero','cioè','eh','ah','ok e'].some(k=>t===norm(k)||t.startsWith(norm(k)+' '))){
+    const pizza = PIZZE[pizzaContesto];
+    const nd = pizzaContesto.charAt(0).toUpperCase()+pizzaContesto.slice(1);
+    return '(parlando della **'+nd+'**) 🍕\nIngredienti: '+pizza.ing.join(', ')+'\n\n**'+pizza.kcal+' kcal** · **'+fmtE(pizza.prezzo)+'€**';
+  }
+
 
   if(pizzaContesto){
     const pizza = PIZZE[pizzaContesto];
