@@ -224,7 +224,79 @@ const ING = {
   'senape e miele':               { kcal:30,  prezzo:0    },
   'confettura di fichi':          { kcal:60,  prezzo:0    },
 };
+// ─────────────────────────────────────────────
+// ALLERGENI INGREDIENTI
+// ─────────────────────────────────────────────
+const ALLERGENI = {
+  'farina 00': ['Glutine'],
+  'farina tipo 1': ['Glutine'],
 
+  'pomodoro': [],
+  'pomodoro salsa': [],
+  'pomodorini': [],
+  'pomodorino datterino': [],
+
+  'mozzarella': ['Latte'],
+  'bufala': ['Latte'],
+  'pecorino': ['Latte'],
+  'grana': ['Latte', 'Uova'],
+  'grana grattugiato': ['Latte', 'Uova'],
+  'stracchino': ['Latte'],
+  'scamorza': ['Latte'],
+  'ricotta': ['Latte'],
+  'gorgonzola': ['Latte'],
+  'brie': ['Latte'],
+  'feta greca': ['Latte'],
+  'philadelphia': ['Latte'],
+
+  'pancetta': [],
+  'guanciale': [],
+  'nduja': [],
+  'salsiccia': [],
+  'salamino': [],
+  'wurstel': [],
+  'wurstel suino': [],
+  'prosciutto cotto': [],
+  'prosciutto crudo': [],
+  'bresaola': [],
+  'speck': [],
+  'porchetta': [],
+
+  'tonno': ['Pesce'],
+  'acciughe': ['Pesce'],
+
+  'crema al tartufo': ['Glutine', 'Soia', 'Senape'],
+  'pesto': ['Latte', 'Frutta a guscio', 'Uova'],
+
+  'salsa bbq': ['Solfiti'],
+  'pomodori secchi': ['Solfiti'],
+
+  'funghi': [],
+  'funghi misti': [],
+  'porcini': [],
+  'carciofi': [],
+  'olive': [],
+  'capperi': [],
+  'peperoni': [],
+  'melanzane': [],
+  'zucchine': [],
+  'mais': [],
+  'aglio': [],
+  'cipolla': [],
+  'rucola': [],
+  'basilico': [],
+  'origano': [],
+  'olio': [],
+  'olio evo': [],
+
+  'noci': ['Frutta a guscio'],
+
+  'patate fritte': [],
+  'friarielli': [],
+  'spinaci': [],
+  'verdure miste': [],
+  'verdure miste grigliate': [],
+};
 // ============================================================
 // ALIAS PIZZA (typo/abbreviazioni → nome canonico in PIZZE)
 // NON c'è fuzzy: solo corrispondenze esplicite
