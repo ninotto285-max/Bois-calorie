@@ -1349,7 +1349,8 @@ function gestisciOrdine(input){
   }
 
   if(ordineStep === 'pizze'){
-    const righe = input.split(/[,\n]+/).filter(r=>r.trim());
+    // Split su virgola, newline, e anche 'e' tra pizze (es. '2 margherite e 1 diavola')
+    const righe = input.split(/[,\n]|\s+e\s+(?=\d)|\s+e\s+(?=una?\s)|\s+e\s+(?=un[ao]?\s)/).filter(r=>r.trim());
     let trovate = [];
     for(const riga of righe){
       const rn = norm(riga);
