@@ -297,6 +297,47 @@ const ALLERGENI = {
   'verdure miste': [],
   'verdure miste grigliate': [],
 };
+ // ─────────────────────────────────────────────
+// ESTRAZIONE ALLERGENI (NON TOCCA FORMATTER)
+// ─────────────────────────────────────────────
+function getAllergeniDaRisposta(res) {
+  const set = new Set();
+
+  // base sempre presente (impasto)
+  set.add('Glutine');
+
+  let ingredienti = [];
+
+  if (res.tipo === 'pizza' && PIZZE[res.nome.toLowerCase()]) {
+    ingredienti = [...PIZZE[res.nome.toLowerCase()].ing];
+  }
+
+  if (res.tipo === 'custom') {
+    ingredienti = [...res.ingredienti];
+  }
+
+  if (res.note) {
+    res.note.forEach(n => {
+      if (n.startsWith('Senza ')) {
+        const tolti = n.replace('Senza ', '').split(',').map(x => x.trim());
+        ingredienti = ingredienti.filter(i => !tolti.includes(i));
+      }
+
+      if (n.startsWith('+')) {
+        const ing = n.replace('+', '').split(' ')[0].trim();
+        ingredienti.push(ing);
+      }
+    });
+  }
+
+  ingredienti.forEach(i => {
+    if (ALLERGENI[i]) {
+      ALLERGENI[i].forEach(a => set.add(a));
+    }
+  });
+
+  return [...set];
+}
 // ============================================================
 // ALIAS PIZZA (typo/abbreviazioni → nome canonico in PIZZE)
 // NON c'è fuzzy: solo corrispondenze esplicite
