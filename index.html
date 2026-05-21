@@ -1101,6 +1101,22 @@ function quickSend(text){
   if(!panelOpen) togglePanel();
   setTimeout(()=>{ document.getElementById('bp-input').value=text; bpSend(); },350);
 }
+// ─────────────────────────────────────────────
+// HOOK RISPOSTA (AGGIUNGE ALLERGENI SENZA TOCCARE FORMATTER)
+// ─────────────────────────────────────────────
+const _oldFormat = formatRispostaPizza;
+
+formatRispostaPizza = function(res) {
+  let msg = _oldFormat(res);
+
+  const allergeni = getAllergeniDaRisposta(res);
+
+  if (allergeni.length > 0) {
+    msg += `\n\n⚠️ Allergeni: **${allergeni.join(', ')}**`;
+  }
+
+  return msg;
+};
 </script>
 </body>
 </html>
