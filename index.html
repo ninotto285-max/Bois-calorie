@@ -808,8 +808,8 @@ function rispostaLocale(input){
     }
     return msg;
   }
-  // Abbinamenti — "cosa ci sta bene con X" / "cosa abbino a X"
-  const chiedeAbbinamento = ['cosa ci sta','cosa abbino','cosa metto','ci sta bene','si abbina','abbinamento','cosa ci metto','cosa ci va','ci va bene','cosa aggiung'].some(k=>t.includes(norm(k)));
+  // Abbinamenti — "cosa ci sta bene con X" / "cosa aggiungo" / "cosa potrei aggiungere"
+  const chiedeAbbinamento = ['cosa ci sta','cosa abbino','cosa metto','ci sta bene','si abbina','abbinamento','cosa ci metto','cosa ci va','ci va bene','cosa aggiung','potrei aggiung','cosa potrei','posso aggiungere','cosa aggiungo','aggiungerei','cosa metterci','cosa metteri','cosa metteresti','consiglia aggiunta','suggerisci aggiunta'].some(k=>t.includes(norm(k)));
   if(chiedeAbbinamento){
     // Cerca ingrediente o pizza nel testo
     let ingTarget = null;
