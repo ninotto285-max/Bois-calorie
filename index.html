@@ -168,218 +168,143 @@ const PIZZE = {
 // DATABASE INGREDIENTI — nome canonico : { kcal, prezzo }
 // ============================================================
 const ING = {
-  'pomodoro':                     { kcal:14,  prezzo:0.5  },
-  'mozzarella':                   { kcal:280, prezzo:1.5  },
-  'basilico fresco':              { kcal:1,   prezzo:0    },
-  'olio evo':                     { kcal:44,  prezzo:0    },
-  'origano':                      { kcal:1,   prezzo:0    },
-  'aglio':                        { kcal:5,   prezzo:0    },
-  'pomodorini':                   { kcal:11,  prezzo:1.5  },
-  'pomodorini datterini conditi': { kcal:11,  prezzo:1.5  },
-  'cipolla':                      { kcal:12,  prezzo:1    },
-  'cipolla di tropea':            { kcal:12,  prezzo:1    },
-  'funghi':                       { kcal:13,  prezzo:1    },
-  'funghi misti':                 { kcal:15,  prezzo:1    },
-  'carciofi':                     { kcal:28,  prezzo:1.5  },
-  'olive':                        { kcal:35,  prezzo:1.5  },
-  'capperi':                      { kcal:5,   prezzo:0.5  },
-  'melanzane':                    { kcal:15,  prezzo:1.5  },
-  'melanzane fritte':             { kcal:60,  prezzo:1.5  },
-  'zucchine':                     { kcal:10,  prezzo:1    },
-  'peperoni':                     { kcal:25,  prezzo:1    },
-  'rucola':                       { kcal:8,   prezzo:1    },
-  'rucola cotta':                 { kcal:8,   prezzo:1    },
-  'mais':                         { kcal:29,  prezzo:1    },
-  'verdure miste grigliate':      { kcal:30,  prezzo:2.5  },
-  'spinaci':                      { kcal:8,   prezzo:1    },
-  'porcini':                      { kcal:15,  prezzo:2.5  },
-  'pomodori secchi':              { kcal:75,  prezzo:2    },
-  'friarielli':                   { kcal:18,  prezzo:1.5  },
-  'noci':                         { kcal:98,  prezzo:1    },
-  'patate fritte':                { kcal:250, prezzo:1.5  },
-  'bufala':                       { kcal:260, prezzo:3    },
-  'gorgonzola':                   { kcal:210, prezzo:1.5  },
-  'brie':                         { kcal:167, prezzo:1.5  },
-  'brie erborinato':              { kcal:167, prezzo:1.5  },
-  'grana':                        { kcal:43,  prezzo:1.5  },
-  'scamorza':                     { kcal:180, prezzo:1.5  },
-  'ricotta':                      { kcal:70,  prezzo:1.5  },
-  'philadelphia':                 { kcal:96,  prezzo:1.5  },
-  'stracchino':                   { kcal:150, prezzo:2    },
-  'salamino piccante':            { kcal:252, prezzo:1.5  },
-  'salsiccia':                    { kcal:240, prezzo:2    },
-  'wurstel di suino':             { kcal:240, prezzo:1    },
-  'prosciutto cotto':             { kcal:87,  prezzo:1    },
-  'prosciutto crudo':             { kcal:125, prezzo:3    },
-  'pancetta dolce':               { kcal:270, prezzo:2.5  },
-  'speck alto adige':             { kcal:130, prezzo:3    },
-  'porchetta trevigiana':         { kcal:180, prezzo:3    },
-  'bresaola':                     { kcal:75,  prezzo:3    },
-  'tonno':                        { kcal:79,  prezzo:2    },
-  'acciughe':                     { kcal:21,  prezzo:1.5  },
-  'pesto':                        { kcal:135, prezzo:1    },
-  'crema al tartufo':             { kcal:53,  prezzo:2    },
-  'salsa al tartufo':             { kcal:53,  prezzo:2    },
-  'salsa bbq':                    { kcal:24,  prezzo:1    },
-  'senape e miele':               { kcal:30,  prezzo:0    },
-  'confettura di fichi':          { kcal:60,  prezzo:0    },
+  'pomodoro':                     { kcal:14,  prezzo:0.5,  allergeni:[] },
+  'mozzarella':                   { kcal:280, prezzo:1.5,  allergeni:['latte'] },
+  'basilico fresco':              { kcal:1,   prezzo:0,    allergeni:[] },
+  'olio evo':                     { kcal:44,  prezzo:0,    allergeni:[] },
+  'origano':                      { kcal:1,   prezzo:0,    allergeni:[] },
+  'aglio':                        { kcal:5,   prezzo:0,    allergeni:[] },
+  'pomodorini':                   { kcal:11,  prezzo:1.5,  allergeni:[] },
+  'pomodorini datterini conditi': { kcal:11,  prezzo:1.5,  allergeni:[] },
+  'cipolla':                      { kcal:12,  prezzo:1,    allergeni:[] },
+  'cipolla di tropea':            { kcal:12,  prezzo:1,    allergeni:[] },
+  'funghi':                       { kcal:13,  prezzo:1,    allergeni:[] },
+  'funghi misti':                 { kcal:15,  prezzo:1,    allergeni:[] },
+  'carciofi':                     { kcal:28,  prezzo:1.5,  allergeni:[] },
+  'olive':                        { kcal:35,  prezzo:1.5,  allergeni:[] },
+  'capperi':                      { kcal:5,   prezzo:0.5,  allergeni:[] },
+  'melanzane':                    { kcal:15,  prezzo:1.5,  allergeni:[] },
+  'melanzane fritte':             { kcal:60,  prezzo:1.5,  allergeni:[] },
+  'zucchine':                     { kcal:10,  prezzo:1,    allergeni:[] },
+  'peperoni':                     { kcal:25,  prezzo:1,    allergeni:[] },
+  'rucola':                       { kcal:8,   prezzo:1,    allergeni:[] },
+  'rucola cotta':                 { kcal:8,   prezzo:1,    allergeni:[] },
+  'mais':                         { kcal:29,  prezzo:1,    allergeni:[] },
+  'verdure miste grigliate':      { kcal:30,  prezzo:2.5,  allergeni:[] },
+  'spinaci':                      { kcal:8,   prezzo:1,    allergeni:[] },
+  'porcini':                      { kcal:15,  prezzo:2.5,  allergeni:[] },
+  'pomodori secchi':              { kcal:75,  prezzo:2,    allergeni:['solfiti'] },
+  'friarielli':                   { kcal:18,  prezzo:1.5,  allergeni:[] },
+  'noci':                         { kcal:98,  prezzo:1,    allergeni:['frutta a guscio'] },
+  'patate fritte':                { kcal:250, prezzo:1.5,  allergeni:[] },
+  'bufala':                       { kcal:260, prezzo:3,    allergeni:['latte'] },
+  'gorgonzola':                   { kcal:210, prezzo:1.5,  allergeni:['latte'] },
+  'brie':                         { kcal:167, prezzo:1.5,  allergeni:['latte'] },
+  'brie erborinato':              { kcal:167, prezzo:1.5,  allergeni:['latte'] },
+  'grana':                        { kcal:43,  prezzo:1.5,  allergeni:['latte','uova'] },
+  'scamorza':                     { kcal:180, prezzo:1.5,  allergeni:['latte'] },
+  'ricotta':                      { kcal:70,  prezzo:1.5,  allergeni:['latte'] },
+  'philadelphia':                 { kcal:96,  prezzo:1.5,  allergeni:['latte'] },
+  'stracchino':                   { kcal:150, prezzo:2,    allergeni:['latte'] },
+  'salamino piccante':            { kcal:252, prezzo:1.5,  allergeni:[] },
+  'salsiccia':                    { kcal:240, prezzo:2,    allergeni:[] },
+  'wurstel di suino':             { kcal:240, prezzo:1,    allergeni:[] },
+  'prosciutto cotto':             { kcal:87,  prezzo:1,    allergeni:[] },
+  'prosciutto crudo':             { kcal:125, prezzo:3,    allergeni:[] },
+  'pancetta dolce':               { kcal:270, prezzo:2.5,  allergeni:[] },
+  'speck alto adige':             { kcal:130, prezzo:3,    allergeni:[] },
+  'porchetta trevigiana':         { kcal:180, prezzo:3,    allergeni:[] },
+  'bresaola':                     { kcal:75,  prezzo:3,    allergeni:[] },
+  'tonno':                        { kcal:79,  prezzo:2,    allergeni:['pesce'] },
+  'acciughe':                     { kcal:21,  prezzo:1.5,  allergeni:['pesce'] },
+  'pesto':                        { kcal:135, prezzo:1,    allergeni:['latte','frutta a guscio','uova'] },
+  'crema al tartufo':             { kcal:53,  prezzo:2,    allergeni:['glutine','soia','senape'] },
+  'salsa al tartufo':             { kcal:53,  prezzo:2,    allergeni:['glutine','soia','senape'] },
+  'salsa bbq':                    { kcal:24,  prezzo:1,    allergeni:['solfiti'] },
+  'senape e miele':               { kcal:30,  prezzo:0,    allergeni:[] },
+  'confettura di fichi':          { kcal:60,  prezzo:0,    allergeni:[] },
+  // ingredienti stagionali
+  'burrata':                      { kcal:300, prezzo:3,    allergeni:['latte'],  stagione:[6,7,8]  },
+  'asparagi':                     { kcal:20,  prezzo:2,    allergeni:[],         stagione:[3,4,5]  },
+  'zucca':                        { kcal:26,  prezzo:2,    allergeni:[],         stagione:[9,10,11] },
+  'crema di zucca':               { kcal:40,  prezzo:2,    allergeni:[],         stagione:[9,10,11] },
+  'patate al forno':              { kcal:150, prezzo:1.5,  allergeni:[],         stagione:null     },
+  'radicchio':                    { kcal:20,  prezzo:2,    allergeni:[],         stagione:[12,1,2] },
 };
-// ─────────────────────────────────────────────
-// ALLERGENI INGREDIENTI
-// ─────────────────────────────────────────────
-const ALLERGENI = {
-  'farina 00': ['Glutine'],
-  'farina tipo 1': ['Glutine'],
 
-  'pomodoro': [],
-  'pomodoro salsa': [],
-  'pomodorini': [],
-  'pomodorino datterino': [],
-
-  'mozzarella': ['Latte'],
-  'bufala': ['Latte'],
-  'pecorino': ['Latte'],
-  'grana': ['Latte', 'Uova'],
-  'grana grattugiato': ['Latte', 'Uova'],
-  'stracchino': ['Latte'],
-  'scamorza': ['Latte'],
-  'ricotta': ['Latte'],
-  'gorgonzola': ['Latte'],
-  'brie': ['Latte'],
-  'feta greca': ['Latte'],
-  'philadelphia': ['Latte'],
-
-  'pancetta': [],
-  'guanciale': [],
-  'nduja': [],
-  'salsiccia': [],
-  'salamino': [],
-  'wurstel': [],
-  'wurstel suino': [],
-  'prosciutto cotto': [],
-  'prosciutto crudo': [],
-  'bresaola': [],
-  'speck': [],
-  'porchetta': [],
-
-  'tonno': ['Pesce'],
-  'acciughe': ['Pesce'],
-
-  'crema al tartufo': ['Glutine', 'Soia', 'Senape'],
-  'pesto': ['Latte', 'Frutta a guscio', 'Uova'],
-
-  'salsa bbq': ['Solfiti'],
-  'pomodori secchi': ['Solfiti'],
-
-  'funghi': [],
-  'funghi misti': [],
-  'porcini': [],
-  'carciofi': [],
-  'olive': [],
-  'capperi': [],
-  'peperoni': [],
-  'melanzane': [],
-  'zucchine': [],
-  'mais': [],
-  'aglio': [],
-  'cipolla': [],
-  'rucola': [],
-  'basilico': [],
-  'origano': [],
-  'olio': [],
-  'olio evo': [],
-
-  'noci': ['Frutta a guscio'],
-
-  'patate fritte': [],
-  'friarielli': [],
-  'spinaci': [],
-  'verdure miste': [],
-  'verdure miste grigliate': [],
-};
- // ─────────────────────────────────────────────
-// ESTRAZIONE ALLERGENI (NON TOCCA FORMATTER)
-// ─────────────────────────────────────────────
-function getAllergeniDaRisposta(res) {
+// ============================================================
+// ALLERGENI — calcola da lista ingredienti
+// ============================================================
+function calcolaAllergeni(ingList) {
   const set = new Set();
-
-  // base sempre presente (impasto)
-  set.add('Glutine');
-
-  let ingredienti = [];
-
-  if (res.tipo === 'pizza' && PIZZE[res.nome.toLowerCase()]) {
-    ingredienti = [...PIZZE[res.nome.toLowerCase()].ing];
+  // Aggiungi sempre glutine per l'impasto base
+  set.add('glutine');
+  for (const i of ingList) {
+    const chiave = trovaNomeIng(i) || i;
+    const dati = ING[chiave];
+    if (dati && dati.allergeni) dati.allergeni.forEach(a => set.add(a));
   }
-
-  if (res.tipo === 'custom') {
-    ingredienti = [...res.ingredienti];
-  }
-
-  if (res.note) {
-    res.note.forEach(n => {
-      if (n.startsWith('Senza ')) {
-        const tolti = n.replace('Senza ', '').split(',').map(x => x.trim());
-        ingredienti = ingredienti.filter(i => !tolti.includes(i));
-      }
-
-      if (n.startsWith('+')) {
-        const ing = n.replace('+', '').split(' ')[0].trim();
-        ingredienti.push(ing);
-      }
-    });
-  }
-
-  ingredienti.forEach(i => {
-    if (ALLERGENI[i]) {
-      ALLERGENI[i].forEach(a => set.add(a));
-    }
-  });
-
   return [...set];
 }
+
 // ============================================================
-// ALIAS PIZZA (typo/abbreviazioni → nome canonico in PIZZE)
-// NON c'è fuzzy: solo corrispondenze esplicite
+// STAGIONALITÀ
 // ============================================================
-const PIZZA_ALIAS = {
-  'marcherita':'margherita','margerita':'margherita','marghertia':'margherita',
-  'margheita':'margherita','margheritaa':'margherita',
-  'diavola piccante':'diavola',
-  'salsicia':'salsiccia','salciccia':'salsiccia','salsicca':'salsiccia',
-  'vieneese':'viennese','vienese':'viennese','vienness':'viennese',
-  'puglieese':'pugliese','pugliesse':'pugliese','pugliese':'pugliese',
-  'capriccosa':'capricciosa','capricciossa':'capricciosa','capricosa':'capricciosa',
-  'capriciosa':'capricciosa','caprcciosa':'capricciosa','capricoisa':'capricciosa',
-  'tonno cipolla':'tonno e cipolla','tonno e cipollaa':'tonno e cipolla',
-  'bufalla':'bufala','buffala':'bufala',
-  '4 stagioni':'quattro stagioni','quattrostagioni':'quattro stagioni','quattro stagion':'quattro stagioni',
-  'romanna':'romana',
-  'sicilinana':'siciliana','sicilana':'siciliana','sicilaiana':'siciliana',
-  'patatossa':'patatosa',
-  'prosciutto funghi':'prosciutto e funghi','prosciutto e fungo':'prosciutto e funghi',
-  'montelo':'montello',
-  'valtelina':'valtellina','valtellinna':'valtellina',
-  'parmiggiana':'parmigiana','parmigian':'parmigiana',
-  'ciccia friarielli':'ciccia e friarielli','ciccia e friarelli':'ciccia e friarielli',
-  'ciccia friarelli':'ciccia e friarielli','ciccia friariell':'ciccia e friarielli',
-  'formagi':'formaggi','formaggio':'formaggi',
-  'sfizosa':'sfiziosa','sfisiosa':'sfiziosa',
-  'bosscaiola':'boscaiola','boscaola':'boscaiola','boscaiolaa':'boscaiola',
-  'tartuftata':'tartufata','tartuffata':'tartufata',
-  'republica':'repubblica','repubblika':'repubblica',
-  'capricciosa sbagliata':'capricciosa sbagliata',
-  'capri sbagliata':'capricciosa sbagliata','cap sbagliata':'capricciosa sbagliata',
-  'capricciosa sbagliatta':'capricciosa sbagliata',
-  'capricciosa-sbagliata':'capricciosa sbagliata',
-  'amatricana':'amatriciana','amatricanna':'amatriciana',
-  'calzone mauretto':'calzone poro mauretto',
-  'calzone poro':'calzone poro mauretto',
-  'calzone ade':'calzone ade',
-  'calzone piccante':'calzone piccante',
-  'calzone classico':'calzone classico',
-  'calzone vegeta':'calzone vegeta',
+function isDisponibile(nomeIng) {
+  const d = ING[nomeIng];
+  if (!d || !d.stagione) return true;
+  const mese = new Date().getMonth() + 1;
+  return d.stagione.includes(mese);
+}
+function meseStagione(nomeIng) {
+  const nomi = ['','gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre'];
+  const d = ING[nomeIng];
+  if (!d || !d.stagione) return null;
+  return d.stagione.map(m => nomi[m]).join(', ');
+}
+
+// ============================================================
+// ABBINAMENTI
+// ============================================================
+const ABBINAMENTI = {
+  'bufala':              ['prosciutto crudo','pomodorini','rucola','pesto','bresaola'],
+  'burrata':             ['prosciutto crudo','pomodorini','pesto','rucola','acciughe'],
+  'gorgonzola':          ['noci','porchetta trevigiana','speck alto adige','pancetta dolce'],
+  'brie':                ['noci','salsiccia','funghi misti','porcini'],
+  'prosciutto crudo':    ['bufala','rucola','grana','pomodorini'],
+  'prosciutto cotto':    ['funghi','carciofi','mais','ricotta'],
+  'salsiccia':           ['friarielli','funghi misti','porcini','brie','peperoni'],
+  'speck alto adige':    ['gorgonzola','rucola','grana','porcini'],
+  'bresaola':            ['rucola','grana','pomodorini','philadelphia'],
+  'porchetta trevigiana':['porcini','carciofi','gorgonzola','radicchio'],
+  'porcini':             ['salsiccia','porchetta trevigiana','scamorza','crema al tartufo'],
+  'crema al tartufo':    ['funghi misti','porcini','grana','salsiccia'],
+  'salsa al tartufo':    ['funghi misti','porcini','grana','salsiccia'],
+  'rucola':              ['bresaola','prosciutto crudo','bufala','grana'],
+  'pomodorini':          ['bufala','rucola','pesto','prosciutto crudo'],
+  'zucca':               ['gorgonzola','salsiccia','pancetta dolce','scamorza'],
+  'crema di zucca':      ['gorgonzola','salsiccia','pancetta dolce','scamorza'],
+  'radicchio':           ['gorgonzola','porchetta trevigiana','speck alto adige','pancetta dolce'],
+  'asparagi':            ['prosciutto crudo','speck alto adige','grana'],
+  'philadelphia':        ['rucola','pomodorini','bresaola','zucchine'],
+  'pancetta dolce':      ['gorgonzola','cipolla','porcini','scamorza'],
+  'salsa bbq':           ['scamorza','cipolla','pancetta dolce','salsiccia'],
+  'pesto':               ['pomodorini','bufala','melanzane','grana'],
+  'melanzane':           ['ricotta','grana','pesto'],
+  'peperoni':            ['salsiccia','wurstel di suino','cipolla','salamino piccante'],
+  'scamorza':            ['pancetta dolce','porcini','speck alto adige','salsa bbq'],
+  'grana':               ['prosciutto crudo','bresaola','rucola','speck alto adige'],
 };
+
+function suggerisciAbbinamenti(nomeIng) {
+  const lista = ABBINAMENTI[nomeIng];
+  if (!lista) return null;
+  return lista.filter(i => {
+    const canon = trovaNomeIng(i) || i;
+    return isDisponibile(canon);
+  }).slice(0, 4);
+}
+
 
 // ============================================================
 // ALIAS INGREDIENTI (typo/abbreviazioni → nome canonico in ING)
@@ -431,6 +356,12 @@ const ING_ALIAS = {
   'senape':'senape e miele','senape miele':'senape e miele','miele':'senape e miele',
   'confettura':'confettura di fichi','fichi':'confettura di fichi',
   'spinaco':'spinaci',
+  // stagionali
+  'burratina':'burrata','burratta':'burrata',
+  'asparago':'asparagi','aspareg':'asparagi',
+  'zuccca':'zucca','crema zucca':'crema di zucca','vellutata zucca':'crema di zucca',
+  'patate forno':'patate al forno','patate arrosto':'patate al forno','patatine al forno':'patate al forno',
+  'radicch':'radicchio','radicchio rosso':'radicchio',
 };
 
 // ============================================================
@@ -465,6 +396,48 @@ function norm(s){ return String(s).toLowerCase().replace(/[àáâä]/g,'a').repl
 function fmtE(n){ return Number(n).toFixed(2).replace('.',','); }
 function fmt(t){ return esc(t).replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/(\d+)\s*kcal/gi,'<span class="cal-box">$1 kcal</span>').replace(/(\d+[,\.]\d+)€/g,'<span class="price-box">$1€</span>').replace(/\n/g,'<br>'); }
 function esc(t){ return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ============================================================
+// ALIAS PIZZA (typo/abbreviazioni → nome canonico in PIZZE)
+// ============================================================
+const PIZZA_ALIAS = {
+  'marcherita':'margherita','margerita':'margherita','marghertia':'margherita',
+  'margheita':'margherita','margheritaa':'margherita',
+  'diavola piccante':'diavola',
+  'salsicia':'salsiccia','salciccia':'salsiccia','salsicca':'salsiccia',
+  'vieneese':'viennese','vienese':'viennese','vienness':'viennese',
+  'puglieese':'pugliese','pugliesse':'pugliese',
+  'capriccosa':'capricciosa','capricciossa':'capricciosa','capricosa':'capricciosa',
+  'capriciosa':'capricciosa','caprcciosa':'capricciosa','capricoisa':'capricciosa',
+  'tonno cipolla':'tonno e cipolla','tonno e cipollaa':'tonno e cipolla',
+  'bufalla':'bufala','buffala':'bufala',
+  '4 stagioni':'quattro stagioni','quattrostagioni':'quattro stagioni','quattro stagion':'quattro stagioni',
+  'romanna':'romana',
+  'sicilinana':'siciliana','sicilana':'siciliana','sicilaiana':'siciliana',
+  'patatossa':'patatosa',
+  'prosciutto funghi':'prosciutto e funghi','prosciutto e fungo':'prosciutto e funghi',
+  'montelo':'montello',
+  'valtelina':'valtellina','valtellinna':'valtellina',
+  'parmiggiana':'parmigiana','parmigian':'parmigiana',
+  'ciccia friarielli':'ciccia e friarielli','ciccia e friarelli':'ciccia e friarielli',
+  'ciccia friarelli':'ciccia e friarielli','ciccia friariell':'ciccia e friarielli',
+  'formagi':'formaggi','formaggio':'formaggi',
+  'sfizosa':'sfiziosa','sfisiosa':'sfiziosa',
+  'bosscaiola':'boscaiola','boscaola':'boscaiola','boscaiolaa':'boscaiola',
+  'tartuftata':'tartufata','tartuffata':'tartufata',
+  'republica':'repubblica','repubblika':'repubblica',
+  'capricciosa sbagliata':'capricciosa sbagliata',
+  'capri sbagliata':'capricciosa sbagliata','cap sbagliata':'capricciosa sbagliata',
+  'capricciosa sbagliatta':'capricciosa sbagliata',
+  'capricciosa-sbagliata':'capricciosa sbagliata',
+  'amatricana':'amatriciana','amatricanna':'amatriciana',
+  'calzone mauretto':'calzone poro mauretto',
+  'calzone poro':'calzone poro mauretto',
+  'calzone ade':'calzone ade',
+  'calzone piccante':'calzone piccante',
+  'calzone classico':'calzone classico',
+  'calzone vegeta':'calzone vegeta',
+};
 
 // ============================================================
 // LOOKUP PIZZA — alias espliciti + lista PIZZE, nessun fuzzy
@@ -830,6 +803,67 @@ function rispostaLocale(input){
     }
     return msg;
   }
+  // Abbinamenti — "cosa ci sta bene con X" / "cosa abbino a X"
+  const chiedeAbbinamento = ['cosa ci sta','cosa abbino','cosa metto','ci sta bene','si abbina','abbinamento','cosa ci metto','cosa ci va','ci va bene','cosa aggiung'].some(k=>t.includes(norm(k)));
+  if(chiedeAbbinamento){
+    // Cerca ingrediente o pizza nel testo
+    let ingTarget = null;
+    for(const [a,c] of Object.entries(ING_ALIAS).sort((x,y)=>y[0].length-x[0].length))
+      if(t.includes(norm(a))){ ingTarget=c; break; }
+    if(!ingTarget)
+      for(const n of Object.keys(ING).sort((a,b)=>b.length-a.length))
+        if(t.includes(norm(n))){ ingTarget=n; break; }
+
+    if(ingTarget){
+      const abbinamenti = suggerisciAbbinamenti(ingTarget);
+      if(abbinamenti && abbinamenti.length){
+        return 'Con **'+ingTarget+'** ci stanno bene 🍕\n'+abbinamenti.map(a=>'• '+a).join('\n');
+      }
+    }
+    // Cerca pizza nel testo
+    const pizzaAbb = trovaNomePizza(input);
+    if(pizzaAbb){
+      const p = PIZZE[pizzaAbb];
+      const nd = pizzaAbb.charAt(0).toUpperCase()+pizzaAbb.slice(1);
+      // suggerisci aggiunte in base agli ingredienti principali
+      let suggeriti = [];
+      for(const ing of p.ing){
+        const canon = trovaNomeIng(ing)||ing;
+        const abb = suggerisciAbbinamenti(canon);
+        if(abb) abb.forEach(a=>{ if(!p.ing.includes(a)&&!suggeriti.includes(a)) suggeriti.push(a); });
+      }
+      suggeriti = suggeriti.slice(0,4);
+      if(suggeriti.length)
+        return 'Sulla **'+nd+'** ci starebbe bene 🍕\n'+suggeriti.map(a=>'• '+a+(ING[a]?' (+'+fmtE(ING[a].prezzo)+'€)':'')).join('\n');
+    }
+  }
+
+  // Stagionalità — controlla se ingrediente richiesto è disponibile
+  const ingRichiesto = trovaNomeIng(input);
+  if(ingRichiesto && ING[ingRichiesto] && ING[ingRichiesto].stagione){
+    if(!isDisponibile(ingRichiesto)){
+      const mesi = meseStagione(ingRichiesto);
+      return '**'+ingRichiesto.charAt(0).toUpperCase()+ingRichiesto.slice(1)+'** non è disponibile in questo periodo 🌿\nTorna disponibile a '+mesi+'!';
+    }
+  }
+
+  // Allergeni — solo se richiesti esplicitamente
+  const chiedeAllergeni = ['allergen','allergico','allergica','intollerante','intolleranza','celiaco','celiachia','latte','glutine','senza lattosio','senza glutine'].some(k=>t.includes(norm(k)));
+  if(chiedeAllergeni){
+    // Senza glutine → risposta fissa
+    if(['senza glutine','celiaco','celiachia'].some(k=>t.includes(norm(k))))
+      return 'Non offriamo pizze senza glutine 🙏\nAbbiamo però la **mozzarella senza lattosio** (+3,00€) per chi è intollerante al lattosio!';
+    const nomePizzaA = trovaNomePizza(input);
+    if(nomePizzaA){
+      const pizza = PIZZE[nomePizzaA];
+      const nd = nomePizzaA.charAt(0).toUpperCase()+nomePizzaA.slice(1);
+      const allergeni = calcolaAllergeni(pizza.ing);
+      return '**'+nd+'** — Allergeni presenti ⚠️\n'+allergeni.map(a=>'• '+a).join('\n')+'\n\nPer allergie gravi contattaci direttamente al **0422 670631** 🐧';
+    }
+    // Chiede allergeni senza specificare la pizza
+    return 'Dimmi quale pizza vuoi controllare e ti dico tutti gli allergeni presenti! ⚠️\nPer allergie gravi ti consiglio di contattarci direttamente al **0422 670631** 🐧';
+  }
+
   // Senza glutine — risposta fissa, mai AI
   if(['senza glutine','glutine','celiaco','celiachia','intolleranza glutine'].some(k=>t.includes(norm(k))))
     return 'Non offriamo pizze senza glutine 🙏\nAbbiamo però la **mozzarella senza lattosio** (+3,00€) per chi è intollerante al lattosio!';
@@ -1101,22 +1135,6 @@ function quickSend(text){
   if(!panelOpen) togglePanel();
   setTimeout(()=>{ document.getElementById('bp-input').value=text; bpSend(); },350);
 }
-// ─────────────────────────────────────────────
-// HOOK RISPOSTA (AGGIUNGE ALLERGENI SENZA TOCCARE FORMATTER)
-// ─────────────────────────────────────────────
-const _oldFormat = formatRispostaPizza;
-
-formatRispostaPizza = function(res) {
-  let msg = _oldFormat(res);
-
-  const allergeni = getAllergeniDaRisposta(res);
-
-  if (allergeni.length > 0) {
-    msg += `\n\n⚠️ Allergeni: **${allergeni.join(', ')}**`;
-  }
-
-  return msg;
-};
 </script>
 </body>
 </html>
