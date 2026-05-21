@@ -1003,14 +1003,39 @@ function rispostaLocale(input){
     }
     const p = PIZZE[scelta];
     const nd = scelta.charAt(0).toUpperCase()+scelta.slice(1);
+    aggiornaContestoPizza(scelta);
     return 'Ti consiglio la **'+nd+'** 🍕 ('+motivo+')\nIngredienti: '+p.ing.join(', ')+'\n\n**'+p.kcal+' kcal** · **'+fmtE(p.prezzo)+'€**';
   }
 
-  // Pizza dal nome
-  const nomePizza = trovaNomePizza(input);
-  const pizzaContesto = nomePizza || ultimaPizzaMenzionata;
+  // Cerca prima combo ingredienti (es. "salsiccia e friarielli")
+  // Solo se ci sono almeno 2 ingredienti nel testo e nessun nome pizza esatto
+  const nomePizzaDiretto = trovaNomePizza(input);
+  let nomePizza = nomePizzaDiretto;
 
-  if(nomePizza) ultimaPizzaMenzionata = nomePizza; // salva memoria
+  if(!nomePizza){
+    // Cerca ingredienti nel testo
+    const ingNelTesto = [];
+    for(const [a,c] of Object.entries(ING_ALIAS).sort((x,y)=>y[0].length-x[0].length))
+      if(t.includes(norm(a))&&!ingNelTesto.includes(c)) ingNelTesto.push(c);
+    for(const n of Object.keys(ING).sort((a,b)=>b.length-a.length))
+      if(t.includes(norm(n))&&!ingNelTesto.includes(n)) ingNelTesto.push(n);
+
+    if(ingNelTesto.length >= 2){
+      // Cerca pizza che contiene TUTTI gli ingredienti trovati
+      let bestMatch = null, bestScore = 0;
+      for(const [nome,p] of Object.entries(PIZZE)){
+        const pn = p.ing.map(i=>norm(i));
+        const comuni = ingNelTesto.filter(i=>pn.includes(norm(i))||pn.some(pi=>trovaNomeIng(pi)===i));
+        if(comuni.length === ingNelTesto.length && comuni.length > bestScore){
+          bestScore = comuni.length; bestMatch = nome;
+        }
+      }
+      if(bestMatch) nomePizza = bestMatch;
+    }
+  }
+
+  const pizzaContesto = nomePizza || ultimaPizzaMenzionata;
+  aggiornaContestoPizza(nomePizza);
 
   if(pizzaContesto){
     const pizza = PIZZE[pizzaContesto];
@@ -1040,6 +1065,20 @@ function rispostaLocale(input){
       return prefisso+'**'+nd+'** — Allergeni presenti ⚠️\n'+allergeni.map(a=>'• '+a).join('\n')+'\n\n⚠️ Lavoriamo in un ambiente dove tutti gli allergeni possono essere presenti per contaminazione crociata.\nPer allergie gravi contattaci al **0422 670631** 🐧';
     }
 
+    // Abbinamenti in contesto pizza
+    const chiedeAbbContesto = ['cosa potrei aggiungere','cosa aggiungo','cosa aggiungerei','cosa ci metto','cosa ci aggiungo','cosa metterci','aggiungere qualcosa','posso aggiungere','cosa aggiungerci','potrei aggiungere'].some(k=>t.includes(norm(k)));
+    if(chiedeAbbContesto){
+      let suggeriti = [];
+      for(const ing of pizza.ing){
+        const canon = trovaNomeIng(ing)||ing;
+        const abb = suggerisciAbbinamenti(canon);
+        if(abb) abb.forEach(a=>{ if(!pizza.ing.map(i=>norm(i)).includes(norm(a))&&!suggeriti.includes(a)) suggeriti.push(a); });
+      }
+      suggeriti = suggeriti.filter(a=>isDisponibile(trovaNomeIng(a)||a)).slice(0,4);
+      if(suggeriti.length)
+        return prefisso+'Sulla **'+nd+'** ci starebbe bene 🍕\n'+suggeriti.map(a=>'• '+a+(ING[a]?' (+'+fmtE(ING[a].prezzo)+'€)':'')).join('\n');
+    }
+
     if(nomePizza){
       const rimozioni = estraiRimozioni(t);
       const aggiunte  = estraiAggiunte(t);
@@ -1051,7 +1090,6 @@ function rispostaLocale(input){
       return rispostaPizza(nomePizza, rimozioni, aggiunte, formato);
     }
   }
-
   // Composizione libera da ingredienti
   const rLib = rispostaIngredentiLiberi(input);
   if(rLib) return rLib;
@@ -1100,6 +1138,17 @@ async function callGroq(msgs){
 // ============================================================
 let bpHistory=[], bpLoading=false, panelOpen=false, orderShown=false, msgsSinceFritino=0;
 let ultimaPizzaMenzionata = null; // memoria contesto pizza
+let contatorContestoPizza = 0;   // conta messaggi dall'ultima pizza menzionata
+
+function aggiornaContestoPizza(nomePizza){
+  if(nomePizza){
+    ultimaPizzaMenzionata = nomePizza;
+    contatorContestoPizza = 0;
+  } else {
+    contatorContestoPizza++;
+    if(contatorContestoPizza > 10) ultimaPizzaMenzionata = null; // dimentica dopo 10 scambi
+  }
+}
 
 function togglePanel(){
   panelOpen=!panelOpen;
