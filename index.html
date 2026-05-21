@@ -858,6 +858,16 @@ function rispostaLocale(input){
     if(['senza glutine','celiaco','celiachia'].some(k=>t.includes(norm(k))))
       return 'Non offriamo pizze senza glutine 🙏\nAbbiamo però la **mozzarella senza lattosio** (+3,00€) per chi è intollerante al lattosio!';
 
+    // Allergeni di una pizza specifica
+    const pizzaA = trovaNomePizza(input) || ultimaPizzaMenzionata;
+    if(pizzaA){
+      ultimaPizzaMenzionata = pizzaA;
+      const pizza = PIZZE[pizzaA];
+      const nd = pizzaA.charAt(0).toUpperCase()+pizzaA.slice(1);
+      const allergeni = calcolaAllergeni(pizza.ing);
+      return '**'+nd+'** — Allergeni presenti ⚠️\n'+allergeni.map(a=>'• '+a).join('\n')+'\n\n⚠️ Lavoriamo in un ambiente dove tutti gli allergeni possono essere presenti per contaminazione crociata.\nPer allergie gravi contattaci al **0422 670631** 🐧';
+    }
+
     // "Sono allergico a X cosa posso mangiare?"
     let allergeneRicercato = null;
     const allergeniNoti = ['latte','lattosio','uova','uovo','pesce','glutine','frutta a guscio','solfiti','soia','senape','sedano','sesamo','arachidi'];
@@ -876,7 +886,6 @@ function rispostaLocale(input){
       return '🍕 Pizze **senza '+allergeneRicercato+'**\n\n'+pizzeSicure.join('\n')+'\n\n⚠️ Attenzione: lavoriamo in un ambiente dove tutti gli allergeni possono essere presenti per contaminazione crociata. Per allergie gravi contattaci al **0422 670631** prima di ordinare 🐧';
     }
 
-    // Allergeni su pizza specifica già gestiti sopra nel contesto pizza
     return 'Dimmi quale pizza vuoi controllare e ti dico tutti gli allergeni! ⚠️\nOppure dimmi a cosa sei allergico e ti mostro le pizze compatibili 🐧';
   }
 
