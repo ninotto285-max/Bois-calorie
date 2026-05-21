@@ -88,12 +88,12 @@
     </div>
     <div id="bp-messages"></div>
     <div class="bp-chips">
-      <span class="bp-chip" onclick="quickSend('margherita')">🍕 Margherita</span>
       <span class="bp-chip" onclick="quickSend('orari')">🕐 Orari</span>
       <span class="bp-chip" onclick="quickSend('pizza leggera')">🥗 Leggera</span>
       <span class="bp-chip" onclick="quickSend('fritti')">🍟 Fritti</span>
       <span class="bp-chip" onclick="quickSend('ordina')">📞 Ordina</span>
       <span class="bp-chip" onclick="quickSend('cosa sai fare')">🤔 Cosa sai fare?</span>
+      <span class="bp-chip" onclick="mostraCuriosita()">🐧 Curiosità</span>
     </div>
     <div class="bp-input-row">
       <input type="text" id="bp-input" placeholder="Scrivi qui..." onkeydown="if(event.key==='Enter') bpSend()" />
@@ -1162,8 +1162,40 @@ async function callGroq(msgs){
 }
 
 // ============================================================
-// UI
+// CURIOSITÀ
 // ============================================================
+const CURIOSITA = [
+  "Mozzarella in boccia, latte 100% italiano, lavorata in pizzeria ogni sera 🧀",
+  "Impasto con metodo biga — 24h di maturazione per una pizza leggera e digeribile 🌾",
+  "Farina ad alto indice proteico, idratazione calibrata, zero scorciatoie industriali 💪",
+  "Pomodoro italiano a filiera controllata — dolce, poco acido, ci siamo innamorati 🍅",
+  "La maturazione lenta sviluppa aromi che l'impasto veloce non raggiungerà mai ⏳",
+  "Gli ingredienti vengono dosati per esaltare la base, non per coprirla 🎯",
+  "La temperatura del forno sigilla gli aromi in pochi minuti — niente cotture lente 🔥",
+  "Ogni pizza è il risultato di un processo studiato e ripetibile, non improvvisato 📐",
+  "La selezione degli ingredienti parte dal gusto, non dal prezzo ⭐",
+  "La notte i pinguini entrano in pizzeria e schiacciano il pomodoro a mano 🐧🍅",
+  "L'impasto lievita lentamente... i pinguini lo controllano ogni ora, anche alle 3 di notte 🐧",
+  "Michele dorme, i pinguini vegliano sulla biga 🐧",
+  "Il segreto? I pinguini scelgono solo ingredienti di cui farebbero una scorpacciata 🐧",
+  "I pinguini hanno il naso fino — se la mozzarella non è fresca, la rimandano indietro 🐧",
+  "Michele impasta, i pinguini assaggiano. È un accordo tacito dal primo giorno 🐧🍕",
+  "La biga è il segreto — e i pinguini giurano di non dirlo a nessuno 🐧🤫",
+  "Alle 6 di mattina i pinguini escono dalla pizzeria con le alette infarinate 🐧",
+  "I pinguini non mangiano pizza. Ma se potessero, sarebbe solo quella di Michele 🐧❤️",
+  "Ogni sera Michele apre, i pinguini entrano. La pizza comincia così 🐧🍕",
+];
+let ultimaCuriositaIdx = -1;
+
+function mostraCuriosita(){
+  if(!panelOpen) togglePanel();
+  let idx;
+  do { idx = Math.floor(Math.random() * CURIOSITA.length); } while(idx === ultimaCuriositaIdx);
+  ultimaCuriositaIdx = idx;
+  setTimeout(() => addBotMsg('🐧 Lo sapevi?\n\n' + CURIOSITA[idx]), panelOpen ? 0 : 350);
+}
+
+
 let bpHistory=[], bpLoading=false, panelOpen=false, orderShown=false, msgsSinceFritino=0;
 let ultimaPizzaMenzionata = null; // memoria contesto pizza
 let contatorContestoPizza = 0;   // conta messaggi dall'ultima pizza menzionata
