@@ -110,58 +110,58 @@ const TEL = 'tel:+390422670631';
 // DATABASE PIZZE — nome esatto : { kcal, prezzo, ing[], tipo? }
 // ============================================================
 const PIZZE = {
-  'marinara':              { kcal:820,  prezzo:5,    ing:['pomodoro','aglio','origano','olio evo'] },
-  'margherita':            { kcal:1125, prezzo:5,    ing:['pomodoro','mozzarella'] },
-  'diavola':               { kcal:1070, prezzo:8,    ing:['pomodoro','mozzarella','salamino piccante'] },
-  'salsiccia':             { kcal:1190, prezzo:8,    ing:['pomodoro','mozzarella','salsiccia'] },
-  'viennese':              { kcal:1180, prezzo:7.5,  ing:['pomodoro','mozzarella','wurstel di suino'] },
-  'pugliese':              { kcal:1090, prezzo:7,    ing:['pomodoro','mozzarella','cipolla di tropea'] },
-  'prosciutto e funghi':   { kcal:1190, prezzo:8,    ing:['pomodoro','mozzarella','prosciutto cotto','funghi'] },
-  'capricciosa':           { kcal:1240, prezzo:9,    ing:['pomodoro','mozzarella','prosciutto cotto','funghi','carciofi'] },
-  'tonno e cipolla':       { kcal:1200, prezzo:9,    ing:['pomodoro','mozzarella','tonno','cipolla di tropea'] },
-  'bufala':                { kcal:1000, prezzo:9,    ing:['pomodoro','bufala'] },
-  'bufalina':              { kcal:1020, prezzo:10,   ing:['pomodoro','bufala','pomodorini'] },
-  'quattro stagioni':      { kcal:1380, prezzo:9,    ing:['pomodoro','mozzarella','prosciutto cotto','funghi','carciofi','olive'] },
-  'romana':                { kcal:1060, prezzo:8,    ing:['pomodoro','mozzarella','acciughe'] },
-  'siciliana':             { kcal:1270, prezzo:9,    ing:['pomodoro','mozzarella','acciughe','capperi','olive'] },
-  'patatosa':              { kcal:1320, prezzo:8,    ing:['pomodoro','mozzarella','patate fritte'] },
-  'parma':                 { kcal:1180, prezzo:10,   ing:['pomodoro','mozzarella','prosciutto crudo'] },
-  'speck':                 { kcal:1210, prezzo:9.5,  ing:['pomodoro','mozzarella','speck alto adige'] },
-  'montello':              { kcal:1330, prezzo:10.5, ing:['pomodoro','mozzarella','porchetta trevigiana','porcini'] },
-  'valtellina':            { kcal:1310, prezzo:10.5, ing:['pomodoro','mozzarella','bresaola','rucola','grana'] },
-  'verdure':               { kcal:1200, prezzo:8.5,  ing:['pomodoro','mozzarella','verdure miste grigliate'] },
-  'estate':                { kcal:950,  prezzo:8,    ing:['pomodoro','mozzarella','pomodorini datterini conditi'] },
-  'norma':                 { kcal:1220, prezzo:9,    ing:['pomodoro','mozzarella','melanzane','ricotta','grana'] },
-  'parmigiana':            { kcal:1150, prezzo:8.5,  ing:['pomodoro','mozzarella','melanzane','grana'] },
-  'mike':                  { kcal:1470, prezzo:10.5, ing:['rucola cotta','mozzarella','salsiccia','brie','grana'] },
-  'ciccia e friarielli':   { kcal:1160, prezzo:9,    ing:['mozzarella','salsiccia','friarielli'] },
-  'formaggi':              { kcal:1500, prezzo:9,    ing:['mozzarella','gorgonzola','brie','grana'] },
-  'paolo':                 { kcal:1400, prezzo:10,   ing:['mozzarella','gorgonzola','cipolla','salamino piccante'] },
-  'sfiziosa':              { kcal:1470, prezzo:10,   ing:['mozzarella','pesto','melanzane fritte','brie','grana'] },
-  'ava':                   { kcal:1285, prezzo:12,   ing:['mozzarella','salsiccia','salamino piccante','pomodorini','aglio','grana'] },
-  'pps':                   { kcal:1300, prezzo:11,   ing:['mozzarella','porcini','scamorza','pancetta dolce'] },
-  'silvia':                { kcal:1200, prezzo:12,   ing:['mozzarella','gorgonzola','porchetta trevigiana','senape e miele'] },
-  'wilma':                 { kcal:1260, prezzo:8.5,  ing:['pomodoro','mozzarella','pesto','pomodorini','mais'] },
-  'wanda':                 { kcal:1280, prezzo:9,    ing:['pomodoro','mozzarella','carciofi','salamino piccante','acciughe'] },
-  'leone':                 { kcal:1380, prezzo:12,   ing:['pomodoro','mozzarella','tonno','cipolla','acciughe','capperi','olive'] },
-  'giggino':               { kcal:1200, prezzo:10,   ing:['pomodoro','mozzarella','prosciutto cotto','mais','philadelphia','pomodorini'] },
-  'titti':                 { kcal:1370, prezzo:11.5, ing:['pomodoro','mozzarella','zucchine','philadelphia','prosciutto crudo'] },
-  'boscaiola':             { kcal:1585, prezzo:11,   ing:['pomodoro','mozzarella','salsiccia','salamino piccante','funghi misti'] },
-  'tartufata':             { kcal:1340, prezzo:11,   ing:['pomodoro','mozzarella','salsa al tartufo','funghi misti'] },
-  'ufo':                   { kcal:1650, prezzo:12,   ing:['pomodoro','mozzarella','salsiccia','salamino piccante','olive','pomodori secchi'] },
-  'pazza':                 { kcal:1600, prezzo:11.5, ing:['pomodoro','mozzarella','salsiccia','salamino piccante','peperoni','wurstel di suino'] },
-  'repubblica':            { kcal:1210, prezzo:11.5, ing:['pomodoro','mozzarella','rucola','pomodorini','bufala','grana'] },
-  'capricciosa sbagliata': { kcal:1380, prezzo:12,   ing:['pomodoro','mozzarella','porcini','carciofi','porchetta trevigiana'] },
-  'amatriciana':           { kcal:980,  prezzo:10,   ing:['pomodoro','mozzarella','pancetta dolce','cipolla','grana'] },
-  'onta':                  { kcal:1100, prezzo:10,   ing:['pomodoro','mozzarella','salsiccia','cipolla','peperoni'] },
-  'cri':                   { kcal:1400, prezzo:14,   ing:['mozzarella','salsiccia','brie erborinato','noci','confettura di fichi'] },
-  'bois':                  { kcal:1820, prezzo:11,   tipo:'arrotolata', ing:['mozzarella','gorgonzola','salsiccia','crema al tartufo','patate fritte'] },
-  'pimpa':                 { kcal:1480, prezzo:11,   tipo:'arrotolata', ing:['mozzarella','scamorza','salsa bbq','cipolla','patate fritte','pancetta dolce'] },
-  'calzone classico':      { kcal:1120, prezzo:9,    tipo:'calzone',    ing:['pomodoro','mozzarella','prosciutto cotto','funghi'] },
-  'calzone piccante':      { kcal:1290, prezzo:9,    tipo:'calzone',    ing:['pomodoro','mozzarella','salamino piccante','ricotta'] },
-  'calzone vegeta':        { kcal:950,  prezzo:9,    tipo:'calzone',    ing:['pomodoro','mozzarella','verdure miste grigliate'] },
-  'calzone poro mauretto': { kcal:1350, prezzo:12,   tipo:'calzone',    ing:['pomodoro','mozzarella','prosciutto cotto','funghi','spinaci','ricotta','salamino piccante','grana'] },
-  'calzone ade':           { kcal:1300, prezzo:13,   tipo:'calzone',    ing:['pomodoro','mozzarella','salsa al tartufo','funghi misti','salamino piccante','brie'] },
+  'marinara':              { kcal:820,  prezzo:5,    tags:['leggera','vegetariana','classica','rustica'],                              ing:['pomodoro','aglio','origano','olio evo'] },
+  'margherita':            { kcal:1125, prezzo:5,    tags:['leggera','vegetariana','classica'],                                        ing:['pomodoro','mozzarella'] },
+  'diavola':               { kcal:1070, prezzo:8,    tags:['piccante','carnivora','rustica'],                                          ing:['pomodoro','mozzarella','salamino piccante'] },
+  'salsiccia':             { kcal:1190, prezzo:8,    tags:['carnivora','rustica','potente'],                                           ing:['pomodoro','mozzarella','salsiccia'] },
+  'viennese':              { kcal:1180, prezzo:7.5,  tags:['carnivora','rustica'],                                                     ing:['pomodoro','mozzarella','wurstel di suino'] },
+  'pugliese':              { kcal:1090, prezzo:7,    tags:['vegetariana','potente','rustica'],                                         ing:['pomodoro','mozzarella','cipolla di tropea'] },
+  'prosciutto e funghi':   { kcal:1190, prezzo:8,    tags:['carnivora','classica'],                                                    ing:['pomodoro','mozzarella','prosciutto cotto','funghi'] },
+  'capricciosa':           { kcal:1240, prezzo:9,    tags:['carnivora','classica','goduriosa'],                                        ing:['pomodoro','mozzarella','prosciutto cotto','funghi','carciofi'] },
+  'tonno e cipolla':       { kcal:1200, prezzo:9,    tags:['mare','potente'],                                                          ing:['pomodoro','mozzarella','tonno','cipolla di tropea'] },
+  'bufala':                { kcal:1000, prezzo:9,    tags:['leggera','vegetariana','elegante','fresca'],                               ing:['pomodoro','bufala'] },
+  'bufalina':              { kcal:1020, prezzo:10,   tags:['leggera','vegetariana','elegante','fresca','estiva'],                      ing:['pomodoro','bufala','pomodorini'] },
+  'quattro stagioni':      { kcal:1380, prezzo:9,    tags:['carnivora','classica','goduriosa'],                                        ing:['pomodoro','mozzarella','prosciutto cotto','funghi','carciofi','olive'] },
+  'romana':                { kcal:1060, prezzo:8,    tags:['mare','potente','classica'],                                               ing:['pomodoro','mozzarella','acciughe'] },
+  'siciliana':             { kcal:1270, prezzo:9,    tags:['mare','potente','saporita'],                                               ing:['pomodoro','mozzarella','acciughe','capperi','olive'] },
+  'patatosa':              { kcal:1320, prezzo:8,    tags:['vegetariana','goduriosa','pesante'],                                       ing:['pomodoro','mozzarella','patate fritte'] },
+  'parma':                 { kcal:1180, prezzo:10,   tags:['carnivora','elegante','stagionata'],                                       ing:['pomodoro','mozzarella','prosciutto crudo'] },
+  'speck':                 { kcal:1210, prezzo:9.5,  tags:['carnivora','elegante','fume','stagionata'],                                ing:['pomodoro','mozzarella','speck alto adige'] },
+  'montello':              { kcal:1330, prezzo:10.5, tags:['carnivora','elegante','rustica','potente'],                                ing:['pomodoro','mozzarella','porchetta trevigiana','porcini'] },
+  'valtellina':            { kcal:1310, prezzo:10.5, tags:['carnivora','elegante','stagionata','fresca'],                              ing:['pomodoro','mozzarella','bresaola','rucola','grana'] },
+  'verdure':               { kcal:1200, prezzo:8.5,  tags:['vegetariana','leggera'],                                                   ing:['pomodoro','mozzarella','verdure miste grigliate'] },
+  'estate':                { kcal:950,  prezzo:8,    tags:['leggera','vegetariana','fresca','estiva'],                                 ing:['pomodoro','mozzarella','pomodorini datterini conditi'] },
+  'norma':                 { kcal:1220, prezzo:9,    tags:['vegetariana','rustica','potente'],                                         ing:['pomodoro','mozzarella','melanzane','ricotta','grana'] },
+  'parmigiana':            { kcal:1150, prezzo:8.5,  tags:['vegetariana','rustica'],                                                   ing:['pomodoro','mozzarella','melanzane','grana'] },
+  'mike':                  { kcal:1470, prezzo:10.5, tags:['carnivora','formaggiosa','elegante','potente'],                            ing:['rucola cotta','mozzarella','salsiccia','brie','grana'] },
+  'ciccia e friarielli':   { kcal:1160, prezzo:9,    tags:['carnivora','rustica','potente'],                                           ing:['mozzarella','salsiccia','friarielli'] },
+  'formaggi':              { kcal:1500, prezzo:9,    tags:['formaggiosa','vegetariana','goduriosa','pesante'],                         ing:['mozzarella','gorgonzola','brie','grana'] },
+  'paolo':                 { kcal:1400, prezzo:10,   tags:['carnivora','formaggiosa','potente'],                                       ing:['mozzarella','gorgonzola','cipolla','salamino piccante'] },
+  'sfiziosa':              { kcal:1470, prezzo:10,   tags:['vegetariana','formaggiosa','elegante','goduriosa'],                        ing:['mozzarella','pesto','melanzane fritte','brie','grana'] },
+  'ava':                   { kcal:1285, prezzo:12,   tags:['carnivora','potente','goduriosa'],                                         ing:['mozzarella','salsiccia','salamino piccante','pomodorini','aglio','grana'] },
+  'pps':                   { kcal:1300, prezzo:11,   tags:['carnivora','formaggiosa','fume','goduriosa'],                              ing:['mozzarella','porcini','scamorza','pancetta dolce'] },
+  'silvia':                { kcal:1200, prezzo:12,   tags:['elegante','dolcesalato','agrodolce','formaggiosa','carnivora'],            ing:['mozzarella','gorgonzola','porchetta trevigiana','senape e miele'] },
+  'wilma':                 { kcal:1260, prezzo:8.5,  tags:['vegetariana','fresca','estiva'],                                          ing:['pomodoro','mozzarella','pesto','pomodorini','mais'] },
+  'wanda':                 { kcal:1280, prezzo:9,    tags:['mare','potente','saporita'],                                               ing:['pomodoro','mozzarella','carciofi','salamino piccante','acciughe'] },
+  'leone':                 { kcal:1380, prezzo:12,   tags:['mare','potente','goduriosa','saporita'],                                   ing:['pomodoro','mozzarella','tonno','cipolla','acciughe','capperi','olive'] },
+  'giggino':               { kcal:1200, prezzo:10,   tags:['carnivora','goduriosa','fresca'],                                          ing:['pomodoro','mozzarella','prosciutto cotto','mais','philadelphia','pomodorini'] },
+  'titti':                 { kcal:1370, prezzo:11.5, tags:['carnivora','elegante','goduriosa'],                                        ing:['pomodoro','mozzarella','zucchine','philadelphia','prosciutto crudo'] },
+  'boscaiola':             { kcal:1585, prezzo:11,   tags:['carnivora','pesante','goduriosa','rustica','potente'],                     ing:['pomodoro','mozzarella','salsiccia','salamino piccante','funghi misti'] },
+  'tartufata':             { kcal:1340, prezzo:11,   tags:['vegetariana','tartufo','elegante','goduriosa'],                            ing:['pomodoro','mozzarella','salsa al tartufo','funghi misti'] },
+  'ufo':                   { kcal:1650, prezzo:12,   tags:['carnivora','pesante','goduriosa','potente','rustica'],                     ing:['pomodoro','mozzarella','salsiccia','salamino piccante','olive','pomodori secchi'] },
+  'pazza':                 { kcal:1600, prezzo:11.5, tags:['carnivora','pesante','potente','piccante','goduriosa'],                    ing:['pomodoro','mozzarella','salsiccia','salamino piccante','peperoni','wurstel di suino'] },
+  'repubblica':            { kcal:1210, prezzo:11.5, tags:['leggera','elegante','fresca','estiva'],                                   ing:['pomodoro','mozzarella','rucola','pomodorini','bufala','grana'] },
+  'capricciosa sbagliata': { kcal:1380, prezzo:12,   tags:['carnivora','elegante','goduriosa','rustica'],                             ing:['pomodoro','mozzarella','porcini','carciofi','porchetta trevigiana'] },
+  'amatriciana':           { kcal:980,  prezzo:10,   tags:['carnivora','classica','potente'],                                         ing:['pomodoro','mozzarella','pancetta dolce','cipolla','grana'] },
+  'onta':                  { kcal:1100, prezzo:10,   tags:['carnivora','potente','rustica','piccante'],                                ing:['pomodoro','mozzarella','salsiccia','cipolla','peperoni'] },
+  'cri':                   { kcal:1400, prezzo:14,   tags:['dolcesalato','agrodolce','elegante','formaggiosa','carnivora'],            ing:['mozzarella','salsiccia','brie erborinato','noci','confettura di fichi'] },
+  'bois':                  { kcal:1820, prezzo:11,   tipo:'arrotolata', tags:['tartufo','formaggiosa','pesante','goduriosa','carnivora'],  ing:['mozzarella','gorgonzola','salsiccia','crema al tartufo','patate fritte'] },
+  'pimpa':                 { kcal:1480, prezzo:11,   tipo:'arrotolata', tags:['bbq','fume','pesante','goduriosa','carnivora'],             ing:['mozzarella','scamorza','salsa bbq','cipolla','patate fritte','pancetta dolce'] },
+  'calzone classico':      { kcal:1120, prezzo:9,    tipo:'calzone',    tags:['carnivora','classica'],                                    ing:['pomodoro','mozzarella','prosciutto cotto','funghi'] },
+  'calzone piccante':      { kcal:1290, prezzo:9,    tipo:'calzone',    tags:['carnivora','piccante'],                                    ing:['pomodoro','mozzarella','salamino piccante','ricotta'] },
+  'calzone vegeta':        { kcal:950,  prezzo:9,    tipo:'calzone',    tags:['vegetariana','leggera'],                                   ing:['pomodoro','mozzarella','verdure miste grigliate'] },
+  'calzone poro mauretto': { kcal:1350, prezzo:12,   tipo:'calzone',    tags:['carnivora','goduriosa','pesante'],                         ing:['pomodoro','mozzarella','prosciutto cotto','funghi','spinaci','ricotta','salamino piccante','grana'] },
+  'calzone ade':           { kcal:1300, prezzo:13,   tipo:'calzone',    tags:['carnivora','tartufo','elegante','goduriosa'],               ing:['pomodoro','mozzarella','salsa al tartufo','funghi misti','salamino piccante','brie'] },
 };
 
 // ============================================================
@@ -469,9 +469,8 @@ function rispostaPizza(nomePizza, rimozioni, aggiunte, formato){
       const dati = ING[a];
       if(dati){ kcal+=dati.kcal; prezzo+=dati.prezzo; noteAgg.push(a+' (+'+fmtE(dati.prezzo)+'€)'); }
       else noteAgg.push(a);
-    } else {
-      avvisi.push('"'+a+'" è già nella '+nd);
     }
+    // se già presente non avvisare — è ovvio
   }
 
   // Formato
@@ -574,6 +573,82 @@ function rispostaAggiunte(){
 // ============================================================
 // ENTRY POINT — parse e risposta locale
 // ============================================================
+// CATEGORIE INGREDIENTI — parole generiche → lista canonici
+// ============================================================
+const CATEGORIE = {
+  'pesce':      ['acciughe','tonno'],
+  'mare':       ['acciughe','tonno'],
+  'salumi':     ['salamino piccante','salsiccia','prosciutto cotto','prosciutto crudo','pancetta dolce','speck alto adige','porchetta trevigiana','bresaola'],
+  'salume':     ['salamino piccante','salsiccia','prosciutto cotto','prosciutto crudo','pancetta dolce','speck alto adige','porchetta trevigiana','bresaola'],
+  'carne':      ['salsiccia','porchetta trevigiana','pancetta dolce'],
+  'formaggi':   ['gorgonzola','brie','scamorza','philadelphia','bufala','ricotta','stracchino'],
+  'formaggio':  ['gorgonzola','brie','scamorza','philadelphia','bufala','ricotta','stracchino'],
+  'verdure':    ['verdure miste grigliate','melanzane','melanzane fritte','zucchine','peperoni','carciofi','spinaci','friarielli'],
+  'verdura':    ['verdure miste grigliate','melanzane','melanzane fritte','zucchine','peperoni','carciofi','spinaci','friarielli'],
+  'piccante':   ['salamino piccante','salsiccia','peperoni'],
+  'tartufo':    ['crema al tartufo','salsa al tartufo'],
+  'funghi':     ['funghi','funghi misti','porcini'],
+  'pomodori':   ['pomodorini','pomodorini datterini conditi','pomodori secchi'],
+  'affettati':  ['prosciutto cotto','prosciutto crudo','bresaola','speck alto adige'],
+  'stagionati': ['prosciutto crudo','bresaola','speck alto adige'],
+};
+
+// ============================================================
+// TAG ALIAS — sinonimi → tag canonico
+// ============================================================
+const TAG_ALIAS = {
+  // leggera
+  'leggera':'leggera','light':'leggera','dietetica':'leggera','poco calorica':'leggera',
+  'non pesante':'leggera','leggerino':'leggera','leggerissima':'leggera',
+  // pesante
+  'pesante':'pesante','carica':'pesante','calorica':'pesante','abbondante':'pesante',
+  'piena':'pesante','caricata':'pesante',
+  // potente
+  'potente':'potente','saporita':'potente','intensa':'potente','decisa':'potente',
+  'saporosa':'potente','carattere':'potente','sapore forte':'potente',
+  // piccante
+  'piccante':'piccante','piccantina':'piccante','speziata':'piccante','che pizzica':'piccante',
+  // goduriosa
+  'goduriosa':'goduriosa','ignorante':'goduriosa','bomba':'goduriosa','esagerata':'goduriosa',
+  'goduria':'goduriosa','soddisfacente':'goduriosa','tanta roba':'goduriosa',
+  // elegante
+  'elegante':'elegante','raffinata':'elegante','gourmet':'elegante','ricercata':'elegante',
+  'sofisticata':'elegante','fine':'elegante','di qualita':'elegante',
+  // dolcesalato / agrodolce
+  'dolcesalato':'dolcesalato','agrodolce':'dolcesalato','dolce e salato':'dolcesalato',
+  'contrasto':'dolcesalato','insolita':'dolcesalato',
+  // vegetariana
+  'vegetariana':'vegetariana','vegeta':'vegetariana','senza carne':'vegetariana',
+  'verdure':'vegetariana','vegetale':'vegetariana',
+  // fresca / estiva
+  'fresca':'fresca','estiva':'fresca','leggera e fresca':'fresca','di stagione':'fresca',
+  'primaverile':'fresca','leggera estiva':'fresca',
+  // formaggiosa
+  'formaggiosa':'formaggiosa','coi formaggi':'formaggiosa','tanto formaggio':'formaggiosa',
+  'formaggina':'formaggiosa','formaggiata':'formaggiosa',
+  // tartufo
+  'tartufo':'tartufo','tartufata':'tartufo','al tartufo':'tartufo',
+  // carnivora
+  'carnivora':'carnivora','con la carne':'carnivora','carne':'carnivora',
+  'salumi':'carnivora','con i salumi':'carnivora',
+  // mare / pesce
+  'mare':'mare','pesce':'mare','marinara':'mare','frutti di mare':'mare',
+  // fume / affumicata
+  'affumicata':'fume','fumosa':'fume','affumicato':'fume',
+  // bbq
+  'bbq':'bbq','barbeque':'bbq','grigliate':'bbq',
+  // rustica
+  'rustica':'rustica','contadina':'rustica','genuina':'rustica','tradizionale':'rustica',
+  // classica
+  'classica':'classica','semplice':'classica','tradizionale':'classica',
+  // stagionata
+  'stagionata':'stagionata','salumi stagionati':'stagionata',
+};
+
+
+const NON_ABBIAMO = ['nduja','burrata','asparagi','uovo','uova','ananas','patate dolci','zucca','carciofo fresco','gamberi','gamberetti','cozze','vongole','capesante','salmone','baccala','stoccafisso','feta','taleggio','caciocavallo','provola','scamorza affumicata'];
+
+// ============================================================
 function rispostaLocale(input){
   const t = norm(input);
 
@@ -598,8 +673,55 @@ function rispostaLocale(input){
     }
     return msg;
   }
-  // Fritti (solo se non si parla di una pizza specifica)
-  if(['fritti','frittin','olive ascolane','mozzarelline','nuggets','crocchette','anellini','frittico','fritino'].some(k=>t.includes(norm(k)))&&!trovaNomePizza(input))
+  // Senza glutine — risposta fissa, mai AI
+  if(['senza glutine','glutine','celiaco','celiachia','intolleranza glutine'].some(k=>t.includes(norm(k))))
+    return 'Non offriamo pizze senza glutine 🙏\nAbbiamo però la **mozzarella senza lattosio** (+3,00€) per chi è intollerante al lattosio!';
+
+  // "Che pizze hai con X" — cerca per ingrediente o categoria
+  const chiedePizzeConIng = ['che pizze hai con','pizze con','quali pizze con','pizze che hanno','pizze col','pizze coi','pizze colla','pizze alla','hai con','avete con','con il','con la','col','con i','hai qualcosa con'].some(k=>t.includes(norm(k)));
+  if(chiedePizzeConIng || t.includes('con ') || t.includes('col ')){
+    // 1. Controlla se è un ingrediente NON_ABBIAMO
+    const nonAbbiamo = NON_ABBIAMO.find(i=>t.includes(norm(i)));
+    if(nonAbbiamo)
+      return 'Non abbiamo **'+nonAbbiamo+'** nel menù fisso 🐧\nMa chiamaci al **0422 670631** — a volte abbiamo ingredienti speciali fuori menù!';
+
+    // 2. Cerca categoria (pesce, salumi, formaggi...)
+    let ingDaCercare = [];
+    for(const [cat, ings] of Object.entries(CATEGORIE)){
+      if(t.includes(norm(cat))){ ingDaCercare = ings; break; }
+    }
+
+    // 3. Se no categoria, cerca ingrediente diretto
+    if(!ingDaCercare.length){
+      let ingCercato = null;
+      for(const [a,c] of Object.entries(ING_ALIAS).sort((x,y)=>y[0].length-x[0].length))
+        if(t.includes(norm(a))){ ingCercato=c; break; }
+      if(!ingCercato)
+        for(const n of Object.keys(ING).sort((a,b)=>b.length-a.length))
+          if(t.includes(norm(n))){ ingCercato=n; break; }
+      if(ingCercato) ingDaCercare=[ingCercato];
+    }
+
+    if(ingDaCercare.length && chiedePizzeConIng){
+      const risultati=[];
+      for(const [nome,p] of Object.entries(PIZZE)){
+        const haIng = ingDaCercare.some(ic=>p.ing.some(i=>norm(i)===norm(ic)||trovaNomeIng(i)===ic));
+        if(haIng){
+          const nd=nome.charAt(0).toUpperCase()+nome.slice(1);
+          risultati.push('**'+nd+'** — '+p.ing.join(', ')+'\n'+p.kcal+' kcal · '+fmtE(p.prezzo)+'€');
+        }
+      }
+      const label = ingDaCercare.length>1 ? ingDaCercare.join(' o ') : ingDaCercare[0];
+      if(risultati.length)
+        return 'Pizze con **'+label+'** 🍕\n\n'+risultati.join('\n\n');
+      else
+        return 'Non abbiamo **'+label+'** nel menù fisso 🐧\nMa chiamaci al **0422 670631** — a volte abbiamo ingredienti speciali fuori menù!';
+    }
+  }
+
+  // Fritti — solo keyword specifiche fritti, mai se si parla di pizza
+  const keyFritti = ['fritti','frittico','fritino','olive ascolane','mozzarelline','nuggets','crocchette','anellini di cipolla'];
+  if(keyFritti.some(k=>t.includes(norm(k))) && !trovaNomePizza(input))
     return rispostaFritti();
   // Pizza leggera
   if(['pizza leggera','leggera','poche calorie','meno calorie','dieta','light','meno calorica'].some(k=>t.includes(norm(k))))
@@ -607,6 +729,37 @@ function rispostaLocale(input){
   // Prezzi aggiunte
   if(['quanto costa aggiungere','prezzo aggiunta','costo aggiunta','prezzi aggiunte','lista aggiunte'].some(k=>t.includes(norm(k))))
     return rispostaAggiunte();
+
+  // Ricerca per TAG — "voglio una pizza ignorante / leggera / tartufo..."
+  // Solo se non è già stata trovata una pizza per nome
+  if(!trovaNomePizza(input)){
+    let tagCercato = null;
+    // cerca alias tag (più lungo prima)
+    for(const [alias,tag] of Object.entries(TAG_ALIAS).sort((a,b)=>b[0].length-a[0].length))
+      if(t.includes(norm(alias))){ tagCercato=tag; break; }
+
+    if(tagCercato){
+      const risultati=[];
+      for(const [nome,p] of Object.entries(PIZZE)){
+        if(p.tags && p.tags.includes(tagCercato)){
+          const nd=nome.charAt(0).toUpperCase()+nome.slice(1);
+          const tipo=p.tipo==='arrotolata'?' 🥙':p.tipo==='calzone'?' 🫓':'';
+          risultati.push('**'+nd+'**'+tipo+' — '+p.ing.join(', ')+'\n'+p.kcal+' kcal · '+fmtE(p.prezzo)+'€');
+        }
+      }
+      if(risultati.length){
+        const label={
+          'leggera':'leggere','pesante':'pesanti','potente':'potenti e saporite',
+          'piccante':'piccanti','goduriosa':'goduriose','elegante':'eleganti',
+          'dolcesalato':'dolce-salato','vegetariana':'vegetariane','fresca':'fresche ed estive',
+          'formaggiosa':'formaggiose','tartufo':'al tartufo','carnivora':'con la carne',
+          'mare':'di mare','fume':'affumicate','bbq':'bbq','rustica':'rustiche',
+          'classica':'classiche','stagionata':'con salumi stagionati',
+        }[tagCercato]||tagCercato;
+        return 'Pizze **'+label+'** 🍕\n\n'+risultati.join('\n\n');
+      }
+    }
+  }
 
   // Consigli pizza — risposta locale usando il database, mai AI
   const chiedeConsiglio = ['consig','quale prendo','cosa prendo','cosa ordino','quale ordino','quale scegli','cosa scegli','quale mi dai','suggeris','quale pizza','cosa mangio','cosa mi dai','non so cosa','non so quale'].some(k=>t.includes(norm(k)));
@@ -678,11 +831,28 @@ function rispostaLocale(input){
 
 // ============================================================
 // AI FALLBACK — Groq
+// Il system prompt viene generato dinamicamente dal database
 // ============================================================
-const GROQ_SYS='Sei Pinguino, assistente simpatico di BoisPizza a Casier (TV). Rispondi breve e naturale. ORARI: mar-dom 18:30-21:30, lun chiuso. CONTATTI: WA 3405327257 (info), Tel 0422670631 (prenotazioni). PIZZE(kcal€): Marinara820 5|Margherita1125 5|Diavola1070 8|Salsiccia1190 8|Viennese1180 7.5|Pugliese1090 7|Prosciutto funghi1190 8|Capricciosa1240 9|Tonno cipolla1200 9|Bufala1000 9|Bufalina1020 10|4stagioni1380 9|Romana1060 8|Siciliana1270 9|Patatosa1320 8|Parma1180 10|Speck1210 9.5|Montello1330 10.5|Valtellina1310 10.5|Verdure1200 8.5|Estate950 8|Norma1220 9|Parmigiana1150 8.5|Mike1470 10.5|CicciaFriarielli1160 9|Formaggi1500 9|Paolo1400 10|Sfiziosa1470 10|AVA1285 12|PPS1300 11|Silvia1200 12|Wilma1260 8.5|Wanda1280 9|Leone1380 12|Giggino1200 10|Titti1370 11.5|Boscaiola1585 11|Tartufata1340 11|UFO1650 12|Pazza1600 11.5|Repubblica1210 11.5|CapSbagliata1380 12|Amatriciana980 10|Onta1100 10|Cri1400 14|Bois1820 11|Pimpa1480 11|CalzClass1120 9|CalzPiccante1290 9|CalzVegeta950 9|CalzMauretto1350 12|CalzAdE1300 13. FRITTI:Olive/Mozz/Nuggets/Crocchette 6€(10pz)|Anellini 3.5€|Verdure 4€|Patate 3.5€|FritticoMisto 15€|Fritino5pz+pizza 2.5€. BASE6€+aggiunte. Battuta+2€. Doppiapasta+1€. Baby-0.5€.';
+function buildSystemPrompt() {
+  return `Sei il Pinguino 🐧, cameriere simpatico, caloroso e professionale di BoisPizza — pizzeria artigianale a Casier (TV) di Michele Boller.
+
+REGOLA ASSOLUTA: NON parlare mai di pizze, ingredienti, prezzi o calorie. Per qualsiasi domanda sul menu rispondi SOLO con: "Chiedimi il nome della pizza o l'ingrediente e ti do tutti i dettagli! 🍕"
+
+Rispondi SOLO a:
+- Domande generiche sulla pizzeria (atmosfera, storia, stile)
+- Curiosità su Michele Boller e BoisPizza
+- Consigli su abbinamenti vino/bibite in modo generico
+- Conversazione leggera e accogliente
+
+ORARI: martedì-domenica 18:30–21:30. Lunedì chiuso.
+CONTATTI: WhatsApp 3405327257 (solo info), Tel 0422670631 (prenotazioni).
+INDIRIZZO: Via Principale 113, Casier (TV).
+
+Sii conciso, max 3 frasi. Tono caldo e professionale.`;
+}
 
 async function callGroq(msgs){
-  for(const model of['llama-3.1-8b-instant','llama-3.3-70b-versatile']){
+  for(const model of['llama-3.3-70b-versatile','llama-3.1-8b-instant']){
     try{
       const r=await fetch('/api/chat',{
         method:'POST',headers:{'Content-Type':'application/json'},
@@ -712,6 +882,7 @@ function addBotMsg(text){
   d.innerHTML='<div class="bp-msg-av">🐧</div><div class="bp-bubble">'+fmt(text)+'</div>';
   el.appendChild(d); el.scrollTop=el.scrollHeight;
   bpHistory.push({role:'assistant',content:text});
+  if(bpHistory.length>30) bpHistory.shift();
 }
 function addUserMsg(text){
   const el=document.getElementById('bp-messages');
@@ -719,6 +890,7 @@ function addUserMsg(text){
   d.innerHTML='<div class="bp-msg-av">👤</div><div class="bp-bubble">'+esc(text)+'</div>';
   el.appendChild(d); el.scrollTop=el.scrollHeight;
   bpHistory.push({role:'user',content:text});
+  if(bpHistory.length>30) bpHistory.shift();
 }
 function showOrderButtons(){
   if(orderShown) return; orderShown=true;
@@ -755,7 +927,7 @@ async function bpSend(){
   }
 
   bpLoading=true; document.getElementById('bp-send').disabled=true; showTyping();
-  const msgs=[{role:'system',content:GROQ_SYS},...bpHistory.filter(m=>m.role==='user'||m.role==='assistant').slice(-8)];
+  const msgs=[{role:'system',content:buildSystemPrompt()},...bpHistory.filter(m=>m.role==='user'||m.role==='assistant').slice(-8)];
   const testo=await callGroq(msgs);
   removeTyping();
   if(testo){
