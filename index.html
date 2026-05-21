@@ -438,6 +438,15 @@ const PIZZA_ALIAS = {
   'calzone piccante':'calzone piccante',
   'calzone classico':'calzone classico',
   'calzone vegeta':'calzone vegeta',
+  // plurali comuni
+  'margherite':'margherita','diavole':'diavola','salsicce':'salsiccia',
+  'capricciose':'capricciosa','romane':'romana','bufaline':'bufalina',
+  'bufaline':'bufalina','patatose':'patatosa','boscaiole':'boscaiola',
+  'tartufate':'tartufata','repubbliche':'repubblica','amatriciane':'amatriciana',
+  'quattro stagioni':'quattro stagioni','viennesi':'viennese',
+  'pugliesi':'pugliese','siciliane':'siciliana','normine':'norma',
+  'marinare':'marinara','wande':'wanda','wilme':'wilma','leoni':'leone',
+  'pazze':'pazza','onte':'onta','mike':'mike',
 };
 
 // ============================================================
@@ -1340,16 +1349,24 @@ function gestisciOrdine(input){
   }
 
   if(ordineStep === 'pizze'){
-    // Cerca pizze nel testo con quantità
-    const righe = input.split(/[,\ne]+/).filter(r=>r.trim());
+    const righe = input.split(/[,\n]+/).filter(r=>r.trim());
     let trovate = [];
     for(const riga of righe){
       const rn = norm(riga);
-      // Cerca numero
       const numMatch = rn.match(/(\d+)/);
       const qty = numMatch ? parseInt(numMatch[1]) : 1;
-      // Cerca nome pizza
-      const nomePizza = trovaNomePizza(riga);
+      // Rimuovi numero e prova varie forme
+      const rigaSenzaNum = riga.replace(/\d+/g,'').trim();
+      const tentativi = [
+        riga, rigaSenzaNum,
+        rigaSenzaNum.replace(/e$/,'a'),   // margherite→margherita
+        rigaSenzaNum.replace(/he$/,'ha'), // diavole→diavola
+        rigaSenzaNum.replace(/i$/,'a'),
+        rigaSenzaNum.replace(/ie$/,'ia'),
+        rn.replace(/\d+\s*/g,''),
+      ];
+      let nomePizza = null;
+      for(const t2 of tentativi){ nomePizza = trovaNomePizza(t2); if(nomePizza) break; }
       if(nomePizza){
         const p = PIZZE[nomePizza];
         trovate.push({ qty, nome: nomePizza.charAt(0).toUpperCase()+nomePizza.slice(1), prezzo: p.prezzo });
@@ -1361,7 +1378,7 @@ function gestisciOrdine(input){
       ordineStep = 'altra';
       return `Aggiunto: ${lista} ✅\n\nVuoi aggiungere altre pizze? Oppure scrivi **"basta"** per procedere.`;
     }
-    return `Non ho trovato pizze nel menù 😅 Prova a scrivere il nome esatto, tipo "2 margherite" o "una diavola".`;
+    return `Non ho trovato pizze nel menù 😅 Prova a scrivere il nome, tipo "2 margherite" o "una diavola".`;
   }
 
   if(ordineStep === 'altra'){
