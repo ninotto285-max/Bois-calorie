@@ -105,6 +105,7 @@ const ING = {
   'stracchino':                   { kcal:150, prezzo:2,    allergeni:['latte'] },
   'salamino piccante':            { kcal:252, prezzo:1.5,  allergeni:[] },
   'nduja':                        { kcal:320, prezzo:2,    allergeni:[] },
+  'nduja':                        { kcal:320, prezzo:2,    allergeni:[] },
   'salsiccia':                    { kcal:240, prezzo:2,    allergeni:[] },
   'wurstel di suino':             { kcal:240, prezzo:1,    allergeni:[] },
   'prosciutto cotto':             { kcal:87,  prezzo:1,    allergeni:[] },
@@ -811,7 +812,7 @@ function rispostaPizza(nomePizza, rimozioni, aggiunte, formato){
 // ============================================================
 // COMPOSIZIONE LIBERA DA INGREDIENTI (nessun nome pizza trovato)
 // ============================================================
-function rispostaIngredentiLiberi(input, pizzaCtx){
+function rispostaIngredentiLiberi(input){
   const t = norm(input);
   const ingTrovati=[];
   // cerca alias (più lungo prima)
@@ -822,70 +823,7 @@ function rispostaIngredentiLiberi(input, pizzaCtx){
     if(t.includes(norm(n))&&!ingTrovati.includes(n)) ingTrovati.push(n);
   if(ingTrovati.length<1) return null;
 
-  // ── SE c'è una pizza in contesto → proponi pizza + aggiunta ──
-  if(pizzaCtx && PIZZE[pizzaCtx]){
-    const pizzaBase = PIZZE[pizzaCtx];
-    const nd = pizzaCtx.charAt(0).toUpperCase()+pizzaCtx.slice(1);
-    const ingPizzaNorm = pizzaBase.ing.map(i=>norm(i));
-    
-    // Filtra ingredienti davvero nuovi (non già presenti in forme simili)
-    // Deduplication: se c'è "X Y" rimuovi "X" (es. "funghi misti" rimuove "funghi")
-    const ingTrovatiDedup = ingTrovati.filter((i,idx)=>{
-      const n = norm(i);
-      return !ingTrovati.some((j,jdx)=>jdx!==idx && norm(j).startsWith(n+' '));
-    });
-    const ingNuovi = ingTrovatiDedup.filter(i=>{
-      const n = norm(i);
-      if(ingPizzaNorm.includes(n)) return false;
-      // "cipolla" è già presente come "cipolla di tropea"
-      if(ingPizzaNorm.some(pi=>pi.startsWith(n+' ')||pi.includes(' '+n+' ')||pi.endsWith(' '+n))) return false;
-      // porcini/funghi: se la pizza ha già qualsiasi fungo
-      if((n.includes('fungh')||n.includes('porcin')) && pizzaBase.ing.some(pi=>norm(pi).includes('fungh')||norm(pi).includes('porcin'))) return false;
-      return true;
-    });
-    
-    const ingGiaPresenti = ingTrovatiDedup.filter(i=>!ingNuovi.includes(i));
-    
-    if(ingNuovi.length === 0){
-      // Tutti già presenti
-      const nd2 = ingGiaPresenti.map(i=>i.charAt(0).toUpperCase()+i.slice(1)).join(', ');
-      return 'La **'+nd+'** ha già **'+nd2+'** tra gli ingredienti 🍕\nVuoi aggiungere qualcos\'altro?';
-    }
-    
-    let prezzoTot = pizzaBase.prezzo;
-    let kcalTot = pizzaBase.kcal;
-    for(const ing of ingNuovi){ const d=ING[ing]; if(d){ prezzoTot+=d.prezzo; kcalTot+=d.kcal; } }
-    const nomeAgg = ingNuovi.map(i=>i.charAt(0).toUpperCase()+i.slice(1)).join(' e ');
-    
-    // Controlla se pizza base + aggiunte = una pizza esistente nel menù
-    const ingFinali = [...pizzaBase.ing, ...ingNuovi];
-    // Normalizza "cipolla" → "cipolla di tropea" per il match
-    const ingFinaliNorm = ingFinali.map(i=>{
-      const canon = trovaNomeIng(i)||i;
-      // Cerca match parziale negli ingredienti delle pizze
-      for(const pi of Object.values(PIZZE).flatMap(p=>p.ing)){
-        if(norm(pi).startsWith(norm(canon)+' ') || norm(pi)===norm(canon)) return pi;
-      }
-      return i;
-    });
-    const pizzaEsistente = cercaPizzaCorrispondente(ingFinaliNorm, pizzaCtx);
-    if(pizzaEsistente && PIZZE[pizzaEsistente]){
-      const pe = PIZZE[pizzaEsistente];
-      const ndE = pizzaEsistente.charAt(0).toUpperCase()+pizzaEsistente.slice(1);
-      ultimaSuggestione = { nome: ndE, prezzo: pe.prezzo, kcal: pe.kcal, ings: pe.ing, esistente: pizzaEsistente };
-      return 'Quella combo è già la nostra **'+ndE+'** 🍕\n'+pe.ing.join(', ')+'\n\n**'+pe.kcal+' kcal** · **'+fmtE(pe.prezzo)+'€**\n\n💡 Scrivi "ok mi sta bene" per ordinare!';
-    }
-    ultimaSuggestione = { nome: nd+' con '+nomeAgg, prezzo: prezzoTot, kcal: kcalTot, ings: ingNuovi, base: pizzaCtx };
-    let msg = '**'+nd+' con '+nomeAgg+'** 🍕\n';
-    msg += pizzaBase.ing.join(', ')+' + '+ingNuovi.join(', ')+'\n\n';
-    msg += '**'+kcalTot+' kcal** · **'+fmtE(prezzoTot)+'€**';
-    if(ingGiaPresenti.length > 0) msg += '\n_('+ingGiaPresenti.join(', ')+' già presente nella pizza)_';
-    msg += '\n\n💡 Scrivi "ok mi sta bene" per confermare!';
-    return msg;
-  }
-
-
-  // ── Senza contesto → cerca pizza con >= 80% ingredienti in comune ──
+  // Cerca pizza con >= 80% ingredienti in comune
   let bestMatch=null, bestScore=0;
   for(const [nome,dati] of Object.entries(PIZZE)){
     const pn = dati.ing.map(i=>norm(i));
@@ -898,6 +836,7 @@ function rispostaIngredentiLiberi(input, pizzaCtx){
   if(bestMatch){
     const pizza=PIZZE[bestMatch];
     const nd=bestMatch.charAt(0).toUpperCase()+bestMatch.slice(1);
+    const pn=pizza.ing.map(i=>norm(i));
     const tn=ingTrovati.map(i=>norm(i));
     const mancanti=pizza.ing.filter(i=>!tn.includes(norm(i)));
     let msg='Con '+ingTrovati.join(', ')+' la pizza più simile è la **'+nd+'** 🍕\n';
@@ -907,7 +846,7 @@ function rispostaIngredentiLiberi(input, pizzaCtx){
     return msg;
   }
 
-  // Calcola composizione custom da base 6€
+  // Calcola composizione custom da base 6€ — usa la funzione centralizzata
   ultimaSuggestione = null;
   const customResult = calcolaPizzaCustom(ingTrovati);
   ultimaSuggestione = { nome: customResult.nome, prezzo: customResult.prezzo, kcal: customResult.kcal, ings: customResult.ings };
@@ -1060,3 +999,78 @@ const TAG_ALIAS = {
 
 
 const NON_ABBIAMO = ['uovo','uova','ananas','patate dolci','carciofo fresco','gamberi','gamberetti','cozze','vongole','capesante','salmone','baccala','stoccafisso','feta','taleggio','caciocavallo','provola','scamorza affumicata'];
+// ============================================================
+// DESCRIZIONI GOLOSE PIZZE
+// ============================================================
+const DESCRIZIONI_PIZZA = {
+  'marinara':              ["Pomodoro, aglio e origano: essenziale ma immortale.","Profumata, intensa e sorprendentemente soddisfacente.","🐧 Il pinguino old school approva in silenzio."],
+  'margherita':            ["Pomodoro e mozzarella fatti bene non stancano mai.","Filante, semplice e sempre perfetta.","🐧 Anche il pinguino la ordina 'solo per cambiare'."],
+  'diavola':               ["Salamino piccante e mozzarella filante: semplice ma assassina.","Picca il giusto e crea dipendenza immediata.","🐧 Il pinguino suda ma non si ferma."],
+  'salsiccia':             ["Salsiccia bella saporita sopra una base super filante.","Diretta, ignorante e sempre efficace.","🐧 Il pinguino approva senza fare domande."],
+  'viennese':              ["Wurstel e mozzarella: la combo che mette tutti d'accordo.","Semplice, saporita e super nostalgica.","🐧 Il pinguino la mangia guardando i cartoni."],
+  'pugliese':              ["Cipolla di Tropea dolce e profumata sopra una base perfetta.","Semplice ma con carattere vero.","🐧 Il pinguino piange… ma di gioia."],
+  'prosciutto e funghi':   ["La classica intramontabile fatta come si deve.","Morbida, saporita e sempre soddisfacente.","🐧 Il pinguino la ordina 'per stare tranquillo'."],
+  'capricciosa':           ["La classica fatta bene: cotto, funghi e carciofi super equilibrati.","Completa, saporita e sempre una garanzia.","🐧 Pizza cosi affidabile che il pinguino la ordina a occhi chiusi."],
+  'tonno e cipolla':       ["Tonno e cipolla di Tropea: combo storica che non tradisce mai.","Saporita, intensa e piena di carattere.","🐧 Il pinguino la ordina quando vuole 'fare il duro'."],
+  'bufala':                ["Pomodoro e bufala: semplice ma devastante se ami i sapori puliti.","Fresca, cremosa e super scioglievole.","🐧 Il pinguino approva con un slurp."],
+  'bufalina':              ["Bufala cremosa e pomodorini freschi: fresca ma super golosa.","Leggera all'apparenza, ma crea dipendenza dopo due morsi.","🐧 Il pinguino la considera la pizza 'bella ma pericolosa'."],
+  'quattro stagioni':      ["Un mix completo che cambia gusto a ogni fetta.","Ricca, varia e super appagante.","🐧 Il pinguino non sa mai da che lato iniziare."],
+  'romana':                ["Acciughe e mozzarella: sapore deciso e super classico.","Salata il giusto e piena di personalita.","🐧 Il pinguino qui tira fuori il lato duro."],
+  'siciliana':             ["Acciughe, capperi e olive: esplosione mediterranea pura.","Intensa, salata e super profumata.","🐧 Il pinguino la mangia con accento siculo."],
+  'patatosa':              ["Patate fritte sopra la pizza: non serve dire altro.","Morbida, croccante e totalmente comfort.","🐧 Il pinguino la ordina nei giorni difficili."],
+  'parma':                 ["Prosciutto crudo e mozzarella: pochi ingredienti ma fatti per vincere.","Sapida, elegante e super equilibrata.","🐧 Il pinguino la considera roba da professionisti."],
+  'speck':                 ["Speck Alto Adige e mozzarella: affumicato che crea dipendenza.","Saporita, elegante e super equilibrata.","🐧 Il pinguino la difenderebbe con la vita."],
+  'montello':              ["Porchetta trevigiana e porcini: profumo devastante appena arriva.","Morbida, intensa e super goduriosa.","🐧 Il pinguino qui perde ogni dignita."],
+  'valtellina':            ["Bresaola, rucola e grana: fresca ma super saporita.","Elegante, leggera e con finale perfetto.","🐧 Il pinguino la mangia con classe."],
+  'verdure':               ["Verdure grigliate e mozzarella: colorata, fresca e super equilibrata.","Leggera ma piena di gusto vero.","🐧 Il pinguino la ordina per sentirsi sano… poi prende le patatine."],
+  'estate':                ["Pomodorini datterini conditi e mozzarella: fresca, dolce e super estiva.","Una pizza leggera ma piena di sapore.","🐧 Il pinguino la mangia immaginando il mare."],
+  'norma':                 ["Melanzane, ricotta e grana: cremosa, morbida e super mediterranea.","Semplice ma piena di gusto vero.","🐧 Il pinguino la mangia facendo mamma mia."],
+  'parmigiana':            ["Melanzane e grana su base pomodoro: la parmigiana diventata pizza.","Morbida, filante e con quel sapore da domenica in famiglia.","🐧 Il pinguino chiude gli occhi al primo morso."],
+  'mike':                  ["Salsiccia, brie e grana su rucola cotta: cremosa e cattiva quanto basta.","Bianca, ricca e con un finale di carattere.","🐧 Pizza cosi carica che il pinguino applaude con le pinne."],
+  'ciccia e friarielli':   ["Salsiccia e friarielli: combo ignorante e perfetta.","Rustica, saporita e con quel finale amarognolo che spacca.","🐧 Il pinguino qui tira fuori il lato napoletano."],
+  'formaggi':              ["Gorgonzola, brie e grana: cremosa oltre ogni limite.","Forte, filante e super comfort food.","🐧 Dopo questa il pinguino va in letargo."],
+  'paolo':                 ["Gorgonzola, cipolla e salamino: combo forte che spinge tantissimo.","Cremosa, piccante e super intensa.","🐧 Dopo questa il pinguino vede le stelle."],
+  'sfiziosa':              ["Pesto, brie e melanzane fritte: cremosa e super particolare.","Ricca, morbida e piena di gusto.","🐧 Il pinguino qui fa oooh al primo morso."],
+  'ava':                   ["Salsiccia, salamino, aglio e grana: una combo cattiva che spinge forte.","Pomodorini che accendono tutto con un finale super saporito.","🐧 Pizza cosi carica che il pinguino va in modalita turbo."],
+  'pps':                   ["Porcini, scamorza e pancetta dolce: combo da fame vera.","Affumicata, cremosa e intensissima.","🐧 Il pinguino ne sogna due alla volta."],
+  'silvia':                ["Porchetta trevigiana, gorgonzola e senape e miele: dolce, salato e cremoso.","Una pizza che sorprende ad ogni morso - agrodolce e irresistibile.","🐧 Il pinguino la chiama la pizza degli opposti che si attraggono."],
+  'wilma':                 ["Pesto, pomodorini e mais: fresca, dolce e super sfiziosa.","Colorata, morbida e perfetta da finire tutta.","🐧 Il pinguino sorride gia dal profumo."],
+  'wanda':                 ["Carciofi, salamino e acciughe: sapore forte e senza compromessi.","Decisa, intensa e piena di personalita.","🐧 Pizza cosi tosta che il pinguino la rispetta."],
+  'leone':                 ["Tonno, acciughe, olive e capperi: gusto enorme e zero paura.","Decisa, intensa e salata al punto giusto.","🐧 Solo pinguini coraggiosi finiscono questa da soli."],
+  'giggino':               ["Cotto, mais, Philadelphia e pomodorini: cremosa e super equilibrata.","Dolce, fresca e piena di contrasti buoni.","🐧 Il pinguino la chiama la pizza coccola."],
+  'titti':                 ["Philadelphia, zucchine e prosciutto crudo: fresca ma super golosa.","Morbida, cremosa e perfetta da divorare.","🐧 Il pinguino qui si sente raffinato."],
+  'boscaiola':             ["Funghi misti, salsiccia e salamino: rustica, intensa e super carica.","Una pizza da fame vera, saporita e piena di gusto.","🐧 Il pinguino la difende ringhiando agli amici."],
+  'tartufata':             ["Salsa al tartufo e funghi misti: profumo assurdo appena apri il cartone.","Cremosa, intensa e super premium.","🐧 Il pinguino si sente ricco quando la mangia."],
+  'ufo':                   ["Salsiccia, salamino, olive e pomodori secchi: gusto spaziale davvero.","Carica, intensa e super ignorante.","🐧 Dopo questa il pinguino decolla."],
+  'pazza':                 ["Salsiccia, salamino, peperoni e wurstel: completamente fuori controllo.","Carica, pesante e tremendamente buona.","🐧 Anche il pinguino la guarda con rispetto."],
+  'repubblica':            ["Bufala, rucola e grana: fresca ma super elegante.","Cremosa, sapida e bilanciatissima.","🐧 Pizza cosi bella che il pinguino la fotografa prima."],
+  'capricciosa sbagliata': ["Porcini, carciofi e porchetta trevigiana: sbagliata solo nel nome.","Ricca, intensa e con una botta di gusto clamorosa.","🐧 Il pinguino dice che questa andava resa illegale."],
+  'amatriciana':           ["Pancetta croccante, cipolla dolce e grana: una bomba romana fatta pizza.","Saporita, intensa e bella ignorante - ogni morso sa di comfort puro.","🐧 Il pinguino la mangia cosi veloce che si unge pure le pinne."],
+  'onta':                  ["Salsiccia, cipolla e peperoni: rustica, dolce e con carattere vero.","Una pizza senza fronzoli che sa di tradizione e sostanza.","🐧 Il pinguino la ordina quando vuole sentirsi a casa."],
+  'cri':                   ["Salsiccia, brie erborinato, noci e confettura di fichi: dolce, salato e cremoso.","Un'esperienza di sapori che non ti aspetti - ogni morso e una scoperta.","🐧 Il pinguino la mangia lentamente per non farla finire."],
+  'bois (arrotolata)':     ["Gorgonzola, salsiccia e crema al tartufo: il livello hardcore della golosita.","Arrotolata, cremosa e piena di roba buona fino all'ultimo morso.","🐧 Dopo questa il pinguino rotola via felice."],
+  'pimpa (arrotolata)':    ["Salsa BBQ, scamorza e pancetta dolce: americana ma fatta bene.","Arrotolata, fumosa e super goduriosa.","🐧 Il pinguino qui sporca tutto il becco."],
+  'calzone classico':      ["Prosciutto cotto e funghi chiusi in un guscio bollente di felicita.","Ogni taglio libera profumo e filantezza assurda.","🐧 Il pinguino si scotta sempre ma lo rifarebbe."],
+  'calzone piccante':      ["Salamino piccante e ricotta cremosa: fuoco dentro, morbidezza fuori.","Piccante, filante e bello aggressivo nel gusto.","🐧 Il pinguino beve tre litri dopo questa."],
+  'calzone vegeta':        ["Verdure grigliate e mozzarella in un abbraccio caldo e filante.","Leggero ma soddisfacente, perfetto per chi ama il gusto vero delle verdure.","🐧 Il pinguino lo ordina e poi non si sente in colpa."],
+  'calzone poro mauretto': ["Prosciutto cotto, funghi, spinaci, ricotta, salamino e grana: il calzone definitivo.","Ogni morso e una sorpresa - ricco, cremoso e impossibile da lasciare.","🐧 Il pinguino ci vuole due ore a finirlo ma ne vale ogni secondo."],
+  'calzone ade':           ["Salsa al tartufo, funghi misti, salamino e brie: un calzone da occasione speciale.","Cremoso, intenso e con quel profumo di tartufo che arriva prima di lui.","🐧 Il pinguino lo mangia con le candele accese."],
+};
+
+const FRASI_QUALITA = [
+  "\n\n_Pomodoro fresco 100% italiano, lotta integrata - la passata la facciamo noi._",
+  "\n\n_Mozzarella in boccia, latte vaccino 100% italiano, spaccata a mano in pizzeria._",
+  "\n\n_Impasto con lievito madre, maturazione lenta - per una pizza leggera e digeribile._",
+  "\n\n_Filiera corta, accordi diretti con gli agricoltori - pomodoro selezionato e pagato giusto._",
+];
+
+function getDescrizionePizza(nomePizza){
+  const d = DESCRIZIONI_PIZZA[nomePizza.toLowerCase()];
+  if(!d) return null;
+  const p = PIZZE[nomePizza.toLowerCase()];
+  let extra = '';
+  if(p && p.ing && p.ing.includes('pomodoro') && p.ing.some(i=>i.includes('mozzarella')) && Math.random()<0.2){
+    extra = FRASI_QUALITA[Math.floor(Math.random()*FRASI_QUALITA.length)];
+  }
+  return d[0]+' '+d[1]+' '+d[2]+extra;
+}
