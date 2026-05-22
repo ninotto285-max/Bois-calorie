@@ -17,16 +17,16 @@ function parseOrario(t){
   }
   // Orari colloquiali tipo "7", "7 e mezza", "8 e un quarto", "20 e 30"
   const mappa = [
-    [/\b6\s*e\s*mez/,'18:30'], [/\b6\s*e\s*trenta/,'18:30'], [/\balle\s*6\s*e\s*mez/,'18:30'],
+    [/\b6\s*e\s*mez/,'18:30'], [/\b6\s*e\s*trenta/,'18:30'], [/\b6\s*e\s*30\b/,'18:30'], [/\balle\s*6\s*e\s*mez/,'18:30'],
     [/\b6\s*e\s*un\s*quarto/,'18:45'], [/\balle\s*sei\s*e\s*mez/,'18:30'],
     [/\balle?\s*sei\b/,'18:30'],
-    [/\b7\s*e\s*mez/,'19:30'], [/\b7\s*e\s*trenta/,'19:30'],
+    [/\b7\s*e\s*mez/,'19:30'], [/\b7\s*e\s*trenta/,'19:30'], [/\b7\s*e\s*30\b/,'19:30'],
     [/\b7\s*e\s*un\s*quarto/,'19:15'], [/\balle?\s*sette\s*e\s*mez/,'19:30'],
     [/\balle?\s*sette\b/,'19:00'], [/\balle?\s*7\b/,'19:00'],
-    [/\b8\s*e\s*mez/,'20:30'], [/\b8\s*e\s*trenta/,'20:30'],
+    [/\b8\s*e\s*mez/,'20:30'], [/\b8\s*e\s*trenta/,'20:30'], [/\b8\s*e\s*30\b/,'20:30'],
     [/\b8\s*e\s*un\s*quarto/,'20:15'], [/\balle?\s*otto\s*e\s*mez/,'20:30'],
     [/\balle?\s*otto\b/,'20:00'], [/\balle?\s*8\b/,'20:00'],
-    [/\b9\s*e\s*mez/,'21:30'], [/\b9\s*e\s*trenta/,'21:30'],
+    [/\b9\s*e\s*mez/,'21:30'], [/\b9\s*e\s*trenta/,'21:30'], [/\b9\s*e\s*30\b/,'21:30'],
     [/\b9\s*e\s*un\s*quarto/,'21:15'], [/\balle?\s*nove\s*e\s*mez/,'21:30'],
     [/\balle?\s*nove\b/,'21:00'], [/\balle?\s*9\b/,'21:00'],
     [/\b18\s*e\s*mez/,'18:30'], [/\b19\s*e\s*mez/,'19:30'],
@@ -42,7 +42,7 @@ function parseOrario(t){
 
 function resetOrdine(){
   ordineAttivo = false;
-  ordine = { nome:'', orario:'', pizze:[], note:'' };
+  ordine = { nome:'', orario:'', pizze:[], note:'', telefono:'' };
   ordineStep = '';
   ordineDomandaCottura = null;
 }
@@ -50,6 +50,7 @@ function resetOrdine(){
 function fmtOrdine(){
   let msg = `📋 **Riepilogo ordine**\n\n`;
   msg += `👤 Nome: **${ordine.nome}**\n`;
+  if(ordine.telefono) msg += `📱 Tel: **${ordine.telefono}**\n`;
   msg += `🕐 Orario: **${ordine.orario}**\n\n`;
   for(const p of ordine.pizze){
     msg += `• ${p.qty}x **${p.nome}** — ${fmtE(p.prezzo * p.qty)}€\n`;
@@ -118,6 +119,14 @@ function gestisciOrdine(input){
 
   if(ordineStep === 'nome'){
     ordine.nome = input.trim();
+    ordineStep = 'telefono';
+    return 'Perfetto **'+ordine.nome+'**! 🐧\nE il tuo numero di telefono?';
+  }
+
+  if(ordineStep === 'telefono'){
+    const numM = input.replace(/\s/g,'').match(/[0-9]{6,}/);
+    if(!numM) return 'Non ho capito il numero 😅 Scrivi tipo 3401234567';
+    ordine.telefono = numM[0];
     if(ordine.orario){
       // Orario già estratto dal messaggio iniziale
       ordineStep = 'pizze';
@@ -265,9 +274,25 @@ function gestisciOrdine(input){
     if(['si','sì','yes','yep'].some(k=>tN===k)){
       return 'Certo! Dimmi pure — allergie, ingredienti da togliere, cottura particolare... 📝';
     }
-    ordine.note = input.trim();
+    let notaTesto = input.trim();
+    const mappaAllergeni = {'lattosio':'latte','latte':'latte','latticini':'latte','noci':'frutta a guscio','frutta a guscio':'frutta a guscio','frutta secca':'frutta a guscio','glutine':'glutine','celiaco':'glutine','pesce':'pesce','uova':'uova','uovo':'uova','soia':'soia','senape':'senape'};
+    const notaN = norm(notaTesto);
+    let allergeneRilevato = null;
+    for(const [k,v] of Object.entries(mappaAllergeni)){ if(notaN.includes(k)){ allergeneRilevato=v; break; } }
+    let avvisiAllerg = [];
+    if(allergeneRilevato){
+      for(const p of ordine.pizze){
+        const nomePulito = p.nome.replace(/\s*\(.*\)$/,'').toLowerCase();
+        const pizzaData = PIZZE[nomePulito];
+        if(pizzaData){ const alls=calcolaAllergeni(pizzaData.ing); if(alls.includes(allergeneRilevato)) avvisiAllerg.push('**'+p.nome+'** contiene **'+allergeneRilevato+'**'); }
+      }
+    }
+    if(['allergi','intollerante','intolleranza'].some(k=>notaN.includes(k))) notaTesto = '⚠️ '+notaTesto;
+    ordine.note = notaTesto;
     ordineStep = 'conferma';
-    return fmtOrdine() + '\n\nÈ tutto corretto?';
+    let rispOrdine = fmtOrdine() + '\n\nE tutto corretto?';
+    if(avvisiAllerg.length>0) rispOrdine = '⚠️ **Attenzione!**\n'+avvisiAllerg.join('\n')+'\n\nVuoi procedere lo stesso?\n\n'+rispOrdine;
+    return rispOrdine;
   }
 
   if(ordineStep === 'conferma'){
