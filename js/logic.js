@@ -1,3 +1,4 @@
+
 // ============================================================
 function aggiornaContestoPizza(nomePizza){
   if(nomePizza){
@@ -324,9 +325,14 @@ function rispostaLocale(input){
     return 'Ti consiglio la **'+nd+'** 🍕 ('+motivo+')\nIngredienti: '+p.ing.join(', ')+'\n\n**'+p.kcal+' kcal** · **'+fmtE(p.prezzo)+'€**';
   }
 
+  // Se il testo contiene verbi d'azione sull'ingrediente, salta trovaNomePizza
+  const verbAzione = ['aggiungo','aggiungi','aggiungere','aggiungiamo','metto','metti','mettere','ci metto','tolgo','togli','levare','togliere','sostituire','cambiare','voglio aggiungere','posso aggiungere'];
+  const haVerbAzione = verbAzione.some(k=>t.includes(norm(k)));
+
   // Cerca prima combo ingredienti (es. "salsiccia e friarielli")
   // Solo se ci sono almeno 2 ingredienti nel testo e nessun nome pizza esatto
-  const nomePizzaDiretto = trovaNomePizza(input);
+  // Se c'è un verbo d'azione e c'è già un contesto pizza, non cercare pizza per nome
+  const nomePizzaDiretto = (haVerbAzione && ultimaPizzaMenzionata) ? null : trovaNomePizza(input);
   let nomePizza = nomePizzaDiretto;
 
   if(!nomePizza){
@@ -441,8 +447,12 @@ function rispostaLocale(input){
           }
         }
         if(ingSuggeriti.length > 0){
-          const { prezzo, kcal } = calcolaPizzaCustom([...PIZZE[pizzaContesto].ing, ...ingSuggeriti]);
-          ultimaSuggestione = { nome: ingSuggeriti.map(i=>i.charAt(0).toUpperCase()+i.slice(1)).join(' e '), prezzo, kcal, ings: ingSuggeriti, base: pizzaContesto };
+          const pizzaBase = PIZZE[pizzaContesto];
+          let prezzoTot = pizzaBase.prezzo; let kcalTot = pizzaBase.kcal;
+          for(const ing of ingSuggeriti){ const d=ING[ing]; if(d){ prezzoTot+=d.prezzo; kcalTot+=d.kcal; } }
+          const nomeAgg = ingSuggeriti.map(i=>i.charAt(0).toUpperCase()+i.slice(1)).join(' e ');
+          const ndBase = pizzaContesto.charAt(0).toUpperCase()+pizzaContesto.slice(1);
+          ultimaSuggestione = { nome: ndBase+' con '+nomeAgg, prezzo: prezzoTot, kcal: kcalTot, ings: ingSuggeriti, base: pizzaContesto };
         }
         const pref = nomePizza ? '' : '(parlando della **'+pizzaContesto.charAt(0).toUpperCase()+pizzaContesto.slice(1)+'**)\n\n';
         return pref + rispDisc + (ingSuggeriti.length ? '\n\n💡 Se ti convince, scrivi "ok mi sta bene" e ti dico il prezzo!' : '');
@@ -470,7 +480,7 @@ function rispostaLocale(input){
     }
   }
   // Composizione libera da ingredienti
-  const rLib = rispostaIngredentiLiberi(input);
+  const rLib = rispostaIngredentiLiberi(input, pizzaContesto);
   if(rLib) return rLib;
 
   return null;
@@ -679,3 +689,5 @@ function rispostaGenerica(t){
     return rnd(RISPOSTE_GRAZIE);
   return rnd(RISPOSTE_RANDOM);
 }
+
+let bpHistory=[], bpLoading=false, panelOpen=false, orderShown=false, msgsSinceFritino=0;
