@@ -1,4 +1,3 @@
-let bpHistory=[], bpLoading=false, panelOpen=false, orderShown=false, msgsSinceFritino=0;
 let ultimaPizzaMenzionata = null;
 let contatorContestoPizza = 0;
 
@@ -139,7 +138,8 @@ function gestisciOrdine(input){
 
   if(ordineStep === 'pizze'){
     // Split su virgola, newline, e anche 'e' tra pizze (es. '2 margherite e 1 diavola')
-    const righe = input.split(/[,\n]|\s+e\s+(?=\d)|\s+e\s+(?=una?\s)|\s+e\s+(?=un[ao]?\s)|\s+un\s+(?=[a-z])|\s+una\s+(?=[a-z])/).filter(r=>r.trim());
+    let _inp = input.replace(/\bpiu\b|\bpiù\b/gi,'e');
+    const righe = _inp.split(/,|\n|(?<=\S)\s+e\s+(?=\d)|(?<=\S)\s+e\s+(?=una?\s)|(?<=\S)\s+una\s+(?=[a-zA-Z])|(?<=\S)\s+un\s+(?=[a-zA-Z])/).filter(r=>r.trim());
     let trovate = [];
     for(const riga of righe){
       const rn = norm(riga);
@@ -157,6 +157,8 @@ function gestisciOrdine(input){
         rigaSenzaNum.replace(/he$/,'ha'),
         rigaSenzaNum.replace(/i$/,'a'),
         rigaSenzaNum.replace(/ie$/,'ia'),
+        rigaSenzaNum.replace(/ole$/,'ola'),
+        rigaSenzaNum.replace(/oni$/,'one'),
         rn.replace(/\d+\s*/g,''),
       ];
       let nomePizza = null;
