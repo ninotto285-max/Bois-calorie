@@ -811,7 +811,7 @@ function rispostaPizza(nomePizza, rimozioni, aggiunte, formato){
 // ============================================================
 // COMPOSIZIONE LIBERA DA INGREDIENTI (nessun nome pizza trovato)
 // ============================================================
-function rispostaIngredentiLiberi(input){
+function rispostaIngredentiLiberi(input, pizzaCtx){
   const t = norm(input);
   const ingTrovati=[];
   // cerca alias (più lungo prima)
@@ -822,7 +822,70 @@ function rispostaIngredentiLiberi(input){
     if(t.includes(norm(n))&&!ingTrovati.includes(n)) ingTrovati.push(n);
   if(ingTrovati.length<1) return null;
 
-  // Cerca pizza con >= 80% ingredienti in comune
+  // ── SE c'è una pizza in contesto → proponi pizza + aggiunta ──
+  if(pizzaCtx && PIZZE[pizzaCtx]){
+    const pizzaBase = PIZZE[pizzaCtx];
+    const nd = pizzaCtx.charAt(0).toUpperCase()+pizzaCtx.slice(1);
+    const ingPizzaNorm = pizzaBase.ing.map(i=>norm(i));
+    
+    // Filtra ingredienti davvero nuovi (non già presenti in forme simili)
+    // Deduplication: se c'è "X Y" rimuovi "X" (es. "funghi misti" rimuove "funghi")
+    const ingTrovatiDedup = ingTrovati.filter((i,idx)=>{
+      const n = norm(i);
+      return !ingTrovati.some((j,jdx)=>jdx!==idx && norm(j).startsWith(n+' '));
+    });
+    const ingNuovi = ingTrovatiDedup.filter(i=>{
+      const n = norm(i);
+      if(ingPizzaNorm.includes(n)) return false;
+      // "cipolla" è già presente come "cipolla di tropea"
+      if(ingPizzaNorm.some(pi=>pi.startsWith(n+' ')||pi.includes(' '+n+' ')||pi.endsWith(' '+n))) return false;
+      // porcini/funghi: se la pizza ha già qualsiasi fungo
+      if((n.includes('fungh')||n.includes('porcin')) && pizzaBase.ing.some(pi=>norm(pi).includes('fungh')||norm(pi).includes('porcin'))) return false;
+      return true;
+    });
+    
+    const ingGiaPresenti = ingTrovatiDedup.filter(i=>!ingNuovi.includes(i));
+    
+    if(ingNuovi.length === 0){
+      // Tutti già presenti
+      const nd2 = ingGiaPresenti.map(i=>i.charAt(0).toUpperCase()+i.slice(1)).join(', ');
+      return 'La **'+nd+'** ha già **'+nd2+'** tra gli ingredienti 🍕\nVuoi aggiungere qualcos\'altro?';
+    }
+    
+    let prezzoTot = pizzaBase.prezzo;
+    let kcalTot = pizzaBase.kcal;
+    for(const ing of ingNuovi){ const d=ING[ing]; if(d){ prezzoTot+=d.prezzo; kcalTot+=d.kcal; } }
+    const nomeAgg = ingNuovi.map(i=>i.charAt(0).toUpperCase()+i.slice(1)).join(' e ');
+    
+    // Controlla se pizza base + aggiunte = una pizza esistente nel menù
+    const ingFinali = [...pizzaBase.ing, ...ingNuovi];
+    // Normalizza "cipolla" → "cipolla di tropea" per il match
+    const ingFinaliNorm = ingFinali.map(i=>{
+      const canon = trovaNomeIng(i)||i;
+      // Cerca match parziale negli ingredienti delle pizze
+      for(const pi of Object.values(PIZZE).flatMap(p=>p.ing)){
+        if(norm(pi).startsWith(norm(canon)+' ') || norm(pi)===norm(canon)) return pi;
+      }
+      return i;
+    });
+    const pizzaEsistente = cercaPizzaCorrispondente(ingFinaliNorm, pizzaCtx);
+    if(pizzaEsistente && PIZZE[pizzaEsistente]){
+      const pe = PIZZE[pizzaEsistente];
+      const ndE = pizzaEsistente.charAt(0).toUpperCase()+pizzaEsistente.slice(1);
+      ultimaSuggestione = { nome: ndE, prezzo: pe.prezzo, kcal: pe.kcal, ings: pe.ing, esistente: pizzaEsistente };
+      return 'Quella combo è già la nostra **'+ndE+'** 🍕\n'+pe.ing.join(', ')+'\n\n**'+pe.kcal+' kcal** · **'+fmtE(pe.prezzo)+'€**\n\n💡 Scrivi "ok mi sta bene" per ordinare!';
+    }
+    ultimaSuggestione = { nome: nd+' con '+nomeAgg, prezzo: prezzoTot, kcal: kcalTot, ings: ingNuovi, base: pizzaCtx };
+    let msg = '**'+nd+' con '+nomeAgg+'** 🍕\n';
+    msg += pizzaBase.ing.join(', ')+' + '+ingNuovi.join(', ')+'\n\n';
+    msg += '**'+kcalTot+' kcal** · **'+fmtE(prezzoTot)+'€**';
+    if(ingGiaPresenti.length > 0) msg += '\n_('+ingGiaPresenti.join(', ')+' già presente nella pizza)_';
+    msg += '\n\n💡 Scrivi "ok mi sta bene" per confermare!';
+    return msg;
+  }
+
+
+  // ── Senza contesto → cerca pizza con >= 80% ingredienti in comune ──
   let bestMatch=null, bestScore=0;
   for(const [nome,dati] of Object.entries(PIZZE)){
     const pn = dati.ing.map(i=>norm(i));
@@ -835,7 +898,6 @@ function rispostaIngredentiLiberi(input){
   if(bestMatch){
     const pizza=PIZZE[bestMatch];
     const nd=bestMatch.charAt(0).toUpperCase()+bestMatch.slice(1);
-    const pn=pizza.ing.map(i=>norm(i));
     const tn=ingTrovati.map(i=>norm(i));
     const mancanti=pizza.ing.filter(i=>!tn.includes(norm(i)));
     let msg='Con '+ingTrovati.join(', ')+' la pizza più simile è la **'+nd+'** 🍕\n';
@@ -845,7 +907,7 @@ function rispostaIngredentiLiberi(input){
     return msg;
   }
 
-  // Calcola composizione custom da base 6€ — usa la funzione centralizzata
+  // Calcola composizione custom da base 6€
   ultimaSuggestione = null;
   const customResult = calcolaPizzaCustom(ingTrovati);
   ultimaSuggestione = { nome: customResult.nome, prezzo: customResult.prezzo, kcal: customResult.kcal, ings: customResult.ings };
@@ -998,4 +1060,3 @@ const TAG_ALIAS = {
 
 
 const NON_ABBIAMO = ['uovo','uova','ananas','patate dolci','carciofo fresco','gamberi','gamberetti','cozze','vongole','capesante','salmone','baccala','stoccafisso','feta','taleggio','caciocavallo','provola','scamorza affumicata'];
-
