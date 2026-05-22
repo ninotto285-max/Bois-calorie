@@ -1,0 +1,387 @@
+let bpHistory=[], bpLoading=false, panelOpen=false, orderShown=false, msgsSinceFritino=0;
+let ultimaPizzaMenzionata = null;
+let contatorContestoPizza = 0;
+
+// ── STATO ORDINE ──
+let ordineAttivo = false;
+let ordine = { nome:'', orario:'', pizze:[], note:'' };
+let ordineStep = ''; // 'nome' | 'orario' | 'pizze' | 'altra' | 'note' | 'conferma'
+
+const ORARI_DISPONIBILI = ['18:30','18:45','19:00','19:15','19:30','19:45','20:00','20:15','20:30','20:45','21:00','21:15','21:30'];
+
+// Converte orario colloquiale → HH:MM
+function parseOrario(t){
+  // Prova prima orario esatto tipo 19:00 o 1900
+  for(const o of ORARI_DISPONIBILI){
+    const op = o.replace(':','');
+    if(t.includes(o) || t.replace(/[:\s]/g,'').includes(op)) return o;
+  }
+  // Orari colloquiali tipo "7", "7 e mezza", "8 e un quarto", "20 e 30"
+  const mappa = [
+    [/\b6\s*e\s*mez/,'18:30'], [/\b6\s*e\s*trenta/,'18:30'], [/\balle\s*6\s*e\s*mez/,'18:30'],
+    [/\b6\s*e\s*un\s*quarto/,'18:45'], [/\balle\s*sei\s*e\s*mez/,'18:30'],
+    [/\balle?\s*sei\b/,'18:30'],
+    [/\b7\s*e\s*mez/,'19:30'], [/\b7\s*e\s*trenta/,'19:30'],
+    [/\b7\s*e\s*un\s*quarto/,'19:15'], [/\balle?\s*sette\s*e\s*mez/,'19:30'],
+    [/\balle?\s*sette\b/,'19:00'], [/\balle?\s*7\b/,'19:00'],
+    [/\b8\s*e\s*mez/,'20:30'], [/\b8\s*e\s*trenta/,'20:30'],
+    [/\b8\s*e\s*un\s*quarto/,'20:15'], [/\balle?\s*otto\s*e\s*mez/,'20:30'],
+    [/\balle?\s*otto\b/,'20:00'], [/\balle?\s*8\b/,'20:00'],
+    [/\b9\s*e\s*mez/,'21:30'], [/\b9\s*e\s*trenta/,'21:30'],
+    [/\b9\s*e\s*un\s*quarto/,'21:15'], [/\balle?\s*nove\s*e\s*mez/,'21:30'],
+    [/\balle?\s*nove\b/,'21:00'], [/\balle?\s*9\b/,'21:00'],
+    [/\b18\s*e\s*mez/,'18:30'], [/\b19\s*e\s*mez/,'19:30'],
+    [/\b20\s*e\s*mez/,'20:30'], [/\b21\s*e\s*mez/,'21:30'],
+    [/\bper\s*le\s*19\b/,'19:00'], [/\bper\s*le\s*20\b/,'20:00'],
+    [/\bper\s*le\s*21\b/,'21:00'], [/\bper\s*le\s*18\b/,'18:30'],
+  ];
+  for(const [re, orario] of mappa){
+    if(re.test(t)) return orario;
+  }
+  return null;
+}
+
+function resetOrdine(){
+  ordineAttivo = false;
+  ordine = { nome:'', orario:'', pizze:[], note:'' };
+  ordineStep = '';
+  ordineDomandaCottura = null;
+}
+
+function fmtOrdine(){
+  let msg = `📋 **Riepilogo ordine**\n\n`;
+  msg += `👤 Nome: **${ordine.nome}**\n`;
+  msg += `🕐 Orario: **${ordine.orario}**\n\n`;
+  for(const p of ordine.pizze){
+    msg += `• ${p.qty}x **${p.nome}** — ${fmtE(p.prezzo * p.qty)}€\n`;
+  }
+  const tot = ordine.pizze.reduce((s,p)=>s+p.prezzo*p.qty,0);
+  msg += `\n💰 Totale stimato: **${fmtE(tot)}€**`;
+  if(ordine.note) msg += `\n📝 Note: ${ordine.note}`;
+  return msg;
+}
+
+async function inviaOrdine(){
+  const tot = ordine.pizze.reduce((s,p)=>s+p.prezzo*p.qty,0);
+  try {
+    const r = await fetch('/api/ordine', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        nome: ordine.nome,
+        orario: ordine.orario,
+        pizze: ordine.pizze.map(p=>({qty:p.qty, nome:p.nome, prezzo: fmtE(p.prezzo*p.qty)+'€'})),
+        totale: fmtE(tot)+'€',
+        note: ordine.note
+      })
+    });
+    const d = await r.json();
+    return d.ok;
+  } catch(e){ return false; }
+}
+
+function mostraPulsanteConferma(){
+  const el = document.getElementById('bp-messages');
+  const div = document.createElement('div');
+  div.className = 'bp-msg bot'; div.id = 'bp-ordine-btn';
+  div.innerHTML = `<div class="bp-msg-av">🐧</div><div class="bp-bubble">
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <button onclick="confermaMandaOrdine()" style="background:linear-gradient(135deg,#27ae60,#2ecc71);color:white;border:none;border-radius:10px;padding:10px 16px;font-family:Nunito,sans-serif;font-weight:700;font-size:0.85rem;cursor:pointer;">✅ Conferma e invia ordine</button>
+      <button onclick="annullaOrdine()" style="background:rgba(192,57,43,0.1);color:#c0392b;border:1px solid rgba(192,57,43,0.3);border-radius:10px;padding:8px 16px;font-family:Nunito,sans-serif;font-weight:600;font-size:0.82rem;cursor:pointer;">✕ Annulla</button>
+    </div>
+  </div>`;
+  el.appendChild(div); el.scrollTop = el.scrollHeight;
+}
+
+async function confermaMandaOrdine(){
+  const btn = document.getElementById('bp-ordine-btn');
+  if(btn) btn.remove();
+  showTyping();
+  const ok = await inviaOrdine();
+  removeTyping();
+  if(ok){
+    addBotMsg('🎉 **Ordine inviato!**\n\nAbbiamo mandato il tuo ordine a BoisPizza.\nTi aspettiamo alle **'+ordine.orario+'**, '+ordine.nome+'! 🐧🍕\n\nPer conferma o variazioni chiama il **0422 670631**.');
+  } else {
+    addBotMsg('😅 Ops, problema nell\'invio. Chiama il **0422 670631** per ordinare direttamente!');
+  }
+  resetOrdine();
+}
+
+function annullaOrdine(){
+  const btn = document.getElementById('bp-ordine-btn');
+  if(btn) btn.remove();
+  addBotMsg('Ordine annullato. Dimmi pure se vuoi ricominciare! 🐧');
+  resetOrdine();
+}
+
+function gestisciOrdine(input){
+  const t = norm(input);
+
+  if(ordineStep === 'nome'){
+    ordine.nome = input.trim();
+    if(ordine.orario){
+      // Orario già estratto dal messaggio iniziale
+      ordineStep = 'pizze';
+      return `Perfetto **${ordine.nome}**! 🐧\nOrario confermato: **${ordine.orario}**\n\nOra dimmi le pizze! Es: "2 margherite e 1 diavola" 🍕`;
+    }
+    ordineStep = 'orario';
+    const orariStr = ORARI_DISPONIBILI.join(' · ');
+    return `Perfetto **${ordine.nome}**! 🐧\nA che ora vieni? Gli orari disponibili sono:\n${orariStr}\n\n(Puoi scrivere anche "alle 8", "7 e mezza" ecc.)`;
+  }
+
+  if(ordineStep === 'orario'){
+    const orarioTrovato = parseOrario(t);
+    if(!orarioTrovato) return `Non ho capito l'orario 😅 Scegli tra: ${ORARI_DISPONIBILI.join(' · ')}\n(Puoi scrivere anche "alle 8", "7 e mezza", "per le 20" ecc.)`;
+    ordine.orario = orarioTrovato;
+    ordineStep = 'pizze';
+    return `Orario **${ordine.orario}** ✅\n\nOra dimmi le pizze! Scrivi tipo:\n"2 margherite e 1 diavola"\noppure aggiungile una per volta 🍕`;
+  }
+
+  if(ordineStep === 'pizze'){
+    // Split su virgola, newline, e anche 'e' tra pizze (es. '2 margherite e 1 diavola')
+    const righe = input.split(/[,\n]|\s+e\s+(?=\d)|\s+e\s+(?=una?\s)|\s+e\s+(?=un[ao]?\s)|\s+un\s+(?=[a-z])|\s+una\s+(?=[a-z])/).filter(r=>r.trim());
+    let trovate = [];
+    for(const riga of righe){
+      const rn = norm(riga);
+      const numMatch = rn.match(/(\d+)/);
+      const qty = numMatch ? parseInt(numMatch[1]) : 1;
+      // Rimuovi numero e prova varie forme
+      // Estrai "con X" come nota aggiunta
+      const conMatch = riga.match(/\bcon\s+(.+)$/i);
+      const notaAggiunta = conMatch ? conMatch[1].trim() : null;
+      const rigaPulita = notaAggiunta ? riga.replace(/\bcon\s+.+$/i,'').trim() : riga;
+      const rigaSenzaNum = rigaPulita.replace(/\d+/g,'').trim();
+      const tentativi = [
+        rigaPulita, rigaSenzaNum,
+        rigaSenzaNum.replace(/e$/,'a'),
+        rigaSenzaNum.replace(/he$/,'ha'),
+        rigaSenzaNum.replace(/i$/,'a'),
+        rigaSenzaNum.replace(/ie$/,'ia'),
+        rn.replace(/\d+\s*/g,''),
+      ];
+      let nomePizza = null;
+      for(const t2 of tentativi){ nomePizza = trovaNomePizza(t2); if(nomePizza) break; }
+      if(nomePizza){
+        const p = PIZZE[nomePizza];
+        let nomeDisplay = nomePizza.charAt(0).toUpperCase()+nomePizza.slice(1);
+        if(notaAggiunta){
+          // Controlla se l'aggiunta richiede domanda cottura/sostituzione
+          const canonNota = trovaNomeIng(notaAggiunta) || notaAggiunta;
+          const haMozz = p.ing.some(i=>norm(i).includes('mozzarella'));
+          const tipoCheck = checkAggiuntaSpeciale(canonNota, haMozz);
+          if(tipoCheck === 'sostituzione'){
+            // Salva la domanda da fare e interrompi il flusso
+            ordineDomandaCottura = { tipo:'sostituzione', ing:notaAggiunta, nomePizza, qty, prezzo:p.prezzo };
+            // Non aggiungere ancora, chiedi prima
+            trovate = []; // svuota per non procedere
+            ordineStep = 'domanda_cottura';
+            return 'Vuoi la **'+notaAggiunta+'** al posto della mozzarella o in aggiunta? 🧀';
+          } else if(tipoCheck === 'fine_cottura'){
+            nomeDisplay += ' (con '+notaAggiunta+' a fine cottura)';
+          } else {
+            nomeDisplay += ' (con '+notaAggiunta+')';
+          }
+        }
+        trovate.push({ qty, nome: nomeDisplay, prezzo: p.prezzo });
+      }
+    }
+    if(trovate.length > 0){
+      ordine.pizze.push(...trovate);
+      const lista = trovate.map(p=>`${p.qty}x ${p.nome}`).join(', ');
+      ordineStep = 'altra';
+      return `Aggiunto: ${lista} ✅\n\nVuoi aggiungere altre pizze? Oppure scrivi **"basta"** per procedere.`;
+    }
+    return `Non ho trovato pizze nel menù 😅 Prova a scrivere il nome, tipo "2 margherite" o "una diavola".`;
+  }
+
+  if(ordineStep === 'domanda_cottura' && ordineDomandaCottura){
+    const dc = ordineDomandaCottura;
+    const p = PIZZE[dc.nomePizza];
+    const nd = dc.nomePizza.charAt(0).toUpperCase()+dc.nomePizza.slice(1);
+
+    if(dc.tipo === 'sostituzione'){
+      let nomeDisplay;
+      if(['al posto','invece','senza mozzarella','solo','sostituzione'].some(k=>t.includes(norm(k)))){
+        // Al posto della mozzarella
+        nomeDisplay = nd+' ('+dc.ing+' al posto della mozzarella)';
+      } else {
+        // In aggiunta — chiedi cottura
+        ordineDomandaCottura = { tipo:'cottura', ing:dc.ing, nomePizza:dc.nomePizza, qty:dc.qty, prezzo:dc.prezzo };
+        ordineStep = 'domanda_cottura';
+        return 'Vuoi la **'+dc.ing+'** in cottura o a fine cottura? 🔥\n(Fine cottura = resta fresca e cremosa, in cottura = si scioglie)';
+      }
+      ordine.pizze.push({ qty:dc.qty, nome:nomeDisplay, prezzo:dc.prezzo });
+      ordineDomandaCottura = null;
+      ordineStep = 'altra';
+      return 'Aggiunto: '+dc.qty+'x '+nomeDisplay+' ✅\n\nVuoi aggiungere altre pizze? Oppure scrivi **"basta"** per procedere.';
+    }
+
+    if(dc.tipo === 'cottura'){
+      const quando = ['fine cottura','fine','a crudo','crudo','fuori'].some(k=>t.includes(norm(k))) ? 'a fine cottura' : 'in cottura';
+      const nomeDisplay = dc.nomePizza.charAt(0).toUpperCase()+dc.nomePizza.slice(1)+' ('+dc.ing+' '+quando+')';
+      ordine.pizze.push({ qty:dc.qty, nome:nomeDisplay, prezzo:dc.prezzo });
+      ordineDomandaCottura = null;
+      ordineStep = 'altra';
+      return 'Aggiunto: '+dc.qty+'x '+nomeDisplay+' ✅\n\nVuoi aggiungere altre pizze? Oppure scrivi **"basta"** per procedere.';
+    }
+  }
+
+  if(ordineStep === 'altra'){
+    if(['basta','ok','no','finito','fatto','va bene','è tutto','e tutto'].some(k=>t.includes(k))){
+      // Controlla allergeni nelle pizze ordinate
+      const avvisiAllergeni = [];
+      for(const p of ordine.pizze){
+        const nomePizzaClean = p.nome.replace(/\s*\(.*\)$/,'').toLowerCase();
+        const pizzaData = PIZZE[nomePizzaClean];
+        if(pizzaData){
+          const alls = calcolaAllergeni(pizzaData.ing);
+          const allFiltrati = alls.filter(a=>a!=='glutine'); // glutine sempre presente
+          if(allFiltrati.length) avvisiAllergeni.push('**'+p.nome+'**: '+allFiltrati.join(', '));
+        }
+      }
+      ordineStep = 'note';
+      let msg = 'Hai note particolari? (allergie, variazioni, altro)\nOppure scrivi **"no"** per procedere al riepilogo.';
+      if(avvisiAllergeni.length){
+        msg = '⚠️ **Attenzione allergeni:**\n'+avvisiAllergeni.join('\n')+'\n\n'+msg;
+      }
+      return msg;
+    }
+    // Prova ad aggiungere altra pizza
+    ordineStep = 'pizze';
+    return gestisciOrdine(input);
+  }
+
+  if(ordineStep === 'note'){
+    const tN = norm(input.trim());
+    // Solo "no" secco = nessuna nota
+    if(['no','niente','nessuna','nessuno','nope','nah'].some(k=>tN===k)){
+      ordine.note = '';
+      ordineStep = 'conferma';
+      return fmtOrdine() + '\n\nÈ tutto corretto?';
+    }
+    // "sì/si" secco → chiedi di specificare
+    if(['si','sì','yes','yep'].some(k=>tN===k)){
+      return 'Certo! Dimmi pure — allergie, ingredienti da togliere, cottura particolare... 📝';
+    }
+    ordine.note = input.trim();
+    ordineStep = 'conferma';
+    return fmtOrdine() + '\n\nÈ tutto corretto?';
+  }
+
+  if(ordineStep === 'conferma'){
+    if(['si','sì','ok','confermo','giusto','esatto','corretto','vai'].some(k=>t.includes(k))){
+      // Mostra pulsante conferma
+      return 'MOSTRA_PULSANTE';
+    }
+    if(['no','sbagliato','annulla'].some(k=>t.includes(k))){
+      resetOrdine();
+      return 'Ordine annullato. Ricominciamo? Scrivi "voglio ordinare"! 🐧';
+    }
+    return 'Scrivi **"sì"** per confermare o **"no"** per annullare. 🐧';
+  }
+
+  return null;
+}
+
+function togglePanel(){
+  panelOpen=!panelOpen;
+  document.getElementById('bois-panel').classList.toggle('open',panelOpen);
+  if(panelOpen&&bpHistory.length===0)
+    setTimeout(()=>addBotMsg('Ciao! 🐧🍕 Sono il Pinguino di BoisPizza!\nDimmi che pizza ti va e ti dico calorie e prezzo — oppure chiedimi tutto sul menù!'),300);
+}
+function addBotMsg(text){
+  const el=document.getElementById('bp-messages');
+  const d=document.createElement('div'); d.className='bp-msg bot';
+  d.innerHTML='<div class="bp-msg-av">🐧</div><div class="bp-bubble">'+fmt(text)+'</div>';
+  el.appendChild(d); el.scrollTop=el.scrollHeight;
+  bpHistory.push({role:'assistant',content:text});
+  if(bpHistory.length>30) bpHistory.shift();
+}
+function addUserMsg(text){
+  const el=document.getElementById('bp-messages');
+  const d=document.createElement('div'); d.className='bp-msg user';
+  d.innerHTML='<div class="bp-msg-av">👤</div><div class="bp-bubble">'+esc(text)+'</div>';
+  el.appendChild(d); el.scrollTop=el.scrollHeight;
+  bpHistory.push({role:'user',content:text});
+  if(bpHistory.length>30) bpHistory.shift();
+}
+function showOrderButtons(){
+  if(orderShown) return; orderShown=true;
+  const el=document.getElementById('bp-messages');
+  const d=document.createElement('div'); d.className='bp-msg bot';
+  d.innerHTML='<div class="bp-msg-av">🐧</div><div class="bp-bubble"><div style="font-size:0.78rem;color:#9e7a5a;margin-bottom:8px;">Come vuoi contattarci? 👇</div><div class="order-btns"><a href="'+WA+'" target="_blank" class="btn-wa"><span>💬</span> WhatsApp (info)</a><a href="'+TEL+'" class="btn-tel"><span>📞</span> Chiama 0422 670631</a></div></div>';
+  el.appendChild(d); el.scrollTop=el.scrollHeight;
+}
+function showTyping(){
+  const el=document.getElementById('bp-messages');
+  const d=document.createElement('div'); d.className='bp-msg bot'; d.id='bp-typing';
+  d.innerHTML='<div class="bp-msg-av">🐧</div><div class="bp-bubble"><div class="bp-typing"><span></span><span></span><span></span></div></div>';
+  el.appendChild(d); el.scrollTop=el.scrollHeight;
+}
+function removeTyping(){ const t=document.getElementById('bp-typing'); if(t) t.remove(); }
+
+async function bpSend(){
+  const inp=document.getElementById('bp-input');
+  const text=inp.value.trim();
+  if(!text||bpLoading) return;
+  inp.value=''; addUserMsg(text);
+
+  // ── FLUSSO ORDINE ATTIVO ──
+  if(ordineAttivo){
+    const rispOrdine = gestisciOrdine(text);
+    if(rispOrdine === 'MOSTRA_PULSANTE'){
+      setTimeout(()=>{ addBotMsg(fmtOrdine()); setTimeout(mostraPulsanteConferma, 400); }, 300);
+    } else if(rispOrdine){
+      setTimeout(()=>addBotMsg(rispOrdine), 300);
+    }
+    return;
+  }
+
+  // ── TRIGGER ORDINE ──
+  const triggerOrdine = [
+    'voglio ordinare','vorrei ordinare','posso ordinare',
+    'fare un ordine','faccio un ordine','mando un ordine','faccio ordine',
+    'voglio prenotare','vorrei prenotare',
+    'mi servono le pizze','ho bisogno di pizze',
+    'prendiamo le pizze','ordiniamo le pizze','ordiniamo stasera',
+    'voglio prenotare','prenota per'
+  ];
+  if(triggerOrdine.some(k=>norm(text).includes(norm(k)))){
+    ordineAttivo = true;
+    // Prova a estrarre orario già dal messaggio iniziale
+    const orarioGia = parseOrario(norm(text));
+    if(orarioGia){
+      ordine.orario = orarioGia;
+      ordineStep = 'nome';
+      setTimeout(()=>addBotMsg(`Perfetto! 🍕 Ho visto che vuoi venire alle **${orarioGia}**.\n\nCome ti chiami?`), 300);
+    } else {
+      ordineStep = 'nome';
+      setTimeout(()=>addBotMsg('Perfetto! 🍕 Raccogliamo il tuo ordine.\n\nCome ti chiami?'), 300);
+    }
+    return;
+  }
+
+  const locale=rispostaLocale(text);
+  if(locale==='ORDER'){
+    addBotMsg('Vuoi ordinare? Scrivi **"voglio ordinare"** e ti guido passo passo! 🐧\nOppure contattaci direttamente:');
+    setTimeout(showOrderButtons,300); return;
+  }
+  if(locale==='COSA_SAI_FARE'){
+    setTimeout(()=>addBotMsg('🐧 **Cosa so fare:**\n\n🍕 Calorie e prezzo di ogni pizza\n➕ Calcolo modifiche (senza/con ingredienti)\n🥗 Pizze per carattere: leggera, pesante, piccante, elegante...\n🔍 Pizze con un ingrediente specifico\n⚠️ Allergeni per ogni pizza\n🌿 Ingredienti stagionali\n🍷 Abbinamenti tra ingredienti\n📞 Orari, indirizzo e contatti\n\nSono il tuo complice nei peccati di gola e il tuo personal trainer calorico 🔥🐧'),300);
+    return;
+  }
+  if(locale){
+    msgsSinceFritino++;
+    const mostraFritino = msgsSinceFritino>=3 && Math.random()<0.4 && locale.includes('kcal');
+    if(mostraFritino){ msgsSinceFritino=0; setTimeout(()=>addBotMsg(locale+'\n\n🍟 Vuoi aggiungere un **Fritino da 5pz misti a 2,50€**?'),300); }
+    else setTimeout(()=>addBotMsg(locale),300);
+    return;
+  }
+
+  setTimeout(()=>addBotMsg(rispostaGenerica(norm(text))),300);
+  bpLoading=false;
+}
+function quickSend(text){
+  if(!panelOpen) togglePanel();
+  setTimeout(()=>{ document.getElementById('bp-input').value=text; bpSend(); },350);
+}
