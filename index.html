@@ -789,6 +789,17 @@ const TAG_ALIAS = {
 const NON_ABBIAMO = ['nduja','burrata','asparagi','uovo','uova','ananas','patate dolci','zucca','carciofo fresco','gamberi','gamberetti','cozze','vongole','capesante','salmone','baccala','stoccafisso','feta','taleggio','caciocavallo','provola','scamorza affumicata'];
 
 // ============================================================
+function aggiornaContestoPizza(nomePizza){
+  if(nomePizza){
+    ultimaPizzaMenzionata = nomePizza;
+    contatorContestoPizza = 0;
+  } else {
+    contatorContestoPizza++;
+    if(contatorContestoPizza > 10) ultimaPizzaMenzionata = null;
+  }
+}
+
+// ============================================================
 function correggiTypo(s){
   // Rimuovi prefissi comuni che confondono il router
   s = s.replace(/^(una pizza|un pizza|la pizza|il pizza|voglio la|voglio una|voglio un|vorrei la|vorrei una|vorrei un|dammi la|dammi una|dammi un|dimmi la|dimmi della|dimmi del|parlami di|info su|info sulla|info sul|una |un |la |il |lo )\s*/i, '');
@@ -1214,14 +1225,6 @@ let bpHistory=[], bpLoading=false, panelOpen=false, orderShown=false, msgsSinceF
 let ultimaPizzaMenzionata = null;
 let contatorContestoPizza = 0;
 
-// FIX
-function aggiornaContestoPizza(nome) {
-  if (nome) {
-    ultimaPizzaMenzionata = nome;
-    contatorContestoPizza = 0;
-  }
-}
-
 // ── STATO ORDINE ──
 let ordineAttivo = false;
 let ordine = { nome:'', orario:'', pizze:[], note:'' };
@@ -1358,7 +1361,7 @@ function gestisciOrdine(input){
 
   if(ordineStep === 'pizze'){
     // Split su virgola, newline, e anche 'e' tra pizze (es. '2 margherite e 1 diavola')
-    const righe = input.split(/[,\n]|\s+e\s+(?=\d)|\s+e\s+(?=una?\s)|\s+e\s+(?=un[ao]?\s)/).filter(r=>r.trim());
+    const righe = input.split(/[,\n]|\s+e\s+(?=\d)|\s+e\s+(?=una?\s)|\s+e\s+(?=un[ao]?\s)|\s+un\s+(?=[a-z])|\s+una\s+(?=[a-z])/).filter(r=>r.trim());
     let trovate = [];
     for(const riga of righe){
       const rn = norm(riga);
@@ -1401,7 +1404,8 @@ function gestisciOrdine(input){
   }
 
   if(ordineStep === 'note'){
-    if(['no','niente','nessuna','ok','va bene'].some(k=>t.includes(k))){
+    // Solo "no" secco = nessuna nota
+    if(['no','niente','nessuna','nessuno'].some(k=>t.trim()===norm(k))){
       ordine.note = '';
     } else {
       ordine.note = input.trim();
@@ -1481,11 +1485,12 @@ async function bpSend(){
 
   // ── TRIGGER ORDINE ──
   const triggerOrdine = [
-    'voglio ordinare','ordina','prenota','fare un ordine','ordinare','vorrei ordinare',
-    'posso ordinare','voglio prenotare','vorrei prenotare','faccio un ordine',
-    'mi servono','ho bisogno di','prendo','ci vorrei','vorrei prendere',
-    'mi mandi','mi prepara','mi prepari','mando un ordine','faccio ordine',
-    'per stasera','voglio le pizze','voglio una pizza','prendiamo','ordiniamo'
+    'voglio ordinare','vorrei ordinare','posso ordinare',
+    'fare un ordine','faccio un ordine','mando un ordine','faccio ordine',
+    'voglio prenotare','vorrei prenotare',
+    'mi servono le pizze','ho bisogno di pizze',
+    'prendiamo le pizze','ordiniamo le pizze','ordiniamo stasera',
+    'voglio prenotare','prenota per'
   ];
   if(triggerOrdine.some(k=>norm(text).includes(norm(k)))){
     ordineAttivo = true;
