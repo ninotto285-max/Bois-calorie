@@ -1,5 +1,71 @@
 
 // ============================================================
+// NUOVE FUNZIONALITA' — inserite nel router di rispostaLocale
+// ============================================================
+
+function checkNuoveFunzioni(t, input, pizzaContesto) {
+
+  // ── DIETA ──
+  if(['sono a dieta','sto a dieta','mangio leggero','poche calorie','voglio stare leggero'].some(k=>t.includes(norm(k)))){
+    const leggere = Object.entries(PIZZE).filter(([n,p])=>p.kcal&&p.kcal<1000).sort((a,b)=>a[1].kcal-b[1].kcal).slice(0,4);
+    let msg = 'Le pizze sotto 1000 kcal \uD83E\uDD57\n\n';
+    for(const [nome,p] of leggere){
+      const nd = nome.charAt(0).toUpperCase()+nome.slice(1);
+      msg += '**'+nd+'** \u2014 '+p.kcal+' kcal \u00B7 '+fmtE(p.prezzo)+'\u20AC\n'+p.ing.join(', ')+'\n\n';
+    }
+    msg += '_Tutte con impasto a lenta maturazione \u2014 pi\u00F9 leggero e digeribile \uD83D\uDC27_';
+    return msg;
+  }
+
+  // ── PER X PERSONE ──
+  const mP = t.match(/(?:siamo|per|in)\s+(\d+)\s*(?:persone|persona|pax)?/);
+  if(mP){
+    const n = parseInt(mP[1]);
+    if(n>=1 && n<=20){
+      const nPizze = Math.ceil(n*0.8);
+      return '\uD83D\uDC65 Per **'+n+' persone** consiglio **'+nPizze+' pizze** \uD83C\uDF55\n\nSpesa stimata: **'+Math.round(nPizze*7)+'\u20AC \u2013 '+Math.round(nPizze*11)+'\u20AC** circa\n\nVuoi suggerimenti su che pizze prendere? Dimmi i gusti del gruppo \uD83D\uDC27';
+    }
+  }
+
+  // ── CALZONI ──
+  if(['calzone','calzoni','avete calzoni'].some(k=>t.includes(norm(k))) && !trovaNomePizza(input)){
+    const calzoni = Object.entries(PIZZE).filter(([n])=>n.startsWith('calzone'));
+    let msg = '\uD83E\uDED3 **I nostri Calzoni** \u2014 chiusi e cotti al forno:\n\n';
+    for(const [nome,p] of calzoni){
+      const nd = nome.charAt(0).toUpperCase()+nome.slice(1);
+      const desc = DESCRIZIONI_PIZZA[nome];
+      msg += '**'+nd+'** \u2014 '+fmtE(p.prezzo)+'\u20AC\n'+p.ing.join(', ')+'\n'+(desc?'_'+desc[0]+'_':'')+'\n\n';
+    }
+    msg += '_Consiglio: un filo di olio evo a crudo sopra appena sfornato \uD83E\uDEB4_';
+    return msg;
+  }
+
+  // ── PIZZA DEL GIORNO ──
+  if(['pizza del giorno','consiglio dello chef','cosa consigli','sorprendimi','scegli tu','decidi tu'].some(k=>t.includes(norm(k)))){
+    const tutteK = Object.keys(PIZZE);
+    const nomePdg = tutteK[new Date().getDate() % tutteK.length];
+    const p = PIZZE[nomePdg];
+    const nd = nomePdg.charAt(0).toUpperCase()+nomePdg.slice(1);
+    const tipo = p.tipo==='arrotolata'?' \uD83E\uDEB7':p.tipo==='calzone'?' \uD83E\uDED3':'';
+    const desc = DESCRIZIONI_PIZZA[nomePdg];
+    aggiornaContestoPizza(nomePdg);
+    return '\u2B50 **Pizza del giorno: '+nd+'**'+tipo+'\n\n'+(desc?desc[0]+'\n'+desc[1]+'\n'+desc[2]+'\n\n':'')+
+      'Ingredienti: '+p.ing.join(', ')+'\n\n**'+p.kcal+' kcal** \u00B7 **'+fmtE(p.prezzo)+'\u20AC**';
+  }
+
+  // ── STASERA SIETE APERTI? ──
+  if(['siete aperti','siete chiusi','aperto stasera','aperto oggi','quando aprite','quando chiudete'].some(k=>t.includes(norm(k)))){
+    const giorni = ['domenica','luned\u00EC','marted\u00EC','mercoled\u00EC','gioved\u00EC','venerd\u00EC','sabato'];
+    const oggi = new Date().getDay();
+    if(oggi===1) return '\uD83D\uDE34 Oggi \u00E8 **luned\u00EC** \u2014 siamo chiusi!\nTornate da **marted\u00EC a domenica** dalle **18:30 alle 21:30** \uD83D\uDC27';
+    return '\u2705 S\u00EC! Oggi \u00E8 **'+giorni[oggi]+'** \u2014 siamo aperti \uD83C\uDF55\nOrario: **18:30 \u2013 21:30**\nPer ordinare: **0422 670631** \uD83D\uDC27';
+  }
+
+  return null;
+}
+
+
+// ============================================================
 function aggiornaContestoPizza(nomePizza){
   if(nomePizza){
     ultimaPizzaMenzionata = nomePizza;
@@ -325,14 +391,9 @@ function rispostaLocale(input){
     return 'Ti consiglio la **'+nd+'** 🍕 ('+motivo+')\nIngredienti: '+p.ing.join(', ')+'\n\n**'+p.kcal+' kcal** · **'+fmtE(p.prezzo)+'€**';
   }
 
-  // Se il testo contiene verbi d'azione sull'ingrediente, salta trovaNomePizza
-  const verbAzione = ['aggiungo','aggiungi','aggiungere','aggiungiamo','metto','metti','mettere','ci metto','tolgo','togli','levare','togliere','sostituire','cambiare','voglio aggiungere','posso aggiungere'];
-  const haVerbAzione = verbAzione.some(k=>t.includes(norm(k)));
-
   // Cerca prima combo ingredienti (es. "salsiccia e friarielli")
   // Solo se ci sono almeno 2 ingredienti nel testo e nessun nome pizza esatto
-  // Se c'è un verbo d'azione e c'è già un contesto pizza, non cercare pizza per nome
-  const nomePizzaDiretto = (haVerbAzione && ultimaPizzaMenzionata) ? null : trovaNomePizza(input);
+  const nomePizzaDiretto = trovaNomePizza(input);
   let nomePizza = nomePizzaDiretto;
 
   if(!nomePizza){
@@ -447,12 +508,8 @@ function rispostaLocale(input){
           }
         }
         if(ingSuggeriti.length > 0){
-          const pizzaBase = PIZZE[pizzaContesto];
-          let prezzoTot = pizzaBase.prezzo; let kcalTot = pizzaBase.kcal;
-          for(const ing of ingSuggeriti){ const d=ING[ing]; if(d){ prezzoTot+=d.prezzo; kcalTot+=d.kcal; } }
-          const nomeAgg = ingSuggeriti.map(i=>i.charAt(0).toUpperCase()+i.slice(1)).join(' e ');
-          const ndBase = pizzaContesto.charAt(0).toUpperCase()+pizzaContesto.slice(1);
-          ultimaSuggestione = { nome: ndBase+' con '+nomeAgg, prezzo: prezzoTot, kcal: kcalTot, ings: ingSuggeriti, base: pizzaContesto };
+          const { prezzo, kcal } = calcolaPizzaCustom([...PIZZE[pizzaContesto].ing, ...ingSuggeriti]);
+          ultimaSuggestione = { nome: ingSuggeriti.map(i=>i.charAt(0).toUpperCase()+i.slice(1)).join(' e '), prezzo, kcal, ings: ingSuggeriti, base: pizzaContesto };
         }
         const pref = nomePizza ? '' : '(parlando della **'+pizzaContesto.charAt(0).toUpperCase()+pizzaContesto.slice(1)+'**)\n\n';
         return pref + rispDisc + (ingSuggeriti.length ? '\n\n💡 Se ti convince, scrivi "ok mi sta bene" e ti dico il prezzo!' : '');
@@ -476,11 +533,21 @@ function rispostaLocale(input){
         doppiaPasta: t.includes('doppia pasta')||t.includes('doppio impasto'),
         baby:        t.includes('baby')||t.includes('poca fame'),
       };
-      return rispostaPizza(nomePizza, rimozioni, aggiunte, formato);
+      const rispBase = rispostaPizza(nomePizza, rimozioni, aggiunte, formato);
+      if(!rimozioni.length && !aggiunte.length && !formato.battuta && !formato.doppiaPasta){
+        const desc = getDescrizionePizza(nomePizza);
+        if(desc) return rispBase + '\n\n_' + desc + '_';
+      }
+      return rispBase;
     }
   }
+
+  // ── NUOVE FUNZIONALITA' ──
+  const nuovaFunz = checkNuoveFunzioni(t, input, pizzaContesto);
+  if(nuovaFunz) return nuovaFunz;
+
   // Composizione libera da ingredienti
-  const rLib = rispostaIngredentiLiberi(input, pizzaContesto);
+  const rLib = rispostaIngredentiLiberi(input);
   if(rLib) return rLib;
 
   return null;
