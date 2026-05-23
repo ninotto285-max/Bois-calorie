@@ -1032,6 +1032,58 @@ const FRITTINI = {
   'alette di pollo':   { pz10: 5.50, promo: false },
 };
 
+
+// ============================================================
+// BIBITE E BIRRE
+// ============================================================
+const BIBITE = {
+  // Analcoliche
+  'bibita analcolica':  { prezzo: 2.50, tipo: 'analcolica', label: 'Bibita analcolica 33cl' },
+  'coca cola':          { prezzo: 2.50, tipo: 'analcolica', label: 'Coca-Cola 33cl' },
+  'fanta':              { prezzo: 2.50, tipo: 'analcolica', label: 'Fanta 33cl' },
+  'sprite':             { prezzo: 2.50, tipo: 'analcolica', label: 'Sprite 33cl' },
+  'lemonsoda':          { prezzo: 2.50, tipo: 'analcolica', label: 'Lemonsoda 33cl' },
+  // Birre lattina
+  'birra lattina':      { prezzo: 2.50, tipo: 'lattina', label: 'Birra lattina 33cl' },
+  // Birre bottiglia
+  'birra 33cl':         { prezzo: 3.50, tipo: 'bottiglia', label: 'Birra bottiglia 33cl' },
+  'birra 50cl':         { prezzo: 3.50, tipo: 'bottiglia', label: 'Birra bottiglia 50cl' },
+  'franziskaner':       { prezzo: 3.50, tipo: 'bottiglia', label: 'Franziskaner 50cl' },
+  'tuborg':             { prezzo: 3.50, tipo: 'bottiglia', label: 'Tuborg 66cl' },
+  'birra 66cl':         { prezzo: 3.50, tipo: 'bottiglia', label: 'Birra bottiglia 66cl' },
+  // Birra litro
+  'birra litro':        { prezzo: 6.00, tipo: 'litro', label: 'Birra da 1 litro' },
+};
+
+// Alias bibite per riconoscimento con errori
+const BIBITE_ALIAS = {
+  'cocacola':'coca cola','coca':'coca cola','coka':'coca cola','coca cola':'coca cola',
+  'fanta':'fanta','fanta arancia':'fanta',
+  'sprite':'sprite','spryte':'sprite',
+  'lemonsoda':'lemonsoda','lemon soda':'lemonsoda','limonata':'lemonsoda',
+  'birra':'birra lattina','beer':'birra lattina','peroni':'birra lattina','moretti':'birra lattina',
+  'birra in lattina':'birra lattina','lattina':'birra lattina',
+  'franziskaner':'franziskaner','franzis':'franziskaner','franzi':'franziskaner',
+  'franziskaner 50':'franziskaner','frate':'franziskaner','franzis':'franziskaner',
+  'tuborg':'tuborg','tuborg 66':'tuborg','tuburgo':'tuborg','two burg':'tuborg',
+  'birra grande':'birra litro','birra da litro':'birra litro','litro':'birra litro',
+  'birra bottiglia':'birra 33cl','bottiglia':'birra 33cl',
+  'acqua':'bibita analcolica','acqua naturale':'bibita analcolica','acqua frizzante':'bibita analcolica',
+};
+
+function trovaBibita(input){
+  const t = norm(input);
+  // Cerca alias prima
+  for(const [alias, key] of Object.entries(BIBITE_ALIAS)){
+    if(t.includes(norm(alias))) return key;
+  }
+  // Cerca diretto
+  for(const key of Object.keys(BIBITE)){
+    if(t.includes(norm(key))) return key;
+  }
+  return null;
+}
+
 // ============================================================
 // CURIOSITA' — chip 🐧 Curiosità
 // ============================================================
