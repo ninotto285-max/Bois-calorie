@@ -102,7 +102,12 @@ function correggiTypo(s){
     .replace(/\bprzzo\b/gi,'prezzo')
     .replace(/\bprezoz\b/gi,'prezzo')
     .replace(/\borgari\b/gi,'orari')
-    .replace(/\borrai\b/gi,'orari');
+    .replace(/\borrai\b/gi,'orari')
+    .replace(/\bbufla\b/gi,'bufala')
+    .replace(/\bbuffala\b/gi,'bufala')
+    .replace(/\bmozzarela\b/gi,'mozzarella')
+    .replace(/\bsalsicia\b/gi,'salsiccia')
+    .replace(/\bvaltelina\b/gi,'valtellina');
 }
 
 function rispostaLocale(input){
@@ -542,6 +547,21 @@ function rispostaLocale(input){
     }
   }
 
+    // ── "SOLO X" → pizza custom base + quell'ingrediente ──
+  const soloMatch = t.match(/^solo\s+(.+)$/) || t.match(/^(?:una?\s+)?pizza\s+solo\s+(.+)$/);
+  if(soloMatch){
+    const ingRichiesto = soloMatch[1].trim();
+    const canon = trovaNomeIng(ingRichiesto) || norm(ingRichiesto);
+    const ingData = ING[canon];
+    if(ingData){
+      const prezzoTot = 6 + ingData.prezzo;
+      const kcalTot = 1000 + ingData.kcal;
+      const nd = canon.charAt(0).toUpperCase()+canon.slice(1);
+      ultimaSuggestione = { nome: nd, prezzo: prezzoTot, kcal: kcalTot, ings: [canon] };
+      return '**'+nd+'** 🍕\nBase: pomodoro, mozzarella + '+canon+'\n\n**'+kcalTot+' kcal** · **'+fmtE(prezzoTot)+'€**\n\n💡 Scrivi "ok mi sta bene" per confermare!';
+    }
+  }
+
   // ── NUOVE FUNZIONALITA' ──
   const nuovaFunz = checkNuoveFunzioni(t, input, pizzaContesto);
   if(nuovaFunz) return nuovaFunz;
@@ -564,7 +584,7 @@ function rispostaLocale(input){
 // ============================================================
 const ING_FINE_COTTURA = ['prosciutto crudo','bresaola','rucola','speck']; // sempre fine cottura
 const ING_CHIEDI_COTTURA = ['bufala','burrata']; // chiedi in cottura o fine cottura
-const ING_CHIEDI_SOSTITUZIONE = ['bufala','burrata','gorgonzola','brie','scamorza']; // chiedi se al posto di mozzarella
+const ING_CHIEDI_SOSTITUZIONE = ['bufala','burrata']; // chiedi se al posto di mozzarella
 
 // Stato domanda cottura nell'ordine
 let ordineDomandaCottura = null; // {tipo:'sostituzione'|'cottura', ing, pizzaIdx}
