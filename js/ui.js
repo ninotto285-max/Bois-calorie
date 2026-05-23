@@ -200,6 +200,15 @@ function gestisciOrdine(input){
     const _frittoM = input.match(_frittoRe);
     if(_frittoM){
       const _nF = norm(_frittoM[1].trim());
+      // "fritto misto" o "misto fritto" → promo 5pz 2,50€ o 10pz/15pz custom
+      const frittoMistoM = input.match(/(?:fritto?\s+misto|misto\s+fritto?)(?:\s+da\s+(\d+)\s*(?:pz|pezzi?)?)?/i);
+      if(frittoMistoM){
+        const nPz = frittoMistoM[1] ? parseInt(frittoMistoM[1]) : 5;
+        const prezzoMisto = nPz <= 5 ? 2.50 : nPz <= 10 ? 5.00 : 7.50;
+        ordine.frittini = ordine.frittini||[];
+        ordine.frittini.push({ qty:1, tipo:'Fritto misto '+nPz+'pz', prezzo:prezzoMisto });
+        return 'Aggiunto: 1x Fritto misto '+nPz+'pz — '+fmtE(prezzoMisto)+'€ 🍟\nVuoi altro o scrivi **"basta"**.';
+      }
       const _frittiDB = {'patate fritte':3.50,'patate':3.50,'patatine':3.50,'verdure pastellate':4.00,'verdure':4.00,'olive ascolane':6.00,'olive':6.00,'mozzarelline':6.00,'nuggets':6.00,'nuggets pollo':6.00,'crocchettine':6.00,'crocchettine patate':6.00,'anellini':3.50,'anellini di cipolla':3.50,'alette':5.50,'alette di pollo':5.50};
       const _kF = Object.keys(_frittiDB).find(k=>_nF.includes(norm(k))||norm(k).includes(_nF));
       if(_kF){
@@ -219,6 +228,10 @@ function gestisciOrdine(input){
     }
     let _inp = correggiTypo(input)
       .replace(/[\u2018\u2019\u201a\u201b]/g,"'")
+      .replace(/\b4\s+formaggi\b/gi,'formaggi')
+      .replace(/\b4formaggi\b/gi,'formaggi')
+      .replace(/\b4\s+stagioni\b/gi,'quattro stagioni')
+      .replace(/\b4stagioni\b/gi,'quattro stagioni')
       .replace(/\bpiu\b|\bpiù\b/gi,'e')
       // Proteggi nomi pizza composti con "e" da split errati
       .replace(/\bsalsiccia\s+e\s+friarielli\b/gi,'salsiccia-e-friarielli')
@@ -236,35 +249,68 @@ function gestisciOrdine(input){
                .replace(/\bl[oa]\s+altra\s+con\b/gi, ', con')
                .replace(/\bl[oa]\s+altra\s+senza\b/gi, ', senza')
                .replace(/\be\s+l[''\u2019]altra\s+/gi, ', ');
+    // "N pizze M battute e K normali" → splittale correttamente
+    _inp = _inp.replace(/\b(\d+|due|tre|quattro|cinque)\s+battut\w*\s+e\s+(\d+|due|tre|quattro|cinque)\s+normal\w*/gi, (m,nB,nN)=>{
+      const nums={'due':2,'tre':3,'quattro':4,'cinque':5};
+      const nb=nums[nB.toLowerCase()]||parseInt(nB)||2;
+      const nn=nums[nN.toLowerCase()]||parseInt(nN)||2;
+      // Genera "però nb battute, nn normali" → sarà gestito dal parser
+      return ', '+nb+' battute, '+nn+' normali';
+    });
     const righe = _inp.split(/,|\n|(?<=\S)\s+e\s+(?=\d)|(?<=\S)\s+(?=\d+\s+[a-z4-9])|(?<=\S)\s+e\s+(?=una?\s)|(?<=\S)\s+e\s+(?=battut)|(?<=\S)\s+e\s+(?=con\s)|(?<=\S)\s+e\s+(?=senza\s)|(?<=\S)\s+una\s+(?=[a-zA-Z])|(?<=\S)\s+un\s+(?=[a-zA-Z])/).filter(r=>r.trim());
     let trovate = [];
     for(let riga of righe){
       riga = riga.replace(/-e-/g,' e '); // ripristina nomi composti
+      // "2 normali" / "tre normali" → ignora (già conteggiate)
+      if(/^(\d+|una?|due|tre|quattro|cinque)?\s*normal\w*\s*$/i.test(riga.trim())){
+        continue;
+      }
       const rn = norm(riga);
       const numMatch = rn.match(/(\d+)/);
-      const qty = numMatch ? parseInt(numMatch[1]) : 1;
+      let qty = numMatch ? parseInt(numMatch[1]) : 1;
+      // "4 formaggi" / "4 stagioni" → controlla se è un alias pizza (non una quantità)
+      if(qty > 1){
+        const rigaSenzaQty = riga.replace(/^\s*\d+\s*/,'').trim();
+        const aliasCheck = PIZZA_ALIAS[norm(qty+' '+trovaNomePizza(rigaSenzaQty))] || 
+                           PIZZA_ALIAS[norm(qty+' '+rigaSenzaQty.split(' ')[0])];
+        if(!aliasCheck){
+          // Controlla se "N parola" è un alias diretto
+          const nParola = qty + ' ' + rigaSenzaQty.split(/\s+/).slice(0,2).join(' ');
+          if(PIZZA_ALIAS[norm(nParola)]) qty = 1;
+        }
+      }
       // Rimuovi numero e prova varie forme
       // Estrai "con X" come nota aggiunta
+      const isDoppia = /\bdoppi[ao]?\s+pasta/i.test(riga);
+      const isBattuta = /\bbattut/i.test(riga);
+      const isBattutaPiccola = /battut\w*\s+piccol/i.test(riga) || /piccol\w*\s+battut/i.test(riga);
       const conMatchRaw = riga.match(/\bcon\s+(.+)$/i);
       let notaAggiunta = conMatchRaw ? conMatchRaw[1].trim() : null;
       // "con doppia pasta" non è un ingrediente aggiunto
       if(notaAggiunta && /^doppi[ao]?\s+pasta/i.test(notaAggiunta)) notaAggiunta = null;
+      // Rimuovi "battuta" dalla nota se già riconosciuto come formato
+      if(notaAggiunta && isBattuta) notaAggiunta = notaAggiunta.replace(/\bbattut\w*/gi,'').replace(/^[,\s]+|[,\s]+$/g,'').trim() || null;
+      // Rimuovi da notaAggiunta le cose già gestite (doppia pasta, senza X riconosciuto)
+      if(notaAggiunta){
+        notaAggiunta = notaAggiunta
+          .replace(/\bdoppi[ao]?\s+pasta\b/gi,'')
+          .replace(/\bsenza\s+\w+/gi, '')   // rimuovi "senza X" già gestiti
+          .replace(/^[,\s]+|[,\s]+$/g,'').trim() || null;
+      }
       // "doppia mozzarella" senza "con" → trattala come nota
       if(!notaAggiunta){
-        const doppiaIngMatch = riga.match(/\bdoppi[ao]?\s+(mozzarella|mozz|scamorza|formaggio)\b/i);
+        const doppiaIngMatch = riga.match(/\bdoppi[ao]?\s+(mozzarella|mozz|scamorza|formaggio|salamino|salsiccia|porcini|nduja|wurstel|funghi|prosciutto|acciughe|olive|pomodoro)\b/i);
         if(doppiaIngMatch) notaAggiunta = 'doppia '+doppiaIngMatch[1];
       }
       // Estrai "senza X"
-      const senzaMatch = riga.match(/\bsenza\s+([\w\s]+?)(?=\s*,|\s+e\s+[a-z]|\s+ma\s+|\s+però\s+|\s+con\s+|$)/i);
+      const senzaMatch = riga.match(/\bsenza\s+([\w\s]+?)(?=\s*,|\s+e\s+[a-z]|\s+ma\s+|\s+però\s+|\s+con\s+|\s+battut|$)/i);
       const ingredienteSenza = senzaMatch ? senzaMatch[1].trim() : null;
       // Estrai "doppia X" o "X extra"
       const extraMatch = riga.match(/([\w\s]+?)\s+(?:extra|in più)(?=\s*,|$)/i);
       const ingredienteExtra = extraMatch ? extraMatch[1].trim() : null;
       const isBaby = /\bbaby\b|\bpoca fame\b/i.test(riga);
-      const isDoppia = /\bdoppi[ao]?\s+pasta/i.test(riga);
       // Se la riga è "battuta [con X]" → formato per pizza precedente
       const isBattutaRiga = /^(?:una?\s+)?battut/i.test(riga.trim());
-      const isBattuta = /\bbattut/i.test(riga);
       // Se riga è "una con X" senza nome pizza → modifica ultima pizza
       const soloCon = /^(?:(?:una?|quello|quella)\s+)?con\s+/i.test(riga.trim());
       if(soloCon && trovate.length > 0 && !ingredienteSenza){
@@ -283,7 +329,37 @@ function gestisciOrdine(input){
         }
         continue;
       }
-      if(isBattutaRiga && trovate.length > 0){
+      // "doppia pasta" standalone → applica a ultima pizza (+1€)
+      if(/^(?:una?\s+)?doppia\s+pasta$/i.test(riga.trim())){
+        const srcDoppia = trovate.length > 0 ? trovate : ordine.pizze;
+        if(srcDoppia.length > 0){
+          const ulD = srcDoppia[srcDoppia.length-1];
+          if(!ulD.nome.includes('doppia pasta')) ulD.nome += ' (doppia pasta)';
+          ulD.prezzo += 1.00;
+          continue;
+        }
+      }
+      // "N battute" / "battuta" standalone → applica a ultima pizza
+      const battStandaloneMatch = riga.trim().match(/^(\d+|una?|due|tre|quattro)?\s*battut/i);
+      if(battStandaloneMatch){
+        const nums2={'una':1,'un':1,'due':2,'tre':3,'quattro':4};
+        const nBatt = battStandaloneMatch[1] ? (nums2[battStandaloneMatch[1].toLowerCase()]||parseInt(battStandaloneMatch[1])||1) : 1;
+        const srcArr2 = trovate.length > 0 ? trovate : ordine.pizze;
+        if(srcArr2.length > 0){
+          const ul = srcArr2[srcArr2.length-1];
+          const nTot = ul.qty;
+          if(nBatt < nTot){
+            ul.qty = nTot - nBatt;
+            srcArr2.push({ qty:nBatt, nome:ul.nome.replace(/\s*\(battuta\)/,'')+' (battuta)', prezzo:ul.prezzo+2.00 });
+          } else {
+            if(!ul.nome.includes('(battuta)')) ul.nome += ' (battuta)';
+            ul.prezzo += 2.00;
+          }
+          continue;
+        }
+      }
+      // VECCHIO CHECK — gestito sopra
+      if(false && isBattutaRiga && trovate.length > 0){
         const ultima = trovate[trovate.length-1];
         if(!ultima.nome.includes('(battuta)')) ultima.nome += ' (battuta)';
         const conMatchB = riga.match(/\bcon\s+(.+?)(?:\s+(?:e|pi\u00f9)\s+|$)/i);
@@ -293,7 +369,10 @@ function gestisciOrdine(input){
       const rigaPulita = notaAggiunta ? riga.replace(/\bcon\s+.+$/i,'').trim() : riga;
       const rigaSenzaNum = rigaPulita.replace(/\d+/g,'').trim();
       // rigaSenzaNum PRIMA perché contiene solo il nome senza numero
+      // Rimuovi "senza X" dalla riga per trovare il nome pizza senza confusioni
+      const rigaPerNome = rigaSenzaNum.replace(/\bsenza\s+[\w\s]+?(?=\s+(?:con\b|doppi|battut|baby|e\s+[a-z])|$)/gi,'').trim();
       const tentativi = [
+        rigaPerNome,
         rigaSenzaNum,
         rigaSenzaNum.replace(/e$/,'a'),
         rigaSenzaNum.replace(/he$/,'ha'),
@@ -310,6 +389,7 @@ function gestisciOrdine(input){
         const p = PIZZE[nomePizza];
         let nomeDisplay = nomePizza.charAt(0).toUpperCase()+nomePizza.slice(1);
         if(isBaby) nomeDisplay += ' (baby)';
+        if(isBattuta && !isBattutaPiccola) nomeDisplay += ' (battuta)';
         if(isDoppia) nomeDisplay += ' (doppia pasta)';
         if(ingredienteSenza) nomeDisplay += ' (senza '+ingredienteSenza+')';
         if(ingredienteExtra && !['pasta','mozzarella','scamorza'].includes(norm(ingredienteExtra)) && !norm(ingredienteExtra).includes(nomePizza) && !(notaAggiunta && norm(notaAggiunta).includes(norm(ingredienteExtra)))){
@@ -336,11 +416,24 @@ function gestisciOrdine(input){
         }
         // Pulisci e finale nelle parentesi
         nomeDisplay = nomeDisplay.replace(/\s+e\)$/g,')').replace(/\(con\s+e\)/g,'').trim();
+        // Se notaAggiunta non è un ingrediente noto → asterisco
+        if(notaAggiunta){
+          const notaNorm = norm(notaAggiunta);
+          const isIngNoto = Object.keys(ING).some(k=>notaNorm.includes(norm(k))) || 
+                            Object.values(ING_ALIAS).some(v=>notaNorm.includes(norm(v)));
+          const isVariazioneNota = /\b(?:fine cottura|a crudo|crudo|scamorza|bufala|brie|grana|porcini|wurstel|salamino|acciugh|cipolla|rucola|patatine|mozzarella|doppia|origano|aglio|nduja|porchetta|tartufo|funghi|scamorza|provola|stracchino|ricotta|olive|capperi|tonno|prosciutto|salame|salsiccia|zucchine|melanzane|peperoni|pomodor|rucola|speck|bresaola|lardo|guanciale|pecorino|mortadella|pistacchi|basilico|confettura|miele|noci|nocciole|fichi|lamponi|pistacchio)\b/i.test(notaAggiunta);
+          if(!isIngNoto && !isVariazioneNota && notaAggiunta.length > 2){
+            const nAst4 = (ordine._noteVariazioni||[]).length + 1;
+            nomeDisplay = nomeDisplay.replace(/\(con [^)]+\)$/, '').trim() + ' *'+nAst4;
+            ordine._noteVariazioni = ordine._noteVariazioni || [];
+            ordine._noteVariazioni.push('*'+nAst4+' '+nomeDisplay.replace(/\s\*\d+$/,'').trim()+': con '+notaAggiunta+' (verificare)');
+            notaAggiunta = null; // non duplicare
+          }
+        }
         
         // ── Variazioni prezzo ──
         let prezzoFinale = p.prezzo;
         const rigaLow = riga.toLowerCase();
-        const isBattutaPiccola = /battut\w*\s+piccol/i.test(riga) || /piccol\w*\s+battut/i.test(riga);
         if(isBattuta && !isBattutaPiccola) prezzoFinale += 2.00;  // battuta +2€
         if(isDoppia) prezzoFinale += 1.00;                         // doppia pasta +1€
         if(isBaby) prezzoFinale -= 0.50;                           // baby -0.50€
@@ -356,7 +449,8 @@ function gestisciOrdine(input){
           [/\bsenza\s+lattosio/i, 'senza lattosio (+€ verifica)'],
           [/\blattosio/i, 'lattosio (verifica)'],
           [/\bvegetar\w*/i, 'vegetariana'],
-          [/\bcroccant\w*/i, 'extra croccante'],
+          // croccante NON genera asterisco — va come nota libera
+          // [/\bcroccant\w*/i, 'extra croccante'],
           [/\bpoco\s+sal\w*/i, 'poco salata'],
           [/\bmezza\s+e\s+mezza/i, 'mezza e mezza'],
         ];
@@ -374,9 +468,10 @@ function gestisciOrdine(input){
           const canonSenza = trovaNomeIng(ingredienteSenza)||null;
           const allergenoKnown = ['lattosio','latte','glutine','celiaco','noci','uova','pesce','soia','arachidi','sesamo','senape'].some(k=>norm(ingredienteSenza).includes(k));
           if(!canonSenza && !allergenoKnown){
-            if(!nomeDisplay.endsWith(' *')) nomeDisplay += ' *';
+            const nAst2 = (ordine._noteVariazioni||[]).length + 1;
+            nomeDisplay += ' *'+nAst2;
             ordine._noteVariazioni = ordine._noteVariazioni || [];
-            ordine._noteVariazioni.push('* '+nomeDisplay.replace(' *','')+': senza '+ingredienteSenza+' (verificare)');
+            ordine._noteVariazioni.push('*'+nAst2+' '+nomeDisplay.replace(' *'+nAst2,'').trim()+': senza '+ingredienteSenza+' (verificare)');
           }
         }
         
@@ -384,6 +479,19 @@ function gestisciOrdine(input){
       } else {
         // Nessuna pizza trovata — controlla se è un formato per la pizza precedente
         const isBattutaStandalone = /^(?:una?\s+)?battut/i.test(riga.trim());
+        // "due battute e due normali" → splitta su "e due normali"
+        const dueNormaliMatch = riga.match(/(\d+|due|tre)\s+battut\w*\s+e\s+(\d+|due|tre)\s+normal\w*/i);
+        if(dueNormaliMatch && trovate.length > 0){
+          const nums = {'due':2,'tre':3,'quattro':4,'cinque':5};
+          const nBatt = nums[dueNormaliMatch[1].toLowerCase()]||parseInt(dueNormaliMatch[1])||2;
+          const nNorm = nums[dueNormaliMatch[2].toLowerCase()]||parseInt(dueNormaliMatch[2])||2;
+          const ultima = trovate[trovate.length-1];
+          const nomeBase = ultima.nome;
+          trovate.pop();
+          trovate.push({ qty:nBatt, nome:nomeBase+' (battuta)', prezzo:ultima.prezzo+2 });
+          trovate.push({ qty:nNorm, nome:nomeBase, prezzo:ultima.prezzo });
+          continue;
+        }
         if(isBattutaStandalone && trovate.length > 0){
           const ultima = trovate[trovate.length-1];
           if(!ultima.nome.includes('(battuta)')) ultima.nome += ' (battuta)';
@@ -553,36 +661,52 @@ function gestisciOrdine(input){
       if(!ordine.note) ordine.note = '⚡ Tagliare a spicchi';
       else ordine.note += ' — tagliare a spicchi';
     }
+    const nPizze = ordine.pizze.reduce((s,p)=>s+p.qty,0);
+    const sugFritt = nPizze >= 6 ? 2 : 1;
     ordineStep = 'frittini';
-    return '🍟 Vuoi aggiungere un **fritino** (5pz a 2,50€)?\nMisti o uno solo tra: Olive ascolane · Mozzarelline · Nuggets · Crocchettine · Anellini\nOppure **"no"** per procedere.';
+    return '🍟 Vuoi aggiungere dei **frittini**? (5pz a 2,50€ l\'uno)\n'+
+           (sugFritt > 1 ? 'Con '+nPizze+' pizze potreste volerne anche '+sugFritt+' 😋\n' : '')+
+           'Misti o scegli tipo: Olive · Mozzarelline · Nuggets · Crocchettine · Anellini\nOppure **"no"** per procedere.';
   }
 
   if(ordineStep === 'frittini'){
     const tF = norm(input.trim());
-    if(['no','niente','nope','nah','basta','no grazie'].some(k=>tF.includes(k))){
+    if(['no','niente','nope','nah','basta','no grazie','non voglio'].some(k=>tF.includes(k))){
       ordineStep = 'conferma';
       return fmtOrdine() + '\n\nÈ tutto corretto?';
     }
-    // Quanti frittini?
-    const nMatch = input.match(/(\d+)/);
-    const qty = nMatch ? parseInt(nMatch[1]) : 1;
-    // Tipo: misti o specifico
-    let tipo = 'Misti';
+    // Fritto misto esplicito
+    const mistoM = input.match(/(?:fritto?\s+misto|misto\s+fritto?)(?:\s+da\s+(\d+))?/i);
+    if(mistoM){
+      const np = mistoM[1]?parseInt(mistoM[1]):5;
+      const pr = np<=5?2.50:np<=10?5.00:7.50;
+      ordine.frittini.push({qty:1,tipo:'Fritto misto '+np+'pz',prezzo:pr});
+      ordineStep='conferma';
+      return 'Aggiunto: 1x Fritto misto '+np+'pz — '+fmtE(pr)+'€ 🍟\n\n'+fmtOrdine()+'\n\nÈ tutto corretto?';
+    }
+    // Quantità + tipo
+    const nMatch2 = input.match(/(\d+)/);
+    const qty2 = nMatch2 ? parseInt(nMatch2[1]) : 1;
+    let tipo2 = 'Misti';
     for(const [nome] of Object.entries(FRITTINI)){
-      if(tF.includes(norm(nome))){ tipo = nome.charAt(0).toUpperCase()+nome.slice(1); break; }
+      if(tF.includes(norm(nome))){ tipo2=nome.charAt(0).toUpperCase()+nome.slice(1); break; }
     }
-    // Aggiungi frittini all'ordine
-    if(qty > 0){
-      ordine.frittini = ordine.frittini || [];
-      ordine.frittini.push({ qty, tipo, prezzo: 2.50 });
-    }
+    if(qty2 > 0) ordine.frittini.push({ qty:qty2, tipo:tipo2, prezzo:2.50 });
     ordineStep = 'conferma';
-    return (qty>0 ? `Perfetto! ${qty}x Fritino ${tipo} (5pz) — ${fmtE(qty*2.50)}€ aggiunto 🍟\n\n` : '') + fmtOrdine() + '\n\nÈ tutto corretto?';
-    if(avvisiAllerg.length>0) rispOrdine = '⚠️ **Attenzione!**\n'+avvisiAllerg.join('\n')+'\n\nVuoi procedere lo stesso?\n\n'+rispOrdine;
-    return rispOrdine;
+    return (qty2>0?'Aggiunto: '+qty2+'x Frittino '+tipo2+' 5pz — '+fmtE(qty2*2.50)+'€ 🍟\n\n':'')+fmtOrdine()+'\n\nÈ tutto corretto?';
   }
 
   if(ordineStep === 'conferma'){
+    // Aggiunta pizza/fritto post-conferma
+    if(['aggiungi','aggiungimi','metti anche','e anche','vorrei anche'].some(k=>t.startsWith(norm(k)))||t.includes('aggiungi')){
+      const parteAgg = input.replace(/^(?:aggiungi|aggiungimi|metti anche|e anche|vorrei anche)\s*/i,'').trim();
+      const prevQt = ordine.pizze.reduce((s,p)=>s+p.qty,0);
+      const prevFritt = ordine.frittini.length;
+      ordineStep='altra'; gestisciOrdine(parteAgg); ordineStep='conferma';
+      const dopoQt = ordine.pizze.reduce((s,p)=>s+p.qty,0);
+      if(dopoQt > prevQt || ordine.frittini.length > prevFritt)
+        return '✅ Aggiunto!\n\n'+fmtOrdine()+'\n\nConfermi ora?';
+    }
     if(['si','sì','ok','confermo','giusto','esatto','corretto','vai'].some(k=>t.includes(k))){
       // Mostra pulsante conferma
       return 'MOSTRA_PULSANTE';
