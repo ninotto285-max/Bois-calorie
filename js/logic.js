@@ -662,7 +662,7 @@ function checkAggiuntaSpeciale(nomeIng, pizzaHaMozzarella){
 // ============================================================
 // PIZZA CUSTOM — base 6€ + ingredienti aggiuntivi
 // ============================================================
-const PREZZO_BASE_CUSTOM = 6.00;
+
 let ultimaSuggestione = null;
 
 function calcolaPizzaCustom(ingredienti){
