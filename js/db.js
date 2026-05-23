@@ -614,6 +614,9 @@ function esc(t){ return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').rep
 // ALIAS PIZZA (typo/abbreviazioni → nome canonico in PIZZE)
 // ============================================================
 const PIZZA_ALIAS = {
+  '4stagioni':'quattro stagioni','4 stagioni':'quattro stagioni','quatrostagioni':'quattro stagioni',
+  'quattrostagioni':'quattro stagioni','4stag':'quattro stagioni',
+  'titty':'titti','titties':'titti','tity':'titti','titty':'titti',
   'marcherita':'margherita','margerita':'margherita','marghertia':'margherita',
   'margheita':'margherita','margheritaa':'margherita',
   'diavola piccante':'diavola',
@@ -839,10 +842,9 @@ function rispostaIngredentiLiberi(input){
     const pn=pizza.ing.map(i=>norm(i));
     const tn=ingTrovati.map(i=>norm(i));
     const mancanti=pizza.ing.filter(i=>!tn.includes(norm(i)));
-    let msg='Con '+ingTrovati.join(', ')+' la pizza più simile è la **'+nd+'** 🍕\n';
+    let msg='Con **'+ingTrovati.join(', ')+'** la pizza perfetta è la **'+nd+'** 🍕\n';
     msg+='Ingredienti: '+pizza.ing.join(', ')+'\n';
-    if(mancanti.length) msg+='(ha anche: '+mancanti.join(', ')+')\n';
-    msg+='\nCalorie: **'+pizza.kcal+' kcal** · Prezzo: **'+fmtE(pizza.prezzo)+'€**';
+    msg+='\n**'+pizza.kcal+' kcal** · **'+fmtE(pizza.prezzo)+'€**';
     return msg;
   }
 
