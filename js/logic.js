@@ -835,5 +835,3 @@ function rispostaGenerica(t){
     return rnd(RISPOSTE_GRAZIE);
   return rnd(RISPOSTE_RANDOM);
 }
-
-let bpHistory=[], bpLoading=false, panelOpen=false, orderShown=false, msgsSinceFritino=0;
