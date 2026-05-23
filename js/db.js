@@ -614,6 +614,9 @@ function esc(t){ return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').rep
 // ALIAS PIZZA (typo/abbreviazioni → nome canonico in PIZZE)
 // ============================================================
 const PIZZA_ALIAS = {
+  'salsiccia e friarielli':'ciccia e friarielli',
+  'salsiccia friarielli':'ciccia e friarielli',
+  'ciccia friarielli':'ciccia e friarielli',
   '4stagioni':'quattro stagioni','4 stagioni':'quattro stagioni','quatrostagioni':'quattro stagioni',
   'quattrostagioni':'quattro stagioni','4stag':'quattro stagioni',
   'titty':'titti','titties':'titti','tity':'titti','titty':'titti',
@@ -1001,6 +1004,21 @@ const TAG_ALIAS = {
 
 
 const NON_ABBIAMO = ['uovo','uova','ananas','patate dolci','carciofo fresco','gamberi','gamberetti','cozze','vongole','capesante','salmone','baccala','stoccafisso','feta','taleggio','caciocavallo','provola','scamorza affumicata'];
+
+
+// ============================================================
+// FRITTINI — upsell nel flusso ordine
+// ============================================================
+const FRITTINI = {
+  'olive ascolane':    { pz10: 6.00, promo: true },
+  'mozzarelline':      { pz10: 6.00, promo: true },
+  'nuggets pollo':     { pz10: 6.00, promo: true },
+  'crocchettine patate':{ pz10: 6.00, promo: true },
+  'anellini di cipolla':{ pz10: 3.50, promo: true },
+  'verdure pastellate':{ pz10: 4.00, promo: false },
+  'patate fritte':     { pz10: 3.50, promo: false },
+  'alette di pollo':   { pz10: 5.50, promo: false },
+};
 
 // ============================================================
 // CURIOSITA' — chip 🐧 Curiosità
