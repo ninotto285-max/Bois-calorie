@@ -147,8 +147,27 @@ function gestisciOrdine(input){
 
   if(ordineStep === 'pizze'){
     // Split su virgola, newline, e anche 'e' tra pizze (es. '2 margherite e 1 diavola')
-    let _inp = input.replace(/\bpiu\b|\bpiù\b/gi,'e');
-    const righe = _inp.split(/,|\n|(?<=\S)\s+e\s+(?=\d)|(?<=\S)\s+e\s+(?=una?\s)|(?<=\S)\s+una\s+(?=[a-zA-Z])|(?<=\S)\s+un\s+(?=[a-zA-Z])/).filter(r=>r.trim());
+    // Frasi tipo "niente acciughe" o "occhio alle X" sono note allergie, non pizze
+    if(/\b(?:niente|occhio alle?|attenzione alle?|allergi|intollerante)\b/i.test(input) || /\bsenza lattosio\b/i.test(input) && !trovaNomePizza(input)){
+      ordine.note = (ordine.note ? ordine.note + ' — ' : '') + input.trim();
+      ordineStep = 'altra';
+      return null; // gestito come nota, non come pizza
+    }
+    let _inp = correggiTypo(input)
+      .replace(/[\u2018\u2019\u201a\u201b]/g,"'")
+      .replace(/\bpiu\b|\bpiù\b/gi,'e');
+    _inp = _inp.replace(/\buna\s+delle\s+\d+/gi, 'una')
+               .replace(/\bperò\s+aggiungi\s+/gi, ' con ')
+               .replace(/\bma\s+aggiungi\s+/gi, ' con ');
+    _inp = _inp.replace(/\bdell[ae]\s+(?:due|tre|quattro|\d+)\s+con\b/gi, 'con');
+    _inp = _inp.replace(/\bperò\s+/gi, ', ')
+               .replace(/\bma\s+una\b/gi, ', una')
+               .replace(/\bl[''\u2019]altra\s+con\b/gi, ', con')
+               .replace(/\bl[''\u2019]altra\s+senza\b/gi, ', senza')
+               .replace(/\bl[oa]\s+altra\s+con\b/gi, ', con')
+               .replace(/\bl[oa]\s+altra\s+senza\b/gi, ', senza')
+               .replace(/\be\s+l[''\u2019]altra\s+/gi, ', ');
+    const righe = _inp.split(/,|\n|(?<=\S)\s+e\s+(?=\d)|(?<=\S)\s+(?=\d+\s+[a-z4-9])|(?<=\S)\s+e\s+(?=una?\s)|(?<=\S)\s+e\s+(?=battut)|(?<=\S)\s+e\s+(?=con\s)|(?<=\S)\s+e\s+(?=senza\s)|(?<=\S)\s+una\s+(?=[a-zA-Z])|(?<=\S)\s+un\s+(?=[a-zA-Z])/).filter(r=>r.trim());
     let trovate = [];
     for(const riga of righe){
       const rn = norm(riga);
@@ -156,12 +175,49 @@ function gestisciOrdine(input){
       const qty = numMatch ? parseInt(numMatch[1]) : 1;
       // Rimuovi numero e prova varie forme
       // Estrai "con X" come nota aggiunta
-      const conMatch = riga.match(/\bcon\s+(.+)$/i);
-      const notaAggiunta = conMatch ? conMatch[1].trim() : null;
+      const conMatchRaw = riga.match(/\bcon\s+(.+)$/i);
+      let notaAggiunta = conMatchRaw ? conMatchRaw[1].trim() : null;
+      // "con doppia pasta" non è un ingrediente aggiunto
+      if(notaAggiunta && /^doppi[ao]?\s+pasta/i.test(notaAggiunta)) notaAggiunta = null;
+      // Estrai "senza X"
+      const senzaMatch = riga.match(/\bsenza\s+([\w\s]+?)(?=\s*,|\s+e\s+[a-z]|\s+ma\s+|\s+però\s+|\s+con\s+|$)/i);
+      const ingredienteSenza = senzaMatch ? senzaMatch[1].trim() : null;
+      // Estrai "doppia X" o "X extra"
+      const extraMatch = riga.match(/([\w\s]+?)\s+(?:extra|in più)(?=\s*,|$)/i);
+      const ingredienteExtra = extraMatch ? extraMatch[1].trim() : null;
+      const isBaby = /\bbaby\b|\bpoca fame\b/i.test(riga);
+      // Se la riga è "battuta [con X]" → formato per pizza precedente
+      const isBattutaRiga = /^(?:una?\s+)?battut/i.test(riga.trim());
+      // Se riga è "una con X" senza nome pizza → modifica ultima pizza
+      const soloCon = /^(?:(?:una?|quello|quella)\s+)?con\s+/i.test(riga.trim());
+      if(soloCon && trovate.length > 0 && !ingredienteSenza){
+        const ultima = trovate[trovate.length-1];
+        const conM2 = riga.match(/\bcon\s+(.+?)(?:\s+però|\s*,|$)/i);
+        if(conM2){
+          const notaM = conM2[1].trim().replace(/\s+e$/,'').trim();
+          if(ultima.qty > 1){
+            ultima.qty -= 1;
+            trovate.push({ qty:1, nome: ultima.nome.replace(/\s*\(.*\)$/,'')+' (con '+notaM+')', prezzo: ultima.prezzo });
+          } else {
+            // Crea nuova pizza con modifica invece di modificare l'esistente
+            const nomeBase = ultima.nome.replace(/\s*\(con [^)]+\)$/, '');
+            trovate.push({ qty:1, nome: nomeBase+' (con '+notaM+')', prezzo: ultima.prezzo });
+          }
+        }
+        continue;
+      }
+      if(isBattutaRiga && trovate.length > 0){
+        const ultima = trovate[trovate.length-1];
+        if(!ultima.nome.includes('(battuta)')) ultima.nome += ' (battuta)';
+        const conMatchB = riga.match(/\bcon\s+(.+?)(?:\s+(?:e|pi\u00f9)\s+|$)/i);
+        if(conMatchB) ultima.nome += ' con '+conMatchB[1].trim();
+        continue;
+      }
       const rigaPulita = notaAggiunta ? riga.replace(/\bcon\s+.+$/i,'').trim() : riga;
       const rigaSenzaNum = rigaPulita.replace(/\d+/g,'').trim();
+      // rigaSenzaNum PRIMA perché contiene solo il nome senza numero
       const tentativi = [
-        rigaPulita, rigaSenzaNum,
+        rigaSenzaNum,
         rigaSenzaNum.replace(/e$/,'a'),
         rigaSenzaNum.replace(/he$/,'ha'),
         rigaSenzaNum.replace(/i$/,'a'),
@@ -169,31 +225,67 @@ function gestisciOrdine(input){
         rigaSenzaNum.replace(/ole$/,'ola'),
         rigaSenzaNum.replace(/oni$/,'one'),
         rn.replace(/\d+\s*/g,''),
+        rigaPulita,
       ];
       let nomePizza = null;
       for(const t2 of tentativi){ nomePizza = trovaNomePizza(t2); if(nomePizza) break; }
       if(nomePizza){
         const p = PIZZE[nomePizza];
         let nomeDisplay = nomePizza.charAt(0).toUpperCase()+nomePizza.slice(1);
-        if(notaAggiunta){
+        if(isBaby) nomeDisplay += ' (baby)';
+        if(ingredienteSenza) nomeDisplay += ' (senza '+ingredienteSenza+')';
+        if(ingredienteExtra && !['pasta','mozzarella','scamorza'].includes(norm(ingredienteExtra)) && !norm(ingredienteExtra).includes(nomePizza) && !(notaAggiunta && norm(notaAggiunta).includes(norm(ingredienteExtra)))){
+          nomeDisplay += ' ('+ingredienteExtra+' extra)';
+        }
+        if(notaAggiunta && norm(notaAggiunta) !== norm(ingredienteExtra||'') && !norm(notaAggiunta).startsWith('doppia mozz') && !norm(notaAggiunta).startsWith('doppia moz')){
           // Controlla se l'aggiunta richiede domanda cottura/sostituzione
           const canonNota = trovaNomeIng(notaAggiunta) || notaAggiunta;
           const haMozz = p.ing.some(i=>norm(i).includes('mozzarella'));
           const tipoCheck = checkAggiuntaSpeciale(canonNota, haMozz);
           if(tipoCheck === 'sostituzione'){
-            // Salva la domanda da fare e interrompi il flusso
-            ordineDomandaCottura = { tipo:'sostituzione', ing:notaAggiunta, nomePizza, qty, prezzo:p.prezzo };
-            // Non aggiungere ancora, chiedi prima
-            trovate = []; // svuota per non procedere
-            ordineStep = 'domanda_cottura';
-            return 'Vuoi la **'+notaAggiunta+'** al posto della mozzarella o in aggiunta? 🧀';
+            if(trovate.length > 0){
+              // Batch: aggiungi direttamente con nota
+              nomeDisplay += ' (con '+notaAggiunta+' — chiedi cottura)';
+            } else {
+              // Anche da sola: aggiungi con nota e chiedi dopo nel flusso "altra"
+              nomeDisplay += ' (con '+notaAggiunta+' — chiedi cottura al ritiro)';
+            }
           } else if(tipoCheck === 'fine_cottura'){
             nomeDisplay += ' (con '+notaAggiunta+' a fine cottura)';
           } else {
             nomeDisplay += ' (con '+notaAggiunta+')';
           }
         }
+        // Pulisci e finale nelle parentesi
+        nomeDisplay = nomeDisplay.replace(/\s+e\)$/g,')').replace(/\(con\s+e\)/g,'').trim();
         trovate.push({ qty, nome: nomeDisplay, prezzo: p.prezzo });
+      } else {
+        // Nessuna pizza trovata — controlla se è un formato per la pizza precedente
+        const isBattutaStandalone = /^(?:una?\s+)?battut/i.test(riga.trim());
+        if(isBattutaStandalone && trovate.length > 0){
+          const ultima = trovate[trovate.length-1];
+          if(!ultima.nome.includes('(battuta)')) ultima.nome += ' (battuta)';
+          if(conMatch) ultima.nome += ' con '+notaAggiunta;
+        } else if(ingredienteSenza && trovate.length > 0){
+          // "una senza X" → applica alla pizza precedente
+          const ultima = trovate[trovate.length-1];
+          if(ultima.qty > 1){
+            // Splitta: (qty-1) normali + 1 con senza
+            ultima.qty -= 1;
+            trovate.push({ qty:1, nome: ultima.nome+' (senza '+ingredienteSenza+')', prezzo: ultima.prezzo });
+          } else {
+            if(!ultima.nome.includes('senza')) ultima.nome += ' (senza '+ingredienteSenza+')';
+          }
+        } else {
+          // Prova a trovare ingredienti e creare pizza custom
+          const rigaIngPulita = norm(riga).replace(/^(una?|il|la|lo|le)\s+/,'').replace(/doppi\w*/g,'').replace(/battut\w*/g,'').trim();
+          const ingCanon = trovaNomeIng(rigaIngPulita);
+          if(ingCanon && ING[ingCanon]){
+            const isDoppia2 = /\bdoppi/i.test(riga);
+            const nd2 = ingCanon.charAt(0).toUpperCase()+ingCanon.slice(1)+(isDoppia2?' (doppia pasta)':'');
+            trovate.push({ qty, nome: nd2+' [custom]', prezzo: 6+ING[ingCanon].prezzo });
+          }
+        }
       }
     }
     if(trovate.length > 0){
