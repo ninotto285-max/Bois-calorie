@@ -18,15 +18,15 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Dati ordine incompleti' });
     }
 
-    // Formatta messaggio Telegram
+    // ── Formatta messaggio Telegram ──
     const ora = new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Rome' });
-
+    
     let msg = `🍕 *NUOVO ORDINE* — ${ora}\n`;
     msg += `━━━━━━━━━━━━━━━━━\n\n`;
     msg += `👤 *${nome}*\n`;
     if (telefono) msg += `📱 ${telefono}\n`;
     msg += `🕐 Ritiro: *${orario}*\n\n`;
-
+    
     msg += `*PIZZE:*\n`;
     let totaleCalc = 0;
     for (const p of pizze) {
@@ -34,17 +34,17 @@ export default async function handler(req, res) {
       msg += `• ${p.qty}x *${p.nome}* — ${subtot}€\n`;
       totaleCalc += p.prezzo * p.qty;
     }
-
+    
     const totStr = (totale || totaleCalc).toFixed(2).replace('.', ',');
     msg += `\n💰 *Totale: ${totStr}€*\n`;
-
+    
     if (note && note.trim()) {
       msg += `\n📝 *Note:* ${note}\n`;
     }
-
+    
     msg += `\n━━━━━━━━━━━━━━━━━`;
 
-    // Invia su Telegram
+    // ── Invia su Telegram ──
     const tgRes = await fetch(
       `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`,
       {
