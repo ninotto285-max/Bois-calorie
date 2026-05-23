@@ -1001,6 +1001,36 @@ const TAG_ALIAS = {
 
 
 const NON_ABBIAMO = ['uovo','uova','ananas','patate dolci','carciofo fresco','gamberi','gamberetti','cozze','vongole','capesante','salmone','baccala','stoccafisso','feta','taleggio','caciocavallo','provola','scamorza affumicata'];
+
+// ============================================================
+// CURIOSITA' — chip 🐧 Curiosità
+// ============================================================
+const CURIOSITA = [
+  "L'impasto di BoisPizza riposa almeno 48 ore prima di finire nel forno. Niente fretta, solo buona pizza 🍕",
+  "Usiamo pomodoro fresco 100% italiano, coltivato con lotta integrata — pesticidi ridotti del 70% 🍅",
+  "La mozzarella arriva dalla Latteria Diana: latte vaccino 100% italiano, in boccia, spaccata a mano in pizzeria 🧀",
+  "Il lievito madre che usiamo ha anni di storia. Ogni pizza è diversa dall'altra, come le persone 🐧",
+  "La pizza napoletana nasce a Napoli nel 1700. BoisPizza la fa a Casier (TV) dal 2019, ma col rispetto dovuto 🍕",
+  "Il cornicione si gonfia così perché l'impasto è vivo — la maturazione lenta crea gas naturale durante la cottura 🔬",
+  "La mozzarella buona non si mette in forno troppo presto: rischia di diventare gommosa. Noi sappiamo quando 🧀",
+  "I funghi misti della Boscaiola vengono selezionati freschi — non in barattolo. Si sente alla prima forchettata 🍄",
+  "La pizza al taglio è un'invenzione romana degli anni '60. La pizza tonda è molto più antica 📜",
+  "Il forno a legna raggiunge i 450°C. La pizza cuoce in 60-90 secondi. Il pinguino non entra 🐧🔥",
+  "La porchetta trevigiana nella Montello e nella Capricciosa Sbagliata viene da produttori locali del Trevigiano 🐷",
+  "Accordi diretti con gli agricoltori = filiera corta = pomodoro che sa di pomodoro. Semplice 🍅",
+  "La pizza fritta nasce come pizza povera: l'olio era più economico del forno a legna 🍳",
+  "La bufala non va mai in forno troppo a lungo — si sfalda e perde cremosità. A fine cottura è tutta un'altra storia 🧀",
+  "Sapevi che il mais sulla pizza è considerato un'eresia in Italia ma viene adorato nel resto del mondo? Noi lo mettiamo lo stesso 🌽",
+  "La Valtellina ha la bresaola, le Alpi e pochissima pizza. Ma quando ci mettono la bresaola sopra, fanno centro 🏔️",
+  "Il gorgonzola sulla pizza è un'idea del Nord Italia. Al Sud inorridiscono. Al Nord fanno il bis 🧀",
+  "La pizza bianca — senza pomodoro — è più antica della margherita. Il pomodoro in Italia arriva nel '500 🍕",
+  "Un pinguino non può fare la pizza. Troppo freddo alle pinne. Ma può ordinarla 🐧🍕",
+];
+
+function getCuriosita(){
+  return CURIOSITA[Math.floor(Math.random()*CURIOSITA.length)];
+}
+
 // ============================================================
 // DESCRIZIONI GOLOSE PIZZE
 // ============================================================
