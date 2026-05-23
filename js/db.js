@@ -522,6 +522,9 @@ function getRispostaSenape(){
 
 // ============================================================
 const ING_ALIAS = {
+  'provola':'scamorza', 'provola affumicata':'scamorza', 'scamorza affumicata':'scamorza',
+  'provolone':'scamorza', 'provlone':'scamorza', 'provoletta':'scamorza',
+  'scamorzza':'scamorza', 'scamorz':'scamorza',
   'nduja':'nduja','nduglia':'nduja','ndugja':'nduja',
   'salame':'salamino piccante','salami':'salamino piccante',
   'salamino':'salamino piccante','salaminino':'salamino piccante',
@@ -617,6 +620,15 @@ const PIZZA_ALIAS = {
   'salsiccia e friarielli':'ciccia e friarielli',
   'salsiccia friarielli':'ciccia e friarielli',
   'ciccia friarielli':'ciccia e friarielli',
+  'montello battuta':'montello',
+  'montello doppia':'montello',
+  '4 formaggi':'formaggi',
+  'pizza salsiccia piccante':'pps',
+  'p.p.s.':'pps',
+  '4formaggi':'formaggi',
+  'quattro formaggi':'formaggi',
+  '4 stagioni':'quattro stagioni',
+  '4stagioni':'quattro stagioni',
   '4stagioni':'quattro stagioni','4 stagioni':'quattro stagioni','quatrostagioni':'quattro stagioni',
   'quattrostagioni':'quattro stagioni','4stag':'quattro stagioni',
   'titty':'titti','titties':'titti','tity':'titti','titty':'titti',
