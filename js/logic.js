@@ -107,10 +107,17 @@ function correggiTypo(s){
     .replace(/\bbuffala\b/gi,'bufala')
     .replace(/\bmozzarela\b/gi,'mozzarella')
     .replace(/\bsalsicia\b/gi,'salsiccia')
-    .replace(/\bvaltelina\b/gi,'valtellina');
+    .replace(/\bvaltelina\b/gi,'valtellina')
+    .replace(/\bsfizziosa\b/gi,'sfiziosa')
+    .replace(/\bsfizzio\w*/gi,'sfiziosa');
 }
 
 function rispostaLocale(input){
+  // ── PRIORITÀ: "la pizza è pesante?" → impasto, NON lista pizze ──
+  const _tRaw = norm(input);
+  if(_tRaw.includes('la pizza') && (_tRaw.includes('pesant') || _tRaw.includes('gonfi') || _tRaw.includes('appesant'))){
+    return 'Il nostro impasto matura almeno 48 ore con lievito madre e biga — meno lievito, più tempo, più digeribilità. È il contrario della pizza industriale che gonfia. Ti puoi fidare 🐧';
+  }
   input = correggiTypo(input); // correggi typo prima di tutto
   const t = norm(input);
   const tSecco = t.trim();
@@ -207,8 +214,8 @@ function rispostaLocale(input){
   // Allergeni — solo se richiesti esplicitamente
   const chiedeAllergeni = ['allergen','allergico','allergica','intollerante','intolleranza','celiaco','celiachia'].some(k=>t.includes(norm(k)));
   if(chiedeAllergeni){
-    if(['senza glutine','celiaco','celiachia'].some(k=>t.includes(norm(k))))
-      return 'Non offriamo pizze senza glutine 🙏\nAbbiamo però la **mozzarella senza lattosio** (+3,00€) per chi è intollerante al lattosio!';
+    if(['senza glutine','celiaco','celiaci','celiachia','gluten free'].some(k=>t.includes(norm(k))))
+      return 'No, non facciamo senza glutine — lavoriamo in un ambiente dove il glutine è ovunque, quindi non possiamo garantire l\'assenza di contaminazioni. Chi è celiaco deve evitarci 🙏 Per tutto il resto siamo qui! 🐧';
 
     // Allergeni di una pizza specifica
     const pizzaA = trovaNomePizza(input) || ultimaPizzaMenzionata;
@@ -242,12 +249,15 @@ function rispostaLocale(input){
   }
 
   // Senza glutine — risposta fissa, mai AI
-  if(['senza glutine','glutine','celiaco','celiachia','intolleranza glutine'].some(k=>t.includes(norm(k))))
-    return 'Non offriamo pizze senza glutine 🙏\nAbbiamo però la **mozzarella senza lattosio** (+3,00€) per chi è intollerante al lattosio!';
+  if(['senza glutine','glutine','celiaco','celiaci','celiachia','gluten free','glutenfree','intolleranza glutine'].some(k=>t.includes(norm(k))))
+    return 'No, non facciamo senza glutine — lavoriamo in un ambiente dove il glutine è ovunque, quindi non possiamo garantire l\'assenza di contaminazioni. Chi è celiaco deve evitarci 🙏 Per tutto il resto siamo qui! 🐧';
 
   // "Che pizze hai con X" — cerca per ingrediente o categoria
   const chiedePizzeConIng = ['che pizze hai con','pizze con','quali pizze con','pizze che hanno','pizze col','pizze coi','pizze colla','pizze alla','hai con','avete con','con il','con la','col','con i','hai qualcosa con'].some(k=>t.includes(norm(k)));
-  if(chiedePizzeConIng || t.includes('con ') || t.includes('col ')){
+  // Eccezione: "la pizza è pesante/gonfia" → non è una richiesta di ingredienti
+  const _domandaImpasto = (t.includes('la pizza') || t.startsWith('pizza')) && 
+    ['pesante','gonfia','pesant','digeribile','leggera la pizza'].some(k=>t.includes(k));
+  if(!_domandaImpasto && (chiedePizzeConIng || t.includes('con ') || t.includes('col '))){
     // 1. Controlla se è un ingrediente NON_ABBIAMO
     const nonAbbiamo = NON_ABBIAMO.find(i=>t.includes(norm(i)));
     if(nonAbbiamo)
@@ -290,10 +300,21 @@ function rispostaLocale(input){
         return 'Non abbiamo **'+label+'** nel menù fisso 🐧\nMa chiamaci al **0422 670631** — a volte abbiamo ingredienti speciali fuori menù!';
       }
     }
+  } // end chiedePizzeConIng
+
+  // Risposta impasto se domanda diretta
+  if(_domandaImpasto && ['pesante','gonfia'].some(k=>t.includes(k))){
+    return 'Il nostro impasto matura almeno 48 ore con lievito madre e biga — meno lievito, più tempo, più digeribilità. È il contrario della pizza industriale che gonfia. Ti puoi fidare 🐧';
   }
 
   // Fritti — solo keyword specifiche fritti, mai se si parla di pizza — "chimica", "potente", "sugosa" ecc. ──
   // Se il messaggio è corto e sembra un vibe/tag, cerca nel TAG_ALIAS
+  // "la pizza è pesante/gonfia?" → risposta impasto, non lista pizze
+  if((t.includes('la pizza') || t.includes('pizza e')) && 
+     ['pesante','gonfia','pesant','appesantisce'].some(k=>t.includes(k))){
+    return 'Il nostro impasto matura almeno 48 ore con lievito madre e biga — meno lievito, più tempo, più digeribilità. È il contrario della pizza industriale che gonfia. Ti puoi fidare 🐧';
+  }
+
   const parole = tSecco.split(/\s+/).length;
   if(parole <= 3 && !trovaNomePizza(input)){
     let tagDiretto = null;
@@ -327,6 +348,11 @@ function rispostaLocale(input){
         return 'Pizze **'+label+'** 🍕\n\n'+risultati.join('\n\n');
       }
     }
+  } // end chiedePizzeConIng
+
+  // Risposta impasto se domanda diretta
+  if(_domandaImpasto && ['pesante','gonfia'].some(k=>t.includes(k))){
+    return 'Il nostro impasto matura almeno 48 ore con lievito madre e biga — meno lievito, più tempo, più digeribilità. È il contrario della pizza industriale che gonfia. Ti puoi fidare 🐧';
   }
 
   // Fritti — solo keyword specifiche fritti, mai se si parla di pizza
@@ -565,6 +591,29 @@ function rispostaLocale(input){
       ultimaSuggestione = { nome: nd, prezzo: prezzoTot, kcal: kcalTot, ings: [canon] };
       return '**'+nd+'** 🍕\nBase: pomodoro, mozzarella + '+canon+'\n\n**'+kcalTot+' kcal** · **'+fmtE(prezzoTot)+'€**\n\n💡 Scrivi "ok mi sta bene" per confermare!';
     }
+  }
+
+  // ── IMPASTO / FARINA / DIGERIBILITA' ──
+  if(['integrale','farina integrale','impasto integrale'].some(k=>t.includes(norm(k)))){
+    return 'Integrale no, ma usiamo una **farina di tipo 1** — meno raffinata del 00, più saporita e più digeribile. Con il lievito madre e la maturazione lenta ottieni una pizza che non pesa 🐧';
+  }
+  if(['senza glutine','celiaco','celiachia','gluten free','glutenfree'].some(k=>t.includes(norm(k)))){
+    return 'No, non facciamo senza glutine — lavoriamo in un ambiente dove il glutine è ovunque, quindi non possiamo garantire l\'assenza di contaminazioni. Chi è celiaco deve evitarci 🙏 Per tutto il resto siamo qui! 🐧';
+  }
+  if(['digeribile','digeribilita','pesante','si gonfia','gonfia','gonfiore'].some(k=>t.includes(norm(k)))){
+    return 'Il nostro impasto matura almeno 48 ore con lievito madre e biga — meno lievito, più tempo, più digeribilità. È il contrario della pizza industriale che gonfia. Ti puoi fidare 🐧';
+  }
+  if(['che farina','farina usate','tipo di farina','che lievito','lievito usate','lievito madre','biga'].some(k=>t.includes(norm(k)))){
+    return 'Farina di tipo 1 + lievito madre + biga. Impasto indiretto con maturazione lenta — leggero e digeribile. Niente chimica, niente scorciatoie 🍕';
+  }
+  if(['la pizza e leggera','e leggera','risulta leggera','si sente leggera','si digerisce','gonfia dopo','la pizza e pesante','pizza pesante'].some(k=>t.includes(norm(k)))||['digeribile'].some(k=>tSecco===norm(k))){
+    return 'Con 48 ore di maturazione e lievito madre, il lievito ha già fatto tutto il lavoro prima che la pizza arrivi in forno. Leggerissima e super digeribile. Il pinguino la mangia anche a mezzanotte 🐧';
+  }
+  if(['lievito di birra','lievito birra','usate lievito'].some(k=>t.includes(norm(k)))){
+    return 'No — usiamo lievito madre e biga. Il lievito di birra è il fast food degli impasti. Noi preferiamo fare le cose per bene 🍕';
+  }
+  if(['senza lattosio','intollerante lattosio','intolleranza lattosio','allergia latte','allergia lattosio'].some(k=>t.includes(norm(k))) && !ordineAttivo){
+    return 'La mozzarella standard contiene lattosio. Se sei intollerante possiamo sostituirla — scrivilo nelle note dell\'ordine e ti chiamiamo per accordarci 📞';
   }
 
   // ── CONSEGNA A DOMICILIO ──
