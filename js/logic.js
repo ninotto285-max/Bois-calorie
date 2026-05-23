@@ -130,6 +130,11 @@ function rispostaLocale(input){
     return rispostaInsulto();
   }
 
+  // ── CURIOSITA' ──
+  if(['curiosita','curiosità','🐧 curiosità','curiosita pinguino','dimmi qualcosa'].some(k=>t.includes(norm(k)))||t.trim()==='curiosita'){
+    return '🐧 ' + getCuriosita();
+  }
+
   // Cosa sai fare — risposta locale + descrizione AI
   if(['cosa sai fare','cosa puoi fare','a cosa servi','come funzioni','come usi','aiuto','help','funzioni'].some(k=>t.includes(norm(k))))
     return 'COSA_SAI_FARE';
