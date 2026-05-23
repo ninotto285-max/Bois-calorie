@@ -165,6 +165,9 @@ function gestisciOrdine(input){
   const t = norm(input);
 
   if(ordineStep === 'nome'){
+    if(!input.trim() || norm(input.trim()).length < 2){
+      return 'Come ti chiami? Scrivi il tuo nome per procedere 😊';
+    }
     ordine.nome = input.trim();
     ordineStep = 'telefono';
     return 'Perfetto **'+ordine.nome+'**! 🐧\nE il tuo numero di telefono?';
@@ -655,6 +658,12 @@ function gestisciOrdine(input){
     const tN = norm(input.trim());
     // Solo "no" secco = nessuna nota
     if(['no','niente','nessuna','nessuno','nope','nah'].some(k=>tN===k)){
+    // Risposte ambigue → ripeti la domanda
+    const _ambigui = ['boh','mah','beh','eh','uhm','hmm','?','...'];
+    const _tN = norm(input.trim());
+    if(_ambigui.some(k=>_tN===k)||input.trim().length<2){
+      return 'Hai allergie o note particolari? Scrivi pure o **"no"** per procedere 😊';
+    }
       ordine.note = '';
       ordineStep = 'spicchi';
       return '🔪 Vuole la pizza **tagliata a spicchi**? (sì o no)';
@@ -691,6 +700,11 @@ function gestisciOrdine(input){
     }
     const nPizze = ordine.pizze.reduce((s,p)=>s+p.qty,0);
     const sugFritt = nPizze >= 6 ? 2 : 1;
+    // Risposte ambigue → ripeti la domanda
+    const _ambS = ['boh','mah','beh','eh','uhm','?','...'];
+    if(_ambS.some(k=>norm(input.trim())===k)){
+      return '🔪 Tagliata a spicchi sì o no? 😊';
+    }
     ordineStep = 'frittini';
     return '🍟 Vuoi aggiungere dei **frittini**? (5pz a 2,50€ l\'uno)\n'+
            (sugFritt > 1 ? 'Con '+nPizze+' pizze potreste volerne anche '+sugFritt+' 😋\n' : '')+
@@ -860,9 +874,12 @@ function gestisciOrdine(input){
       // Mostra pulsante conferma
       return 'MOSTRA_PULSANTE';
     }
-    if(['no','sbagliato','annulla'].some(k=>t.includes(k))){
+    if(['annulla','cancella ordine','voglio annullare'].some(k=>t.includes(norm(k)))){
       resetOrdine();
-      return 'Ordine annullato. Ricominciamo? Scrivi "voglio ordinare"! 🐧';
+      return 'Ordine annullato. Ricominciamo quando vuoi! 🐧';
+    }
+    if(norm(input.trim())==='no'||norm(input.trim())==='sbagliato'){
+      return 'Vuoi **annullare** l\'ordine o **modificarlo**? ✏️\nDimmi cosa cambiare oppure scrivi **"annulla"** per ricominciare.';
     }
     return 'Scrivi **"sì"** per confermare o **"no"** per annullare. 🐧';
   }
@@ -948,7 +965,7 @@ async function bpSend(){
     return;
   }
 
-  const locale=rispostaLocale(text);
+  const locale = ordineAttivo ? null : rispostaLocale(text);
   if(locale==='ORDER'){
     addBotMsg('Vuoi ordinare? Scrivi **"voglio ordinare"** e ti guido passo passo! 🐧\nOppure contattaci direttamente:');
     setTimeout(showOrderButtons,300); return;
