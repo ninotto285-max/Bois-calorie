@@ -69,9 +69,10 @@ async function inviaOrdine(){
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({
         nome: ordine.nome,
+        telefono: ordine.telefono||'',
         orario: ordine.orario,
-        pizze: ordine.pizze.map(p=>({qty:p.qty, nome:p.nome, prezzo: fmtE(p.prezzo*p.qty)+'€'})),
-        totale: fmtE(tot)+'€',
+        pizze: ordine.pizze.map(p=>({qty:p.qty, nome:p.nome, prezzo:p.prezzo})),
+        totale: tot,
         note: ordine.note
       })
     });
