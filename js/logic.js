@@ -108,6 +108,8 @@ function correggiTypo(s){
     .replace(/\bmozzarela\b/gi,'mozzarella')
     .replace(/\bsalsicia\b/gi,'salsiccia')
     .replace(/\bvaltelina\b/gi,'valtellina')
+    .replace(/\bspek\b/gi,'speck')
+    .replace(/\bspeck\b/gi,'speck')
     .replace(/\bsfizziosa\b/gi,'sfiziosa')
     .replace(/\bsfizzio\w*/gi,'sfiziosa');
 }
