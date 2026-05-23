@@ -1188,4 +1188,3 @@ function getDescrizionePizza(nomePizza){
   }
   return d[0]+' '+d[1]+' '+d[2]+extra;
 }
-
