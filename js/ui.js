@@ -6,27 +6,49 @@ let ordineAttivo = false;
 let ordine = { nome:'', orario:'', pizze:[], note:'' };
 let ordineStep = ''; // 'nome' | 'orario' | 'pizze' | 'altra' | 'note' | 'conferma'
 
-const ORARI_DISPONIBILI = ['18:30','18:45','19:00','19:15','19:30','19:45','20:00','20:15','20:30','20:45','21:00','21:15','21:30'];
+const ORARI_DISPONIBILI = (()=>{
+  const slots = [];
+  for(let h=18; h<=21; h++){
+    for(let m=0; m<60; m+=15){
+      if(h===18 && m<30) continue; // inizia alle 18:30
+      if(h===21 && m>30) continue; // finisce alle 21:30
+      slots.push((h<10?'0':'')+h+':'+(m<10?'0':'')+m);
+    }
+  }
+  return slots;
+})();
 
 // Converte orario colloquiale → HH:MM
 function parseOrario(t){
-  // Prova prima orario esatto tipo 19:00 o 1900
+  // Prova prima orario esatto o quasi (es. 19:40 → 19:45)
+  const matchEsatto = t.match(/\b(1[89]|2[01])[:h]([0-5]\d)\b/);
+  if(matchEsatto){
+    const hh = parseInt(matchEsatto[1]), mm = parseInt(matchEsatto[2]);
+    const minTot = hh*60+mm;
+    let best=null, bestDiff=999;
+    for(const s of ORARI_DISPONIBILI){
+      const [sh,sm]=s.split(':').map(Number);
+      const diff=Math.abs(sh*60+sm-minTot);
+      if(diff<bestDiff){bestDiff=diff;best=s;}
+    }
+    if(best && bestDiff<=8) return best;
+  }
   for(const o of ORARI_DISPONIBILI){
     const op = o.replace(':','');
     if(t.includes(o) || t.replace(/[:\s]/g,'').includes(op)) return o;
   }
   // Orari colloquiali tipo "7", "7 e mezza", "8 e un quarto", "20 e 30"
   const mappa = [
-    [/\b6\s*e\s*mez/,'18:30'], [/\b6\s*e\s*trenta/,'18:30'], [/\b6\s*e\s*30\b/,'18:30'], [/\balle\s*6\s*e\s*mez/,'18:30'],
+    [/\b6\s*e\s*mez/,'18:30'], [/\b6\s*e\s*trenta/,'18:30'], [/\b6\s*e\s*30\b/,'18:30'], [/\bsei\s*e\s*mez/i,'18:30'], [/\bsei\s*e\s*trenta/i,'18:30'], [/\bsei\s*e\s*30/i,'18:30'], [/\balle\s*6\s*e\s*mez/,'18:30'],
     [/\b6\s*e\s*un\s*quarto/,'18:45'], [/\balle\s*sei\s*e\s*mez/,'18:30'],
     [/\balle?\s*sei\b/,'18:30'],
-    [/\b7\s*e\s*mez/,'19:30'], [/\b7\s*e\s*trenta/,'19:30'], [/\b7\s*e\s*30\b/,'19:30'],
+    [/\b7\s*e\s*mez/,'19:30'], [/\b7\s*e\s*trenta/,'19:30'], [/\b7\s*e\s*30\b/,'19:30'], [/\bsette\s*e\s*mez/i,'19:30'], [/\bsette\s*e\s*trenta/i,'19:30'],
     [/\b7\s*e\s*un\s*quarto/,'19:15'], [/\balle?\s*sette\s*e\s*mez/,'19:30'],
     [/\balle?\s*sette\b/,'19:00'], [/\balle?\s*7\b/,'19:00'],
-    [/\b8\s*e\s*mez/,'20:30'], [/\b8\s*e\s*trenta/,'20:30'], [/\b8\s*e\s*30\b/,'20:30'],
+    [/\b8\s*e\s*mez/,'20:30'], [/\b8\s*e\s*trenta/,'20:30'], [/\b8\s*e\s*30\b/,'20:30'], [/\botto\s*e\s*mez/i,'20:30'], [/\botto\s*e\s*trenta/i,'20:30'],
     [/\b8\s*e\s*un\s*quarto/,'20:15'], [/\balle?\s*otto\s*e\s*mez/,'20:30'],
     [/\balle?\s*otto\b/,'20:00'], [/\balle?\s*8\b/,'20:00'],
-    [/\b9\s*e\s*mez/,'21:30'], [/\b9\s*e\s*trenta/,'21:30'], [/\b9\s*e\s*30\b/,'21:30'],
+    [/\b9\s*e\s*mez/,'21:30'], [/\b9\s*e\s*trenta/,'21:30'], [/\b9\s*e\s*30\b/,'21:30'], [/\bnove\s*e\s*mez/i,'21:30'], [/\bnove\s*e\s*trenta/i,'21:30'],
     [/\b9\s*e\s*un\s*quarto/,'21:15'], [/\balle?\s*nove\s*e\s*mez/,'21:30'],
     [/\balle?\s*nove\b/,'21:00'], [/\balle?\s*9\b/,'21:00'],
     [/\b18\s*e\s*mez/,'18:30'], [/\b19\s*e\s*mez/,'19:30'],
@@ -42,7 +64,7 @@ function parseOrario(t){
 
 function resetOrdine(){
   ordineAttivo = false;
-  ordine = { nome:'', orario:'', pizze:[], note:'', telefono:'' };
+  ordine = { nome:'', orario:'', pizze:[], note:'', telefono:'', frittini:[] };
   ordineStep = '';
   ordineDomandaCottura = null;
 }
@@ -55,14 +77,21 @@ function fmtOrdine(){
   for(const p of ordine.pizze){
     msg += `• ${p.qty}x **${p.nome}** — ${fmtE(p.prezzo * p.qty)}€\n`;
   }
-  const tot = ordine.pizze.reduce((s,p)=>s+p.prezzo*p.qty,0);
+  if(ordine.frittini && ordine.frittini.length){
+    for(const f of ordine.frittini) msg += `• ${f.qty}x Fritino ${f.tipo} 5pz — ${fmtE(f.prezzo*f.qty)}€\n`;
+  }
+  const totPizze = ordine.pizze.reduce((s,p)=>s+p.prezzo*p.qty,0);
+  const totFrit = (ordine.frittini||[]).reduce((s,f)=>s+f.prezzo*f.qty,0);
+  const tot = totPizze + totFrit;
   msg += `\n💰 Totale stimato: **${fmtE(tot)}€**`;
   if(ordine.note) msg += `\n📝 Note: ${ordine.note}`;
   return msg;
 }
 
 async function inviaOrdine(){
-  const tot = ordine.pizze.reduce((s,p)=>s+p.prezzo*p.qty,0);
+  const totPizze2 = ordine.pizze.reduce((s,p)=>s+p.prezzo*p.qty,0);
+  const totFrit2 = (ordine.frittini||[]).reduce((s,f)=>s+f.prezzo*f.qty,0);
+  const tot = totPizze2 + totFrit2;
   try {
     const r = await fetch('/api/ordine', {
       method:'POST',
@@ -73,7 +102,8 @@ async function inviaOrdine(){
         orario: ordine.orario,
         pizze: ordine.pizze.map(p=>({qty:p.qty, nome:p.nome, prezzo:p.prezzo})),
         totale: tot,
-        note: ordine.note
+        note: ordine.note,
+        frittini: ordine.frittini||[]
       })
     });
     const d = await r.json();
@@ -395,8 +425,31 @@ function gestisciOrdine(input){
     }
     if(['allergi','intollerante','intolleranza'].some(k=>notaN.includes(k))) notaTesto = '⚠️ '+notaTesto;
     ordine.note = notaTesto;
+    ordineStep = 'frittini';
+    return '🍟 Vuoi aggiungere un **fritino** (5pz a 2,50€)?\nPuoi scegliere misti o uno solo tra:\n• Olive ascolane · Mozzarelline · Nuggets pollo · Crocchettine patate · Anellini di cipolla\nOppure scrivi **"no"** per procedere.';
+  }
+
+  if(ordineStep === 'frittini'){
+    const tF = norm(input.trim());
+    if(['no','niente','nope','nah','basta','no grazie'].some(k=>tF.includes(k))){
+      ordineStep = 'conferma';
+      return fmtOrdine() + '\n\nÈ tutto corretto?';
+    }
+    // Quanti frittini?
+    const nMatch = input.match(/(\d+)/);
+    const qty = nMatch ? parseInt(nMatch[1]) : 1;
+    // Tipo: misti o specifico
+    let tipo = 'Misti';
+    for(const [nome] of Object.entries(FRITTINI)){
+      if(tF.includes(norm(nome))){ tipo = nome.charAt(0).toUpperCase()+nome.slice(1); break; }
+    }
+    // Aggiungi frittini all'ordine
+    if(qty > 0){
+      ordine.frittini = ordine.frittini || [];
+      ordine.frittini.push({ qty, tipo, prezzo: 2.50 });
+    }
     ordineStep = 'conferma';
-    let rispOrdine = fmtOrdine() + '\n\nE tutto corretto?';
+    return (qty>0 ? `Perfetto! ${qty}x Fritino ${tipo} (5pz) — ${fmtE(qty*2.50)}€ aggiunto 🍟\n\n` : '') + fmtOrdine() + '\n\nÈ tutto corretto?';
     if(avvisiAllerg.length>0) rispOrdine = '⚠️ **Attenzione!**\n'+avvisiAllerg.join('\n')+'\n\nVuoi procedere lo stesso?\n\n'+rispOrdine;
     return rispOrdine;
   }
