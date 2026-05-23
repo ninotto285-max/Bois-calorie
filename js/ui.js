@@ -194,6 +194,20 @@ function gestisciOrdine(input){
 
   if(ordineStep === 'pizze'){
     // "basta" nello step pizze → vai avanti se ha almeno qualcosa
+    // ── Bibita durante ordine (pizze/altra) ──
+    if(ordineStep==='pizze'||ordineStep==='altra'){
+      const _bibKey = trovaBibita(input);
+      if(_bibKey && BIBITE[_bibKey]){
+        ordine.bibite = ordine.bibite || [];
+        ordine.bibite.push({ qty:1, label:BIBITE[_bibKey].label, prezzo:BIBITE[_bibKey].prezzo });
+        // Rimuovi la bibita dall'input e processa il resto
+        const _bibRest = input
+          .replace(/\buna?\s+(?:birra\s+litro|birra\s+\d+cl|birra\s+lattina|coca[\s-]?cola|fanta|sprite|lemonsoda|lemon\s+soda|franzis\w+|tuborg\w*|birra\s+\w+|bibita\s+\w+|birra)\b/gi,'')
+          .replace(/\be\s*$/,'').trim();
+        if(_bibRest && norm(_bibRest).length > 2) gestisciOrdine(_bibRest);
+        return 'Aggiunto: 1x '+BIBITE[_bibKey].label+' — '+fmtE(BIBITE[_bibKey].prezzo)+'€ 🥤\nVuoi altro o scrivi **"basta"**.';
+      }
+    }
     if(['basta','ok basta','ho finito','fine','finito'].some(k=>norm(input.trim())===k) || norm(input.trim())==='basta'){
       if(ordine.pizze.length > 0 || (ordine.frittini && ordine.frittini.length > 0)){
         ordineStep = 'altra';
@@ -202,7 +216,15 @@ function gestisciOrdine(input){
       }
     }
     // ── FRITTI come voce separata ──
-    const _frittoRe = /(?:una?\s+)?(?:porzione|porzioncina)\s+di\s+([\w\s]+?)(?:\s*,|\s*$)/i;
+    // Gestisci più porzioni nella stessa riga: "una porzione di X e una porzione di Y"
+    const _tuttePortzioni = input.match(/(?:una?\s+)?(?:porzione|porzioncina)\s+di\s+[\w\s]+?(?=\s+e\s+una?\s+(?:porzione|porzioncina)|\s*,|\s*$)/gi)||[];
+    if(_tuttePortzioni.length > 1){
+      for(const _pRiga of _tuttePortzioni){
+        ordineStep='pizze'; gestisciOrdine(_pRiga); ordineStep=ordineStep;
+      }
+      return null;
+    }
+    const _frittoRe = /(?:una?\s+)?(?:porzione|porzioncina)\s+di\s+([\w\s]+?)(?:\s*,|\s+e\s+una?\s+(?:porzione|porzioncina)|\s*$)/i;
     const _frittoM = input.match(_frittoRe);
     if(_frittoM){
       const _nF = norm(_frittoM[1].trim());
@@ -787,8 +809,7 @@ function gestisciOrdine(input){
     return 'Aggiunto: '+aggiunti.join(', ')+' 🍟\n\n'+fmtOrdine()+'\n\nÈ tutto corretto?';
   }
 
-  }
-
+  
 
   if(ordineStep === 'bibita'){
     const tB = norm(input.trim());
@@ -802,9 +823,11 @@ function gestisciOrdine(input){
     if(keyBibita && BIBITE[keyBibita]){
       const bib = BIBITE[keyBibita];
       // Calcola prezzo combo: se ha frittini analcolica/lattina → combo 4€
+      // Combo: 1 frittino 5pz (2,50€) + bibita analcolica/lattina = 4,00€ totale
+      // Quindi bibita costa 1,50€ invece di 2,50€
       const haFrittCombo = ordine.frittini.some(f=>f.tipo!=='Alette di pollo'&&f.tipo!=='Verdure pastellate'&&f.tipo!=='Patate fritte');
       const prezBibita = (haFrittCombo && (bib.tipo==='analcolica'||bib.tipo==='lattina'))
-        ? Math.max(0, 4.00 - ordine.frittini.reduce((s,f)=>s+f.prezzo*f.qty,0))
+        ? 1.50
         : bib.prezzo;
       ordine.bibite = ordine.bibite || [];
       ordine.bibite.push({ qty:1, label:bib.label, prezzo:prezBibita });
@@ -819,6 +842,9 @@ function gestisciOrdine(input){
     ordineStep = 'conferma';
     return fmtOrdine() + '\n\nÈ tutto corretto?';
   }
+
+}
+
 
   if(ordineStep === 'conferma'){
     // Aggiunta pizza/fritto post-conferma
