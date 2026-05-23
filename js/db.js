@@ -1061,6 +1061,10 @@ const BIBITE_ALIAS = {
   'fanta':'fanta','fanta arancia':'fanta',
   'sprite':'sprite','spryte':'sprite',
   'lemonsoda':'lemonsoda','lemon soda':'lemonsoda','limonata':'lemonsoda',
+  'birra litro':'birra litro','birra grande':'birra litro','birra 1 litro':'birra litro',
+  'birra 066':'birra 66cl','birra 66cl':'birra 66cl','birra sessantasei':'birra 66cl',
+  'birra 050':'birra 50cl','birra 50cl':'birra 50cl','birra cinquanta':'birra 50cl',
+  'birra 033':'birra 33cl','birra 33cl':'birra 33cl',
   'birra':'birra lattina','beer':'birra lattina','peroni':'birra lattina','moretti':'birra lattina',
   'birra in lattina':'birra lattina','lattina':'birra lattina',
   'franziskaner':'franziskaner','franzis':'franziskaner','franzi':'franziskaner',
@@ -1073,12 +1077,14 @@ const BIBITE_ALIAS = {
 
 function trovaBibita(input){
   const t = norm(input);
-  // Cerca alias prima
-  for(const [alias, key] of Object.entries(BIBITE_ALIAS)){
+  // Cerca alias dal più lungo al più corto per evitare match parziali
+  const aliasOrdinati = Object.entries(BIBITE_ALIAS).sort((a,b)=>b[0].length-a[0].length);
+  for(const [alias, key] of aliasOrdinati){
     if(t.includes(norm(alias))) return key;
   }
-  // Cerca diretto
-  for(const key of Object.keys(BIBITE)){
+  // Cerca chiave diretta dal più lungo al più corto
+  const keysOrdinate = Object.keys(BIBITE).sort((a,b)=>b.length-a.length);
+  for(const key of keysOrdinate){
     if(t.includes(norm(key))) return key;
   }
   return null;
