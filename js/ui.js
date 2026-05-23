@@ -843,7 +843,6 @@ function gestisciOrdine(input){
     return fmtOrdine() + '\n\nÈ tutto corretto?';
   }
 
-}
 
 
   if(ordineStep === 'conferma'){
@@ -869,6 +868,7 @@ function gestisciOrdine(input){
   }
 
   return null;
+}
 
 function togglePanel(){
   panelOpen=!panelOpen;
