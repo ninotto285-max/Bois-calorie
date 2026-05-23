@@ -20,8 +20,10 @@ const ORARI_DISPONIBILI = (()=>{
 
 // Converte orario colloquiale → HH:MM
 function parseOrario(t){
+  // Normalizza "18 e 35" → "18:35", "19e5" → "19:05"
+  t = t.replace(/(1[89]|2[01])\s*e\s*(\d{1,2})(?!\s*mezz)/g, (m,h,mn)=>h+':'+(mn.length===1?'0'+mn:mn));
   // Prova prima orario esatto o quasi (es. 19:40 → 19:45)
-  const matchEsatto = t.match(/\b(1[89]|2[01])[:h]([0-5]\d)\b/);
+  const matchEsatto = t.match(/\b(1[89]|2[01])[:he]([0-5]\d)\b/);
   if(matchEsatto){
     const hh = parseInt(matchEsatto[1]), mm = parseInt(matchEsatto[2]);
     const minTot = hh*60+mm;
@@ -55,6 +57,10 @@ function parseOrario(t){
     [/\b20\s*e\s*mez/,'20:30'], [/\b21\s*e\s*mez/,'21:30'],
     [/\bper\s*le\s*19\b/,'19:00'], [/\bper\s*le\s*20\b/,'20:00'],
     [/\bper\s*le\s*21\b/,'21:00'], [/\bper\s*le\s*18\b/,'18:30'],
+    [/\balle?\s*6\b/,'18:30'], [/\balle?\s*sei\b/i,'18:30'],
+    [/\bverso\s*(?:le?)?\s*8\b/i,'20:00'], [/\bverso\s*(?:le?)?\s*7\b/i,'19:00'],
+    [/\bverso\s*(?:le?)?\s*9\b/i,'21:00'], [/\bverso\s*(?:le?)?\s*6\b/i,'18:30'],
+    [/^18$/, '18:30'], [/^19$/, '19:00'], [/^20$/, '20:00'], [/^21$/, '21:00'],
   ];
   for(const [re, orario] of mappa){
     if(re.test(t)) return orario;
@@ -64,7 +70,7 @@ function parseOrario(t){
 
 function resetOrdine(){
   ordineAttivo = false;
-  ordine = { nome:'', orario:'', pizze:[], note:'', telefono:'', frittini:[] };
+  ordine = { nome:'', orario:'', pizze:[], note:'', telefono:'', frittini:[], _noteVariazioni:[] };
   ordineStep = '';
   ordineDomandaCottura = null;
 }
@@ -84,7 +90,10 @@ function fmtOrdine(){
   const totFrit = (ordine.frittini||[]).reduce((s,f)=>s+f.prezzo*f.qty,0);
   const tot = totPizze + totFrit;
   msg += `\n💰 Totale stimato: **${fmtE(tot)}€**`;
-  if(ordine.note) msg += `\n📝 Note: ${ordine.note}`;
+  if(ordine._noteVariazioni && ordine._noteVariazioni.length){
+    msg += '\n\n📌 *Richieste speciali:*\n'+ordine._noteVariazioni.join('\n');
+  }
+  if(ordine.note) msg += '\n📝 Note: '+ordine.note;
   return msg;
 }
 
@@ -103,7 +112,8 @@ async function inviaOrdine(){
         pizze: ordine.pizze.map(p=>({qty:p.qty, nome:p.nome, prezzo:p.prezzo})),
         totale: tot,
         note: ordine.note,
-        frittini: ordine.frittini||[]
+        frittini: ordine.frittini||[],
+        noteVariazioni: ordine._noteVariazioni||[]
       })
     });
     const d = await r.json();
@@ -177,6 +187,29 @@ function gestisciOrdine(input){
   }
 
   if(ordineStep === 'pizze'){
+    // "basta" nello step pizze → vai avanti se ha almeno qualcosa
+    if(['basta','ok basta','ho finito','fine','finito'].some(k=>norm(input.trim())===k) || norm(input.trim())==='basta'){
+      if(ordine.pizze.length > 0 || (ordine.frittini && ordine.frittini.length > 0)){
+        ordineStep = 'altra';
+        // Torna al check allergeni
+        return gestisciOrdine('basta');
+      }
+    }
+    // ── FRITTI come voce separata ──
+    const _frittoRe = /(?:una?\s+)?(?:porzione|porzioncina)\s+di\s+([\w\s]+?)(?:\s*,|\s*$)/i;
+    const _frittoM = input.match(_frittoRe);
+    if(_frittoM){
+      const _nF = norm(_frittoM[1].trim());
+      const _frittiDB = {'patate fritte':3.50,'patate':3.50,'patatine':3.50,'verdure pastellate':4.00,'verdure':4.00,'olive ascolane':6.00,'olive':6.00,'mozzarelline':6.00,'nuggets':6.00,'nuggets pollo':6.00,'crocchettine':6.00,'crocchettine patate':6.00,'anellini':3.50,'anellini di cipolla':3.50,'alette':5.50,'alette di pollo':5.50};
+      const _kF = Object.keys(_frittiDB).find(k=>_nF.includes(norm(k))||norm(k).includes(_nF));
+      if(_kF){
+        ordine.frittini = ordine.frittini||[];
+        ordine.frittini.push({ qty:1, tipo:_kF.charAt(0).toUpperCase()+_kF.slice(1)+' 10pz', prezzo:_frittiDB[_kF] });
+        const _resto = input.replace(_frittoM[0],'').replace(/^[,\se]+/,'').trim();
+        if(_resto) gestisciOrdine(_resto);
+        return 'Aggiunto: 1x '+_kF.charAt(0).toUpperCase()+_kF.slice(1)+' 10pz — '+fmtE(_frittiDB[_kF])+'€ 🍟\nVuoi altro o scrivi **"basta"**.';
+      }
+    }
     // Split su virgola, newline, e anche 'e' tra pizze (es. '2 margherite e 1 diavola')
     // Frasi tipo "niente acciughe" o "occhio alle X" sono note allergie, non pizze
     if(/\b(?:niente|occhio alle?|attenzione alle?|allergi|intollerante)\b/i.test(input) || /\bsenza lattosio\b/i.test(input) && !trovaNomePizza(input)){
@@ -231,6 +264,7 @@ function gestisciOrdine(input){
       const isDoppia = /\bdoppi[ao]?\s+pasta/i.test(riga);
       // Se la riga è "battuta [con X]" → formato per pizza precedente
       const isBattutaRiga = /^(?:una?\s+)?battut/i.test(riga.trim());
+      const isBattuta = /\bbattut/i.test(riga);
       // Se riga è "una con X" senza nome pizza → modifica ultima pizza
       const soloCon = /^(?:(?:una?|quello|quella)\s+)?con\s+/i.test(riga.trim());
       if(soloCon && trovate.length > 0 && !ingredienteSenza){
@@ -302,7 +336,51 @@ function gestisciOrdine(input){
         }
         // Pulisci e finale nelle parentesi
         nomeDisplay = nomeDisplay.replace(/\s+e\)$/g,')').replace(/\(con\s+e\)/g,'').trim();
-        trovate.push({ qty, nome: nomeDisplay, prezzo: p.prezzo });
+        
+        // ── Variazioni prezzo ──
+        let prezzoFinale = p.prezzo;
+        const rigaLow = riga.toLowerCase();
+        const isBattutaPiccola = /battut\w*\s+piccol/i.test(riga) || /piccol\w*\s+battut/i.test(riga);
+        if(isBattuta && !isBattutaPiccola) prezzoFinale += 2.00;  // battuta +2€
+        if(isDoppia) prezzoFinale += 1.00;                         // doppia pasta +1€
+        if(isBaby) prezzoFinale -= 0.50;                           // baby -0.50€
+        
+        // Asterisco per richieste no-price (ben cotta, tagliata, poco cotta, spicchi ecc.)
+        const richiesteNoteVariazioni = [];
+        const patternNoteVariaz = [
+          [/\bben\s+cott\w*/i, 'ben cotta'],
+          [/\bpoco\s+cott\w*/i, 'poco cotta'],
+          [/\btagliat\w*/i, 'tagliata'],
+          [/\ba\s+spicchi/i, 'a spicchi'],
+          [/\bvegan\w*/i, 'vegan'],
+          [/\bsenza\s+lattosio/i, 'senza lattosio (+€ verifica)'],
+          [/\blattosio/i, 'lattosio (verifica)'],
+          [/\bvegetar\w*/i, 'vegetariana'],
+          [/\bcroccant\w*/i, 'extra croccante'],
+          [/\bpoco\s+sal\w*/i, 'poco salata'],
+          [/\bmezza\s+e\s+mezza/i, 'mezza e mezza'],
+        ];
+        for(const [re, label] of patternNoteVariaz){
+          if(re.test(riga) && !nomeDisplay.includes(label)) richiesteNoteVariazioni.push(label);
+        }
+        // Asterisco per variazioni no-price riconosciute
+        if(richiesteNoteVariazioni.length > 0){
+          nomeDisplay += ' *';
+          ordine._noteVariazioni = ordine._noteVariazioni || [];
+          ordine._noteVariazioni.push('* '+nomeDisplay.replace(' *','')+': '+richiesteNoteVariazioni.join(', '));
+        }
+        // Asterisco per senza X non riconosciuto (es. "senza lettosio")
+        if(ingredienteSenza){
+          const canonSenza = trovaNomeIng(ingredienteSenza)||null;
+          const allergenoKnown = ['lattosio','latte','glutine','celiaco','noci','uova','pesce','soia','arachidi','sesamo','senape'].some(k=>norm(ingredienteSenza).includes(k));
+          if(!canonSenza && !allergenoKnown){
+            if(!nomeDisplay.endsWith(' *')) nomeDisplay += ' *';
+            ordine._noteVariazioni = ordine._noteVariazioni || [];
+            ordine._noteVariazioni.push('* '+nomeDisplay.replace(' *','')+': senza '+ingredienteSenza+' (verificare)');
+          }
+        }
+        
+        trovate.push({ qty, nome: nomeDisplay, prezzo: prezzoFinale });
       } else {
         // Nessuna pizza trovata — controlla se è un formato per la pizza precedente
         const isBattutaStandalone = /^(?:una?\s+)?battut/i.test(riga.trim());
@@ -337,6 +415,10 @@ function gestisciOrdine(input){
       const lista = trovate.map(p=>`${p.qty}x ${p.nome}`).join(', ');
       ordineStep = 'altra';
       return `Aggiunto: ${lista} ✅\n\nVuoi aggiungere altre pizze? Oppure scrivi **"basta"** per procedere.`;
+    }
+    if(ordine.frittini && ordine.frittini.length > 0 && ordine.pizze.length === 0){
+      ordineStep = 'altra';
+      return gestisciOrdine('basta');
     }
     return `Non ho trovato pizze nel menù 😅 Prova a scrivere il nome, tipo "2 margherite" o "una diavola".`;
   }
@@ -374,6 +456,41 @@ function gestisciOrdine(input){
   }
 
   if(ordineStep === 'altra'){
+    // Cambio orario durante ordine
+    if(t.includes('cambia') && t.includes('orari') || t.includes('orario diverso') || t.includes('cambio orario')){
+      const nuovoOrario = parseOrario(input);
+      if(nuovoOrario){
+        ordine.orario = nuovoOrario;
+        return 'Orario aggiornato a **'+nuovoOrario+'** ✅\nVuoi aggiungere altre pizze o scrivi **"basta"**.';
+      }
+      return 'Dimmi il nuovo orario 🕐';
+    }
+    // Rimozione + eventuale aggiunta nella stessa frase
+    if(t.includes('togli') || t.includes('rimuovi') || t.includes('cancella')){
+      // Estrai parte "togli X" e parte "aggiungi Y"
+      const parteTogli = input.match(/(?:togli|rimuovi|cancella|via)\s+(.+?)(?:\s+e\s+(?:aggiungi|metti|anche)\s+|$)/i);
+      const parteAggiungi = input.match(/(?:aggiungi|metti|anche|sostituisci con)\s+(.+)$/i);
+      let msg = '';
+      // Rimuovi
+      if(parteTogli){
+        const nomeDaTogliere = trovaNomePizza(parteTogli[1]);
+        if(nomeDaTogliere){
+          const idx2 = ordine.pizze.findIndex(p=>norm(p.nome).includes(norm(nomeDaTogliere)));
+          if(idx2>=0){
+            const rimossa = ordine.pizze.splice(idx2,1)[0];
+            msg += 'Rimosso **'+rimossa.nome+'** ✅  ';
+          }
+        }
+      }
+      // Aggiungi
+      if(parteAggiungi){
+        ordineStep='pizze';
+        const aggResult = gestisciOrdine(parteAggiungi[1]);
+        ordineStep='altra';
+        if(aggResult) msg += aggResult.replace('Aggiunto:','Aggiunto:');
+      }
+      if(msg) return msg+'\nVuoi altro o scrivi **"basta"**.';
+    }
     if(['basta','ok','no','finito','fatto','va bene','è tutto','e tutto'].some(k=>t.includes(k))){
       // Controlla allergeni nelle pizze ordinate
       const avvisiAllergeni = [];
@@ -403,12 +520,13 @@ function gestisciOrdine(input){
     // Solo "no" secco = nessuna nota
     if(['no','niente','nessuna','nessuno','nope','nah'].some(k=>tN===k)){
       ordine.note = '';
-      ordineStep = 'conferma';
-      return fmtOrdine() + '\n\nÈ tutto corretto?';
+      ordineStep = 'spicchi';
+      return '🔪 Vuole la pizza **tagliata a spicchi**? (sì o no)';
     }
-    // "sì/si" secco → chiedi di specificare
+    // "sì/si" secco → chiedi di specificare solo se sembra riferirsi ad allergie
     if(['si','sì','yes','yep'].some(k=>tN===k)){
-      return 'Certo! Dimmi pure — allergie, ingredienti da togliere, cottura particolare... 📝';
+      // Sì secco nelle note = "sì ho allergie, dimmi" 
+      return 'Dimmi pure — allergie, ingredienti da togliere, altro... 📝\nOppure scrivi **"no"** per saltare.';
     }
     let notaTesto = input.trim();
     const mappaAllergeni = {'lattosio':'latte','latte':'latte','latticini':'latte','noci':'frutta a guscio','frutta a guscio':'frutta a guscio','frutta secca':'frutta a guscio','glutine':'glutine','celiaco':'glutine','pesce':'pesce','uova':'uova','uovo':'uova','soia':'soia','senape':'senape'};
@@ -425,8 +543,18 @@ function gestisciOrdine(input){
     }
     if(['allergi','intollerante','intolleranza'].some(k=>notaN.includes(k))) notaTesto = '⚠️ '+notaTesto;
     ordine.note = notaTesto;
+    ordineStep = 'spicchi';
+    return '🔪 Vuole la pizza **tagliata a spicchi**? (scrivi sì o no)';
+  }
+
+  if(ordineStep === 'spicchi'){
+    const tS = norm(input.trim());
+    if(['si','sì','ok','yes','certo','dai','sì grazie','si grazie'].some(k=>tS.includes(k))){
+      if(!ordine.note) ordine.note = '⚡ Tagliare a spicchi';
+      else ordine.note += ' — tagliare a spicchi';
+    }
     ordineStep = 'frittini';
-    return '🍟 Vuoi aggiungere un **fritino** (5pz a 2,50€)?\nPuoi scegliere misti o uno solo tra:\n• Olive ascolane · Mozzarelline · Nuggets pollo · Crocchettine patate · Anellini di cipolla\nOppure scrivi **"no"** per procedere.';
+    return '🍟 Vuoi aggiungere un **fritino** (5pz a 2,50€)?\nMisti o uno solo tra: Olive ascolane · Mozzarelline · Nuggets · Crocchettine · Anellini\nOppure **"no"** per procedere.';
   }
 
   if(ordineStep === 'frittini'){
@@ -567,6 +695,14 @@ async function bpSend(){
   setTimeout(()=>addBotMsg(rispostaGenerica(norm(text))),300);
   bpLoading=false;
 }
+function mostraCuriosita(){
+  if(!panelOpen) togglePanel();
+  setTimeout(()=>{
+    const r = rispostaLocale('curiosità');
+    if(r) addBotMsg(r);
+  }, 350);
+}
+
 function quickSend(text){
   if(!panelOpen) togglePanel();
   setTimeout(()=>{ document.getElementById('bp-input').value=text; bpSend(); },350);
