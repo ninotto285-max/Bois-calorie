@@ -567,6 +567,11 @@ function rispostaLocale(input){
     }
   }
 
+  // ── CONSEGNA A DOMICILIO ──
+  if(['domicilio','consegna','delivery','deliver','a casa','spedizione','portate a casa','portare a casa','mandate a casa'].some(k=>t.includes(norm(k)))){
+    return 'Noi facciamo solo **asporto** 🛵\nPer la consegna a domicilio siamo su **Deliveroo** — cercate BoisPizza! 🍕';
+  }
+
   // ── NUOVE FUNZIONALITA' ──
   const nuovaFunz = checkNuoveFunzioni(t, input, pizzaContesto);
   if(nuovaFunz) return nuovaFunz;
