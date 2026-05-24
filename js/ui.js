@@ -149,6 +149,24 @@ async function inviaOrdine(){
     if(d.ok){
       const nPizze = ordine.pizze.reduce((s,p)=>s+p.qty,0);
       await prenotaSlot(ordine.orario, nPizze);
+      // Se cliente non noto → chiedi consenso salvataggio
+      if(!ordine._clienteNoto){
+        ordine._aspettaConsensoPrivacy = true;
+        setTimeout(()=>{
+          addBotMsg('🐧 Vuoi salvare il tuo profilo per i prossimi ordini?\nLa prossima volta ti riconosco subito e non devi reinserire i dati!\n\n📋 [Privacy policy: i tuoi dati (nome e telefono) sono salvati solo per velocizzare i tuoi ordini futuri e non vengono condivisi con terzi.]\n\nScrivi **sì** per salvare o **no** per procedere.');
+        }, 1500);
+      } else {
+        // Cliente noto → aggiorna contatore ordini
+        fetch('/api/clienti', {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({
+            telefono: ordine.telefono,
+            nome: ordine.nome,
+            pizza_preferita: ordine.pizze.length > 0 ? ordine.pizze[0].nome.replace(/\s*\([^)]*\)/g,'').trim() : null
+          })
+        }).catch(()=>{});
+      }
     }
     return d.ok;
   } catch(e){ return false; }
@@ -204,6 +222,20 @@ function gestisciOrdine(input){
     const numM = input.replace(/\s/g,'').match(/[0-9]{6,}/);
     if(!numM) return 'Non ho capito il numero 😅 Scrivi tipo 3401234567';
     ordine.telefono = numM[0];
+    // Cerca cliente nel database
+    fetch('/api/clienti?telefono='+encodeURIComponent(ordine.telefono))
+      .then(r=>r.json())
+      .then(d=>{
+        if(d.trovato && d.cliente){
+          const c = d.cliente;
+          ordine._clienteNoto = true;
+          ordine._ordiniCount = c.ordini_count || 0;
+          const saluto = c.ordini_count > 1
+            ? `Bentornato **${c.nome}**! 🐧 È il tuo **${c.ordini_count+1}° ordine** con noi!`
+            : `Bentornato **${c.nome}**! 🐧`;
+          addBotMsg(saluto);
+        }
+      }).catch(()=>{});
     if(ordine.orario){
       // Orario già estratto dal messaggio iniziale
       ordineStep = 'pizze';
@@ -974,6 +1006,34 @@ function showTyping(){
 function removeTyping(){ const t=document.getElementById('bp-typing'); if(t) t.remove(); }
 
 async function bpSend(){
+  // Gestione consenso privacy post-ordine
+  if(ordine && ordine._aspettaConsensoPrivacy){
+    const t = document.getElementById('bp-input').value.trim();
+    document.getElementById('bp-input').value = '';
+    addUserMsg(t);
+    const tn = t.toLowerCase().trim();
+    if(['si','sì','ok','yes','certo','dai','salva'].some(k=>tn===k||tn.includes(k))){
+      ordine._aspettaConsensoPrivacy = false;
+      fetch('/api/clienti', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({
+          telefono: ordine.telefono,
+          nome: ordine.nome,
+          pizza_preferita: ordine.pizze && ordine.pizze.length > 0 ? ordine.pizze[0].nome.replace(/\s*\([^)]*\)/g,'').trim() : null
+        })
+      }).then(()=>{
+        setTimeout(()=>addBotMsg('✅ Profilo salvato! La prossima volta ti riconosco subito 🐧\nScrivi **"cancellami"** in qualsiasi momento per eliminare i tuoi dati.'),300);
+      }).catch(()=>{
+        setTimeout(()=>addBotMsg('⚠️ Non sono riuscito a salvare il profilo, riprova più tardi.'),300);
+      });
+    } else {
+      ordine._aspettaConsensoPrivacy = false;
+      setTimeout(()=>addBotMsg('Ok, nessun problema! Ci vediamo al prossimo ordine 🐧'),300);
+    }
+    return;
+  }
+
   const inp=document.getElementById('bp-input');
   const text=inp.value.trim();
   if(!text||bpLoading) return;
@@ -1031,6 +1091,18 @@ async function bpSend(){
     return;
   }
 
+  // Cancellazione dati GDPR
+  if(norm(text).includes('cancellami')||norm(text).includes('cancella i miei dati')){
+    const tel = ordine && ordine.telefono ? ordine.telefono : null;
+    if(tel){
+      fetch('/api/clienti?telefono='+encodeURIComponent(tel), { method:'DELETE' })
+        .then(()=>setTimeout(()=>addBotMsg('✅ I tuoi dati sono stati eliminati. Ci vediamo al prossimo ordine 🐧'),300))
+        .catch(()=>setTimeout(()=>addBotMsg('⚠️ Errore nella cancellazione, chiama il 0422 670631'),300));
+    } else {
+      setTimeout(()=>addBotMsg('Non trovo il tuo numero. Chiama il **0422 670631** per richiedere la cancellazione 🐧'),300);
+    }
+    bpLoading=false; return;
+  }
   setTimeout(()=>addBotMsg(rispostaGenerica(norm(text))),300);
   bpLoading=false;
 }
