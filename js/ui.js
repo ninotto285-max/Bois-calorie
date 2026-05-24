@@ -288,8 +288,14 @@ function gestisciOrdine(input){
     const _tuttePortzioni = input.match(/(?:una?\s+)?(?:porzione|porzioncina)\s+di\s+[\w\s]+?(?=\s+e\s+una?\s+(?:porzione|porzioncina)|\s*,|\s*$)/gi)||[];
     if(_tuttePortzioni.length > 1){
       for(const _pRiga of _tuttePortzioni){
-        ordineStep='pizze'; gestisciOrdine(_pRiga); ordineStep=ordineStep;
+        const _prevStep = ordineStep;
+        ordineStep='pizze'; gestisciOrdine(_pRiga); ordineStep=_prevStep;
       }
+      // Processa eventuali pizze rimaste nell'input (rimuovi le porzioni trovate)
+      let _restoPizze = input;
+      for(const _pR of _tuttePortzioni) _restoPizze = _restoPizze.replace(_pR,'');
+      _restoPizze = _restoPizze.replace(/^[,\se]+|[,\se]+$/g,'').trim();
+      if(_restoPizze.length > 3) gestisciOrdine(_restoPizze);
       return null;
     }
     const _frittoRe = /(?:una?\s+)?(?:porzione|porzioncina)\s+di\s+([\w\s]+?)(?:\s*,|\s+e\s+una?\s+(?:porzione|porzioncina)|\s*$)/i;
@@ -305,14 +311,17 @@ function gestisciOrdine(input){
         ordine.frittini.push({ qty:1, tipo:'Fritto misto '+nPz+'pz', prezzo:prezzoMisto });
         return 'Aggiunto: 1x Fritto misto '+nPz+'pz — '+fmtE(prezzoMisto)+'€ 🍟\nVuoi altro o scrivi **"basta"**.';
       }
-      const _frittiDB = {'patate fritte':3.50,'patate':3.50,'patatine':3.50,'verdure pastellate':4.00,'verdure':4.00,'olive ascolane':6.00,'olive':6.00,'mozzarelline':6.00,'nuggets':6.00,'nuggets pollo':6.00,'crocchettine':6.00,'crocchettine patate':6.00,'anellini':3.50,'anellini di cipolla':3.50,'alette':5.50,'alette di pollo':5.50};
+      const _frittiDB = {'patate fritte':3.50,'patate':3.50,'patatine':3.50,'nuggets pollo':2.50,'nuggets':2.50,'olive ascolane':2.50,'olive':2.50,'mozzarelline':2.50,'crocchettine patate':2.50,'crocchettine':2.50,'anellini di cipolla':2.50,'anellini':2.50,'misti':2.50,'verdure pastellate':4.00,'verdure':4.00,'olive ascolane':6.00,'olive':6.00,'mozzarelline':6.00,'nuggets':6.00,'nuggets pollo':6.00,'crocchettine':6.00,'crocchettine patate':6.00,'anellini':3.50,'anellini di cipolla':3.50,'alette':5.50,'alette di pollo':5.50};
       const _kF = Object.keys(_frittiDB).find(k=>_nF.includes(norm(k))||norm(k).includes(_nF));
       if(_kF){
         ordine.frittini = ordine.frittini||[];
-        ordine.frittini.push({ qty:1, tipo:_kF.charAt(0).toUpperCase()+_kF.slice(1)+' 10pz', prezzo:_frittiDB[_kF] });
+        const _isFrittino5pz = ['nuggets pollo','nuggets','olive ascolane','olive','mozzarelline','crocchettine patate','crocchettine','anellini di cipolla','anellini','misti'].includes(_kF);
+        const _labelFritto = _isFrittino5pz ? _kF.charAt(0).toUpperCase()+_kF.slice(1)+' 5pz' : _kF.charAt(0).toUpperCase()+_kF.slice(1)+' 10pz';
+        const _prezzoFritto = _isFrittino5pz ? 2.50 : _frittiDB[_kF];
+        ordine.frittini.push({ qty:1, tipo:_labelFritto, prezzo:_prezzoFritto });
         const _resto = input.replace(_frittoM[0],'').replace(/^[,\se]+/,'').trim();
         if(_resto) gestisciOrdine(_resto);
-        return 'Aggiunto: 1x '+_kF.charAt(0).toUpperCase()+_kF.slice(1)+' 10pz — '+fmtE(_frittiDB[_kF])+'€ 🍟\nVuoi altro o scrivi **"basta"**.';
+        return 'Aggiunto: 1x '+_labelFritto+' — '+fmtE(_prezzoFritto)+'€ 🍟\nVuoi altro o scrivi **"basta"**.';
       }
     }
     // Split su virgola, newline, e anche 'e' tra pizze (es. '2 margherite e 1 diavola')
@@ -777,6 +786,11 @@ function gestisciOrdine(input){
   }
 
   if(ordineStep === 'frittini'){
+    // Se ha già frittini nell'ordine → salta a bibita
+    if(ordine.frittini && ordine.frittini.length > 0){
+      ordineStep = 'bibita';
+      return '🥤 Vuoi aggiungere anche una **bibita**?\nCon frittino + bibita analcolica o birra lattina sei a **4,00€** totale!\nOppure **"no"** per procedere.';
+    }
     const tF = norm(input.trim());
     // No esplicito
     if(['no','niente','nope','nah','no grazie','non voglio'].some(k=>tF===k)){
@@ -835,6 +849,12 @@ function gestisciOrdine(input){
     if(['no','niente','nope','basta','no grazie'].some(k=>tQ===k)){
       ordineStep='conferma';
       return fmtOrdine()+'\n\nÈ tutto corretto?';
+    }
+    // Se contiene già un tipo di frittino → processa direttamente come frittini_tipo
+    const _hasTipo = Object.keys(FRITTINI).some(k=>tQ.includes(norm(k))) || tQ.includes('mist') || tQ.includes('assort');
+    if(_hasTipo){
+      ordineStep='frittini_tipo';
+      return gestisciOrdine(input);
     }
     const nQ = input.match(/(\d+|uno|due|tre|quattro|cinque)/i);
     const qtyQ = nQ ? ({'uno':1,'due':2,'tre':3,'quattro':4,'cinque':5}[nQ[1].toLowerCase()]||parseInt(nQ[1])||1) : 1;
