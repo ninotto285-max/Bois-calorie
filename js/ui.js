@@ -101,6 +101,29 @@ function fmtOrdine(){
   return msg;
 }
 
+
+// ============================================================
+// GESTIONE SLOT ORDINI
+// ============================================================
+async function checkSlot(orario, nPizze) {
+  try {
+    const oggi = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Rome' });
+    const r = await fetch(`/api/slot?data=${oggi}&orario=${orario}&pizze=${nPizze}`);
+    return await r.json();
+  } catch(e) { return { disponibile: true }; } // fallback: lascia passare
+}
+
+async function prenotaSlot(orario, nPizze) {
+  try {
+    const oggi = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Rome' });
+    await fetch('/api/slot', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ data: oggi, orario, pizze: nPizze })
+    });
+  } catch(e) { console.warn('Slot prenotazione fallita:', e); }
+}
+
 async function inviaOrdine(){
   const totPizze2 = ordine.pizze.reduce((s,p)=>s+p.prezzo*p.qty,0);
   const totFrit2 = (ordine.frittini||[]).reduce((s,f)=>s+f.prezzo*f.qty,0);
@@ -123,6 +146,10 @@ async function inviaOrdine(){
       })
     });
     const d = await r.json();
+    if(d.ok){
+      const nPizze = ordine.pizze.reduce((s,p)=>s+p.qty,0);
+      await prenotaSlot(ordine.orario, nPizze);
+    }
     return d.ok;
   } catch(e){ return false; }
 }
@@ -192,6 +219,12 @@ function gestisciOrdine(input){
     if(!orarioTrovato) return `Non ho capito l'orario 😅 Scegli tra: ${ORARI_DISPONIBILI.join(' · ')}\n(Puoi scrivere anche "alle 8", "7 e mezza", "per le 20" ecc.)`;
     ordine.orario = orarioTrovato;
     ordineStep = 'pizze';
+    // Check slot disponibilità in background
+    checkSlot(ordine.orario, 1).then(slot => {
+      if(slot && !slot.disponibile && slot.tuttoEsaurito){
+        addBotMsg('⚠️ Le prenotazioni per stasera sono quasi esaurite. Se hai molte pizze chiama prima il **0422 670631**!');
+      }
+    }).catch(()=>{});
     return `Orario **${ordine.orario}** ✅\n\nOra dimmi le pizze! Scrivi tipo:\n"2 margherite e 1 diavola"\noppure aggiungile una per volta 🍕`;
   }
 
@@ -871,6 +904,18 @@ function gestisciOrdine(input){
         return '✅ Aggiunto!\n\n'+fmtOrdine()+'\n\nConfermi ora?';
     }
     if(['si','sì','ok','confermo','giusto','esatto','corretto','vai'].some(k=>t.includes(k))){
+      // Controlla slot prima di mostrare pulsante conferma
+      const _nPizze = ordine.pizze.reduce((s,p)=>s+p.qty,0);
+      checkSlot(ordine.orario, _nPizze).then(slot => {
+        if(slot && !slot.disponibile){
+          if(slot.tuttoEsaurito){
+            addBotMsg('⚠️ **Slot esaurito!** Per l\'orario '+ordine.orario+' non ci sono più posti.\nChiama al **0422 670631** per verificare disponibilità!');
+          } else if(slot.slotsVicini && slot.slotsVicini.length > 0){
+            const alt = slot.slotsVicini.map(s=>s.orario).join(' o ');
+            addBotMsg('⚠️ Per le **'+_nPizze+' pizze** alle **'+ordine.orario+'** lo slot è quasi pieno ('+slot.libere+' posti liberi).\nTi va bene alle **'+alt+'**? Se sì, conferma pure e aggiorno l\'orario.');
+          }
+        }
+      }).catch(()=>{});
       // Mostra pulsante conferma
       return 'MOSTRA_PULSANTE';
     }
