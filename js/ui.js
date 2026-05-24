@@ -742,13 +742,12 @@ function gestisciOrdine(input){
   if(ordineStep === 'note'){
     const tN = norm(input.trim());
     // Solo "no" secco = nessuna nota
-    if(['no','niente','nessuna','nessuno','nope','nah'].some(k=>tN===k)){
     // Risposte ambigue → ripeti la domanda
     const _ambigui = ['boh','mah','beh','eh','uhm','hmm','?','...'];
-    const _tN = norm(input.trim());
-    if(_ambigui.some(k=>_tN===k)||input.trim().length<2){
+    if(_ambigui.some(k=>tN===k)||input.trim().length<2){
       return 'Hai allergie o note particolari? Scrivi pure o **"no"** per procedere 😊';
     }
+    if(['no','niente','nessuna','nessuno','nope','nah'].some(k=>tN===k)){
       ordine.note = '';
       ordineStep = 'spicchi';
       return '🔪 Vuole la pizza **tagliata a spicchi**? (sì o no)';
