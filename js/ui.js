@@ -1,12 +1,12 @@
 let ultimaPizzaMenzionata = null;
+let bpLoading = false;
+let msgsSinceFritino = 0;
+let ordineDomandaCottura = null;
+let panelOpen = false;
 let contatorContestoPizza = 0;
 
 // ── STATO ORDINE ──
 let ordineAttivo = false;
-// Fallback correggiTypo se logic.js non ancora caricato
-
-// Fallback norm se non disponibile
-
 let ordine = { nome:'', orario:'', pizze:[], note:'' };
 let ordineStep = ''; // 'nome' | 'orario' | 'pizze' | 'altra' | 'note' | 'conferma'
 
