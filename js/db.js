@@ -1065,7 +1065,7 @@ const BIBITE_ALIAS = {
   'birra 066':'birra 66cl','birra 66cl':'birra 66cl','birra sessantasei':'birra 66cl',
   'birra 050':'birra 50cl','birra 50cl':'birra 50cl','birra cinquanta':'birra 50cl',
   'birra 033':'birra 33cl','birra 33cl':'birra 33cl',
-  'birra':'birra lattina','beer':'birra lattina','peroni':'birra lattina','moretti':'birra lattina',
+  'birra 33':'birra 33cl','birra 50':'birra 50cl','birra 66':'birra 66cl','birra':'birra lattina','beer':'birra lattina','peroni':'birra lattina','moretti':'birra lattina',
   'birra in lattina':'birra lattina','lattina':'birra lattina',
   'franziskaner':'franziskaner','franzis':'franziskaner','franzi':'franziskaner',
   'franziskaner 50':'franziskaner','frate':'franziskaner','franzis':'franziskaner',
