@@ -4,13 +4,9 @@ let contatorContestoPizza = 0;
 // ── STATO ORDINE ──
 let ordineAttivo = false;
 // Fallback correggiTypo se logic.js non ancora caricato
-if(typeof correggiTypo === 'undefined' && typeof window !== 'undefined'){
-  window.correggiTypo = function(s){ return s||''; };
-}
+
 // Fallback norm se non disponibile
-if(typeof norm === 'undefined' && typeof window !== 'undefined'){
-  window.norm = function(s){ return (s||'').toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g,''); };
-}
+
 let ordine = { nome:'', orario:'', pizze:[], note:'' };
 let ordineStep = ''; // 'nome' | 'orario' | 'pizze' | 'altra' | 'note' | 'conferma'
 
