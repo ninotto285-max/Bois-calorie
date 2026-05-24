@@ -3,6 +3,14 @@ let contatorContestoPizza = 0;
 
 // ── STATO ORDINE ──
 let ordineAttivo = false;
+// Fallback correggiTypo se logic.js non ancora caricato
+if(typeof correggiTypo === 'undefined' && typeof window !== 'undefined'){
+  window.correggiTypo = function(s){ return s||''; };
+}
+// Fallback norm se non disponibile
+if(typeof norm === 'undefined' && typeof window !== 'undefined'){
+  window.norm = function(s){ return (s||'').toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g,''); };
+}
 let ordine = { nome:'', orario:'', pizze:[], note:'' };
 let ordineStep = ''; // 'nome' | 'orario' | 'pizze' | 'altra' | 'note' | 'conferma'
 
@@ -20,53 +28,61 @@ const ORARI_DISPONIBILI = (()=>{
 
 // Converte orario colloquiale → HH:MM
 function parseOrario(t){
-  // Normalizza "18 e 35" → "18:35", "19e5" → "19:05"
-  t = t.replace(/(1[89]|2[01])\s*e\s*(\d{1,2})(?!\s*mezz)/g, (m,h,mn)=>h+':'+(mn.length===1?'0'+mn:mn));
-  // Prova prima orario esatto o quasi (es. 19:40 → 19:45)
-  const matchEsatto = t.match(/\b(1[89]|2[01])[:he]([0-5]\d)\b/);
+  if(!t) return null;
+  t = t.toLowerCase().trim();
+
+  // Parole → numeri
+  const parole = {'uno':1,'due':2,'tre':3,'quattro':4,'cinque':5,'sei':6,'sette':7,'otto':8,'nove':9,'dieci':10,'undici':11,'dodici':12,'tredici':13,'quattordici':14,'quindici':15,'sedici':16,'diciassette':17,'diciotto':18,'diciannove':19,'venti':20,'ventuno':21,'ventidue':22};
+  const mezzora = {'mezzo':30,'mezza':30,'e mezzo':30,'e mezza':30};
+  const quarti = {'un quarto':15,'e un quarto':15,'e quarto':15,'tre quarti':45,'e tre quarti':45};
+
+  // Converti parole ore in numeri: "sette" → 7, "diciannove" → 19
+  for(const [w,n] of Object.entries(parole)){
+    t = t.replace(new RegExp('\\b'+w+'\\b','g'), String(n));
+  }
+
+  // Converti "X e mezza/mezzo" → "X:30"
+  t = t.replace(/(\d+)\s+e\s+mezz[ao]/g, '$1:30');
+  // Converti "X e un quarto/quarto" → "X:15"
+  t = t.replace(/(\d+)\s+e\s+(?:un\s+)?quarto/g, '$1:15');
+  // Converti "X e tre quarti" → "X:45"
+  t = t.replace(/(\d+)\s+e\s+tre\s+quarti/g, '$1:45');
+  // Converti "X e N" → "X:N" (es "7 e 10" → "7:10")
+  t = t.replace(/(\d+)\s+e\s+(\d{1,2})(?!\d)/g, (m,h,mn)=>h+':'+(mn.length===1?'0'+mn:mn));
+
+  // Cerca orario formato HH:MM o H:MM
+  const matchEsatto = t.match(/\b(\d{1,2})[:h](\d{2})\b/);
   if(matchEsatto){
-    const hh = parseInt(matchEsatto[1]), mm = parseInt(matchEsatto[2]);
-    const minTot = hh*60+mm;
-    let best=null, bestDiff=999;
-    for(const s of ORARI_DISPONIBILI){
-      const [sh,sm]=s.split(':').map(Number);
-      const diff=Math.abs(sh*60+sm-minTot);
-      if(diff<bestDiff){bestDiff=diff;best=s;}
-    }
-    if(best && bestDiff<=8) return best;
+    let h = parseInt(matchEsatto[1]);
+    let mn = parseInt(matchEsatto[2]);
+    // Converti ore pomeridiane: 6→18, 7→19, 8→20, 9→21
+    if(h >= 6 && h <= 9) h += 12;
+    if(h < 18 || h > 21) return null;
+    // Arrotonda al quarto d'ora più vicino
+    const totMin = h*60+mn;
+    const slotMin = Math.round(totMin/15)*15;
+    const slotH = Math.floor(slotMin/60);
+    const slotM = slotMin%60;
+    const orario = String(slotH).padStart(2,'0')+':'+String(slotM).padStart(2,'0');
+    // Slot 18:00 → porta a 18:30 (primo slot)
+    if(slotH===18 && slotM < 30){ return '18:30'; }
+    if(slotH < 18 || slotH > 21 || (slotH===21 && slotM > 30)) return null;
+    return orario;
   }
-  for(const o of ORARI_DISPONIBILI){
-    const op = o.replace(':','');
-    if(t.includes(o) || t.replace(/[:\s]/g,'').includes(op)) return o;
+
+  // Cerca solo ora: "8", "20", "19", "alle 20" ecc
+  const matchOra = t.match(/(?:alle?\s+)?(\d{1,2})(?!\s*[:h]\d)/);
+  if(matchOra){
+    let h = parseInt(matchOra[1]);
+    if(h >= 6 && h <= 9) h += 12;
+    if(h < 18 || h > 21) return null;
+    if(h === 18) return '18:30'; // 18 → 18:30 che è l'orario minimo
+    return String(h).padStart(2,'0')+':00';
   }
-  // Orari colloquiali tipo "7", "7 e mezza", "8 e un quarto", "20 e 30"
-  const mappa = [
-    [/\b6\s*e\s*mez/,'18:30'], [/\b6\s*e\s*trenta/,'18:30'], [/\b6\s*e\s*30\b/,'18:30'], [/\bsei\s*e\s*mez/i,'18:30'], [/\bsei\s*e\s*trenta/i,'18:30'], [/\bsei\s*e\s*30/i,'18:30'], [/\balle\s*6\s*e\s*mez/,'18:30'],
-    [/\b6\s*e\s*un\s*quarto/,'18:45'], [/\balle\s*sei\s*e\s*mez/,'18:30'],
-    [/\balle?\s*sei\b/,'18:30'],
-    [/\b7\s*e\s*mez/,'19:30'], [/\b7\s*e\s*trenta/,'19:30'], [/\b7\s*e\s*30\b/,'19:30'], [/\bsette\s*e\s*mez/i,'19:30'], [/\bsette\s*e\s*trenta/i,'19:30'],
-    [/\b7\s*e\s*un\s*quarto/,'19:15'], [/\balle?\s*sette\s*e\s*mez/,'19:30'],
-    [/\balle?\s*sette\b/,'19:00'], [/\balle?\s*7\b/,'19:00'],
-    [/\b8\s*e\s*mez/,'20:30'], [/\b8\s*e\s*trenta/,'20:30'], [/\b8\s*e\s*30\b/,'20:30'], [/\botto\s*e\s*mez/i,'20:30'], [/\botto\s*e\s*trenta/i,'20:30'],
-    [/\b8\s*e\s*un\s*quarto/,'20:15'], [/\balle?\s*otto\s*e\s*mez/,'20:30'],
-    [/\balle?\s*otto\b/,'20:00'], [/\balle?\s*8\b/,'20:00'],
-    [/\b9\s*e\s*mez/,'21:30'], [/\b9\s*e\s*trenta/,'21:30'], [/\b9\s*e\s*30\b/,'21:30'], [/\bnove\s*e\s*mez/i,'21:30'], [/\bnove\s*e\s*trenta/i,'21:30'],
-    [/\b9\s*e\s*un\s*quarto/,'21:15'], [/\balle?\s*nove\s*e\s*mez/,'21:30'],
-    [/\balle?\s*nove\b/,'21:00'], [/\balle?\s*9\b/,'21:00'],
-    [/\b18\s*e\s*mez/,'18:30'], [/\b19\s*e\s*mez/,'19:30'],
-    [/\b20\s*e\s*mez/,'20:30'], [/\b21\s*e\s*mez/,'21:30'],
-    [/\bper\s*le\s*19\b/,'19:00'], [/\bper\s*le\s*20\b/,'20:00'],
-    [/\bper\s*le\s*21\b/,'21:00'], [/\bper\s*le\s*18\b/,'18:30'],
-    [/\balle?\s*6\b/,'18:30'], [/\balle?\s*sei\b/i,'18:30'],
-    [/\bverso\s*(?:le?)?\s*8\b/i,'20:00'], [/\bverso\s*(?:le?)?\s*7\b/i,'19:00'],
-    [/\bverso\s*(?:le?)?\s*9\b/i,'21:00'], [/\bverso\s*(?:le?)?\s*6\b/i,'18:30'],
-    [/^18$/, '18:30'], [/^19$/, '19:00'], [/^20$/, '20:00'], [/^21$/, '21:00'],
-  ];
-  for(const [re, orario] of mappa){
-    if(re.test(t)) return orario;
-  }
+
   return null;
 }
+
 
 function resetOrdine(){
   ordineAttivo = false;
@@ -805,7 +821,7 @@ function gestisciOrdine(input){
     if(tF.includes('mist')||tF.includes('assort')) tipoF='Misti';
     else {
       const paroleF = tF.split(/\s+/);
-      for(const [nome] of Object.entries(FRITTINI)){
+      for(const [nome] of (typeof FRITTINI!=="undefined"?Object.entries(FRITTINI):['olive ascolane','mozzarelline','nuggets pollo','crocchettine patate','anellini di cipolla','verdure pastellate','patate fritte','alette di pollo'].map(n=>[n]))){
         const nomeN2 = norm(nome);
         if(paroleF.some(pw=>nomeN2.includes(pw)&&pw.length>2)){
           tipoF=nome.charAt(0).toUpperCase()+nome.slice(1); break;
@@ -889,7 +905,7 @@ function gestisciOrdine(input){
       if(tP.includes('mist')||tP.includes('assort')) tipoP='Misti';
       else {
         const paroleP = tP.split(/\s+/);
-        for(const [nome] of Object.entries(FRITTINI)){
+        for(const [nome] of (typeof FRITTINI!=="undefined"?Object.entries(FRITTINI):['olive ascolane','mozzarelline','nuggets pollo','crocchettine patate','anellini di cipolla','verdure pastellate','patate fritte','alette di pollo'].map(n=>[n]))){
           const nomeN = norm(nome);
           if(paroleP.some(pw=>pw.length>2&&nomeN.includes(pw))){
             tipoP=nome.charAt(0).toUpperCase()+nome.slice(1);
@@ -916,8 +932,8 @@ function gestisciOrdine(input){
       ordineStep='conferma';
       return fmtOrdine()+'\n\nÈ tutto corretto?';
     }
-    const keyBibita = trovaBibita(input);
-    if(keyBibita && BIBITE[keyBibita]){
+    const keyBibita = (typeof trovaBibita==='function') ? trovaBibita(input) : null;
+    if(keyBibita && typeof BIBITE!=='undefined' && BIBITE[keyBibita]){
       const bib=BIBITE[keyBibita];
       const haFrittCombo=ordine.frittini.some(f=>!['Alette di pollo','Verdure pastellate','Patate fritte'].includes(f.tipo));
       const prezBibita=(haFrittCombo&&(bib.tipo==='analcolica'||bib.tipo==='lattina'))?1.50:bib.prezzo;
@@ -1023,6 +1039,19 @@ async function bpSend(){
       mostraPulsanteConferma();
     } else if(r){
       setTimeout(()=>addBotMsg(r),300);
+    } else {
+      // Fallback: se null durante ordine, ripeti domanda per lo step corrente
+      const fallback = {
+        'frittini_tipo': 'Come li vuoi? 🍟\n• **Misti** (assortiti)\n• Olive ascolane\n• Mozzarelline\n• Nuggets pollo\n• Crocchettine patate\n• Anellini di cipolla\n\nEs. "uno misto e uno olive"',
+        'frittini_qty': 'Quanti frittini vuoi? (5pz a 2,50€ l\'uno)',
+        'frittini': '🍟 Vuoi aggiungere dei **frittini**? Scrivi il tipo (olive, nuggets, misto...) oppure **"no"**',
+        'bibita': 'Quale bibita vuoi? Oppure **"no"** per procedere.',
+        'note': 'Hai note particolari? Scrivi pure o **"no"** per procedere.',
+        'spicchi': '🔪 Vuole la pizza tagliata a spicchi? **sì** o **no**',
+      };
+      if(fallback[ordineStep]){
+        setTimeout(()=>addBotMsg('Non ho capito 😅\n'+fallback[ordineStep]),300);
+      }
     }
     bpLoading=false;
     return;
