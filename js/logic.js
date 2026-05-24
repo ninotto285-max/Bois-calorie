@@ -111,7 +111,13 @@ function correggiTypo(s){
     .replace(/\bspek\b/gi,'speck')
     .replace(/\bspeck\b/gi,'speck')
     .replace(/\bsfizziosa\b/gi,'sfiziosa')
-    .replace(/\bsfizzio\w*/gi,'sfiziosa');
+    .replace(/\bsfizzio\w*/gi,'sfiziosa')
+    .replace(/\bnugghets?\b/gi,'nuggets')
+    .replace(/\bnugget\b/gi,'nuggets')
+    .replace(/\bolive\s+ascolan\w*/gi,'olive ascolane')
+    .replace(/\bmozzarelin\w*/gi,'mozzarelline')
+    .replace(/\bcrocchetti\b/gi,'crocchettine')
+    .replace(/\banellin\b/gi,'anellini');
 }
 
 function rispostaLocale(input){
