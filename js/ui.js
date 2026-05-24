@@ -822,7 +822,11 @@ function gestisciOrdine(input){
       return 'Aggiunto: '+qty+'x Frittino Misti 5pz — '+fmtE(qty*2.50)+'€ 🍟\n\n'+fmtOrdine()+'\n\nÈ tutto corretto?';
     }
     // Più tipi: 'uno misto e uno olive'
-    const partiTipo = input.split(/\s+e\s+|,/i).filter(p=>p.trim());
+    // Splitta su "e", virgola, o su "N tipo N tipo" senza "e"
+    const inputNorm2 = correggiTypo(input);
+    // Inserisci separatore tra "qty tipo" ripetuti: "1 olive 1 nuggets" → "1 olive, 1 nuggets"
+    const inputSplit = inputNorm2.replace(/(\d+\s+\w+(?:\s+\w+)?)\s+(?=\d+)/g,'$1,');
+    const partiTipo = inputSplit.split(/\s+e\s+|,/i).filter(p=>p.trim());
     const aggiunti = [];
     for(const parte of partiTipo){
       const tP = norm(parte.trim());
