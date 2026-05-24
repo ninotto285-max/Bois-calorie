@@ -211,7 +211,7 @@ function gestisciOrdine(input){
 
   if(ordineStep === 'nome'){
     if(!input.trim() || norm(input.trim()).length < 2){
-      return 'Come ti chiami? Scrivi il tuo nome per procedere 😊';
+      return 'Come ti chiami? Scrivi nome e cognome 😊';
     }
     ordine.nome = input.trim();
     ordineStep = 'telefono';
@@ -807,7 +807,7 @@ function gestisciOrdine(input){
       const paroleF = tF.split(/\s+/);
       for(const [nome] of Object.entries(FRITTINI)){
         const nomeN2 = norm(nome);
-        if(paroleF.some(pw=>nomeN2.includes(pw)&&pw.length>3)){
+        if(paroleF.some(pw=>nomeN2.includes(pw)&&pw.length>2)){
           tipoF=nome.charAt(0).toUpperCase()+nome.slice(1); break;
         }
       }
@@ -850,9 +850,11 @@ function gestisciOrdine(input){
       ordineStep='conferma';
       return fmtOrdine()+'\n\nÈ tutto corretto?';
     }
-    // Se contiene già un tipo di frittino → processa direttamente come frittini_tipo
-    const _hasTipo = Object.keys(FRITTINI).some(k=>tQ.includes(norm(k))) || tQ.includes('mist') || tQ.includes('assort');
+    // Se contiene già un tipo → vai diretto a frittini_tipo
+    const _tipiKeywords = ['mist','assort','olive','nugget','mozzarell','crocchett','anellin','pollo'];
+    const _hasTipo = _tipiKeywords.some(k=>tQ.includes(k));
     if(_hasTipo){
+      // Estrai quantità se presente, altrimenti usa 1 per tipo
       ordineStep='frittini_tipo';
       return gestisciOrdine(input);
     }
@@ -870,14 +872,14 @@ function gestisciOrdine(input){
     // Controlla se è solo 'misti' generico (senza altri tipi)
     const soloMisti = (tT==='misti'||tT==='misto'||tT==='assortiti'||tT==='assortito');
     if(soloMisti){
-      ordineStep='conferma';
-      return 'Aggiunto: '+qty+'x Frittino Misti 5pz — '+fmtE(qty*2.50)+'€ 🍟\n\n'+fmtOrdine()+'\n\nÈ tutto corretto?';
+      ordineStep='bibita';
+      return 'Aggiunto: '+qty+'x Frittino Misti 5pz — '+fmtE(qty*2.50)+'€ 🍟\n\nVuoi aggiungere anche una **bibita**? 🥤\nCon frittino + bibita analcolica o birra lattina sei a **4,00€** totale!\nOppure **"no"** per procedere.';
     }
     // Più tipi: 'uno misto e uno olive'
     // Splitta su "e", virgola, o su "N tipo N tipo" senza "e"
     const inputNorm2 = correggiTypo(input);
     // Inserisci separatore tra "qty tipo" ripetuti: "1 olive 1 nuggets" → "1 olive, 1 nuggets"
-    const inputSplit = inputNorm2.replace(/(\d+\s+\w+(?:\s+\w+)?)\s+(?=\d+)/g,'$1,');
+    const inputSplit = inputNorm2.replace(/((?:\d+|uno|due|tre|quattro)\s+\w+(?:\s+\w+)?)\s+(?=(?:\d+|uno|due|tre|quattro))/g,'$1,');
     const partiTipo = inputSplit.split(/\s+e\s+|,/i).filter(p=>p.trim());
     const aggiunti = [];
     for(const parte of partiTipo){
@@ -887,11 +889,12 @@ function gestisciOrdine(input){
       let tipoP = 'Misti';
       if(tP.includes('mist')||tP.includes('assort')) tipoP='Misti';
       else {
-        // Cerca match: "olive" matcha "olive ascolane", "nuggets" matcha "nuggets pollo" ecc.
+        // Cerca match: "olive" matcha "olive ascolane", "crocchette" matcha "crocchettine patate"
         const paroleP = tP.split(/\s+/);
         for(const [nome] of Object.entries(FRITTINI)){
           const nomeN = norm(nome);
-          if(paroleP.some(pw=>nomeN.includes(pw)&&pw.length>3)||(tP.includes('mist')||tP.includes('assort'))){ 
+          // Match parziale: parola dell'input inclusa nel nome, o nome incluso nell'input
+          if(paroleP.some(pw=>pw.length>2&&(nomeN.includes(pw)||tP.includes(nomeN.substring(0,pw.length+2))))||(tP.includes('mist')||tP.includes('assort'))){ 
             tipoP=nome.charAt(0).toUpperCase()+nome.slice(1); 
             if(tP.includes('mist')||tP.includes('assort')) tipoP='Misti';
             break; 
@@ -986,7 +989,6 @@ function gestisciOrdine(input){
   }
 
   return null;
-}
 
 function togglePanel(){
   panelOpen=!panelOpen;
@@ -1086,10 +1088,10 @@ async function bpSend(){
     if(orarioGia){
       ordine.orario = orarioGia;
       ordineStep = 'nome';
-      setTimeout(()=>addBotMsg(`Perfetto! 🍕 Ho visto che vuoi venire alle **${orarioGia}**.\n\nCome ti chiami?`), 300);
+      setTimeout(()=>addBotMsg(`Perfetto! 🍕 Ho visto che vuoi venire alle **${orarioGia}**.\n\nCome ti chiami? Scrivi nome e cognome 😊`), 300);
     } else {
       ordineStep = 'nome';
-      setTimeout(()=>addBotMsg('Perfetto! 🍕 Raccogliamo il tuo ordine.\n\nCome ti chiami?'), 300);
+      setTimeout(()=>addBotMsg('Perfetto! 🍕 Raccogliamo il tuo ordine.\n\nCome ti chiami? Scrivi nome e cognome 😊'), 300);
     }
     return;
   }
@@ -1131,4 +1133,5 @@ function mostraCuriosita(){
 function quickSend(text){
   if(!panelOpen) togglePanel();
   setTimeout(()=>{ document.getElementById('bp-input').value=text; bpSend(); },350);
+}
 }
