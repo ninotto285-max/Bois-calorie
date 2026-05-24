@@ -218,6 +218,14 @@ function annullaOrdine(){
 }
 
 function gestisciOrdine(input){
+  if(!gestisciOrdine._depth) gestisciOrdine._depth = 0;
+  gestisciOrdine._depth++;
+  if(gestisciOrdine._depth > 10){
+    gestisciOrdine._depth = 0;
+    console.warn('RICORSIONE BLOCCATA per input:', input.substring(0,50));
+    return null;
+  }
+  const _cleanup = ()=>{ gestisciOrdine._depth = Math.max(0, gestisciOrdine._depth-1); };
   const t = norm(input);
 
   if(ordineStep === 'nome'){
@@ -298,16 +306,32 @@ function gestisciOrdine(input){
     // Gestisci più porzioni nella stessa riga: "una porzione di X e una porzione di Y"
     const _tuttePortzioni = input.match(/(?:una?\s+)?(?:porzione|porzioncina)\s+di\s+[\w\s]+?(?=\s+e\s+una?\s+(?:porzione|porzioncina)|\s*,|\s*$)/gi)||[];
     if(_tuttePortzioni.length > 1){
+      // Processa direttamente ogni porzione senza ricorsione
+      const _frittiDB2 = {'patate fritte':3.50,'patate':3.50,'nuggets pollo':2.50,'nuggets':2.50,'olive ascolane':2.50,'olive':2.50,'mozzarelline':2.50,'crocchettine patate':2.50,'crocchettine':2.50,'anellini di cipolla':2.50,'anellini':2.50,'misti':2.50,'verdure pastellate':4.00,'alette di pollo':5.50};
       for(const _pRiga of _tuttePortzioni){
-        const _prevStep = ordineStep;
-        ordineStep='pizze'; gestisciOrdine(_pRiga); ordineStep=_prevStep;
+        const _nF2 = norm(correggiTypo(_pRiga.replace(/(?:una?\s+)?(?:porzione|porzioncina)\s+di\s+/i,'')).trim());
+        const _kF2 = Object.keys(_frittiDB2).find(k=>_nF2.includes(norm(k))||norm(k).includes(_nF2));
+        if(_kF2){
+          const _is5pz = ['nuggets pollo','nuggets','olive ascolane','olive','mozzarelline','crocchettine patate','crocchettine','anellini di cipolla','anellini','misti'].includes(_kF2);
+          const _lbl = _kF2.charAt(0).toUpperCase()+_kF2.slice(1)+(_is5pz?' 5pz':' 10pz');
+          const _pr = _is5pz ? 2.50 : _frittiDB2[_kF2];
+          ordine.frittini = ordine.frittini||[];
+          ordine.frittini.push({qty:1, tipo:_lbl, prezzo:_pr});
+        }
       }
-      // Processa eventuali pizze rimaste nell'input (rimuovi le porzioni trovate)
-      let _restoPizze = input;
-      for(const _pR of _tuttePortzioni) _restoPizze = _restoPizze.replace(_pR,'');
-      _restoPizze = _restoPizze.replace(/^[,\se]+|[,\se]+$/g,'').trim();
-      if(_restoPizze.length > 3) gestisciOrdine(_restoPizze);
-      return null;
+      // Processa eventuali bibite rimaste
+      let _restoBib = input;
+      for(const _pR of _tuttePortzioni) _restoBib = _restoBib.replace(_pR,'');
+      _restoBib = _restoBib.replace(/^[,\se]+|[,\se]+$/g,'').trim();
+      if(_restoBib.length > 2 && !_restoBib.match(/porzione/i)){
+        const _bibK = trovaBibita(_restoBib);
+        if(_bibK && BIBITE[_bibK]){
+          ordine.bibite = ordine.bibite||[];
+          ordine.bibite.push({qty:1,label:BIBITE[_bibK].label,prezzo:BIBITE[_bibK].prezzo});
+        }
+      }
+      const _totFrittAgg = ordine.frittini.reduce((s,f)=>s+f.tipo.includes('pz')?1:0,0);
+      return _totFrittAgg > 0 ? 'Aggiunto frittini e bibite 🍟\nVuoi altro o scrivi **"basta"**.' : null;
     }
     const _frittoRe = /(?:una?\s+)?(?:porzione|porzioncina)\s+di\s+([\w\s]+?)(?:\s*,|\s+e\s+una?\s+(?:porzione|porzioncina)|\s*$)/i;
     const _frittoM = input.match(_frittoRe);
@@ -331,7 +355,16 @@ function gestisciOrdine(input){
         const _prezzoFritto = _isFrittino5pz ? 2.50 : _frittiDB[_kF];
         ordine.frittini.push({ qty:1, tipo:_labelFritto, prezzo:_prezzoFritto });
         const _resto = input.replace(_frittoM[0],'').replace(/^[,\se]+/,'').trim();
-        if(_resto) gestisciOrdine(_resto);
+        // Solo bibite o pizze note — evita ricorsione su "di nuggets" ecc
+        if(_resto && _resto.length > 3 && !_resto.match(/\bdi\s+\w+$/i)){
+          const _bibaK = trovaBibita(_resto);
+          if(_bibaK && BIBITE[_bibaK]){
+            ordine.bibite = ordine.bibite||[];
+            ordine.bibite.push({qty:1,label:BIBITE[_bibaK].label,prezzo:BIBITE[_bibaK].prezzo});
+          } else if(trovaNomePizza(_resto)){
+            gestisciOrdine(_resto);
+          }
+        }
         return 'Aggiunto: 1x '+_labelFritto+' — '+fmtE(_prezzoFritto)+'€ 🍟\nVuoi altro o scrivi **"basta"**.';
       }
     }
@@ -342,7 +375,14 @@ function gestisciOrdine(input){
       ordineStep = 'altra';
       return null; // gestito come nota, non come pizza
     }
-    let _inp = correggiTypo(input)
+    // Converti numeri in parole → cifre per il parser quantità
+    let _inputNumConv = input
+      .replace(/\buno\b/gi,'1').replace(/\buna\b/gi,'1')
+      .replace(/\bdue\b/gi,'2').replace(/\btre\b/gi,'3')
+      .replace(/\bquattro\b/gi,'4').replace(/\bcinque\b/gi,'5')
+      .replace(/\bsei\b/gi,'6').replace(/\bsette\b/gi,'7')
+      .replace(/\botto\b/gi,'8').replace(/\bnove\b/gi,'9');
+    let _inp = correggiTypo(_inputNumConv)
       .replace(/[\u2018\u2019\u201a\u201b]/g,"'")
       .replace(/\b4\s+formaggi\b/gi,'formaggi')
       .replace(/\b4formaggi\b/gi,'formaggi')
@@ -899,18 +939,37 @@ function gestisciOrdine(input){
       if(tP.includes('mist')||tP.includes('assort')) tipoP='Misti';
       else {
         const paroleP = tP.split(/\s+/);
-        for(const [nome] of (typeof FRITTINI!=="undefined"?Object.entries(FRITTINI):['olive ascolane','mozzarelline','nuggets pollo','crocchettine patate','anellini di cipolla','verdure pastellate','patate fritte','alette di pollo'].map(n=>[n]))){
+        // Ordina dal più specifico: conta quante parole dell'input matchano il nome
+        const _frittiOrd = ['olive ascolane','mozzarelline','nuggets pollo','crocchettine patate','anellini di cipolla','verdure pastellate','patate fritte','alette di pollo','misti'];
+        let _bestMatch = null; let _bestScore = 0;
+        for(const nome of _frittiOrd){
           const nomeN = norm(nome);
-          if(paroleP.some(pw=>pw.length>2&&nomeN.includes(pw))){
-            tipoP=nome.charAt(0).toUpperCase()+nome.slice(1);
-            break;
+          const nomeParole = nomeN.split(/\s+/);
+          // Conta quante parole dell'input corrispondono al nome
+          const score = paroleP.filter(pw=>pw.length>2&&nomeN.includes(pw)).length +
+                        nomeParole.filter(np=>np.length>2&&tP.includes(np)).length;
+          if(score > _bestScore){
+            _bestScore = score;
+            _bestMatch = nome;
           }
         }
+        if(_bestMatch) tipoP = _bestMatch.charAt(0).toUpperCase()+_bestMatch.slice(1);
       }
-      ordine.frittini.push({qty:qP, tipo:tipoP, prezzo:2.50});
+      // Prezzo corretto dal DB
+      const _prezziF = {'misti':2.50,'olive ascolane':2.50,'mozzarelline':2.50,'nuggets pollo':2.50,'crocchettine patate':2.50,'anellini di cipolla':2.50,'verdure pastellate':4.00,'patate fritte':3.50,'alette di pollo':5.50,'fritto misto':2.50};
+      const _tipoPLow = tipoP.toLowerCase().replace(/\s*\d+pz$/,'').trim();
+      const _prezzoTipo = _prezziF[_tipoPLow] || 2.50;
+      ordine.frittini.push({qty:qP, tipo:tipoP, prezzo:_prezzoTipo});
       aggiunti.push(qP+'x '+tipoP);
     }
     delete ordine._frittiniQtyPending;
+    // Verifica che aggiunti non siano solo "Misti" da default su input non riconosciuto
+    const _inputRecognized = ['mist','assort','olive','nugget','mozzarell','crocchett','anellin','pollo','fritto'].some(k=>norm(input).includes(k));
+    if(!_inputRecognized && aggiunti.length > 0 && aggiunti.every(a=>a.includes('Misti'))){
+      // Input non riconosciuto → non aggiungere, ripeti domanda
+      ordine.frittini = ordine.frittini.filter(f=>!aggiunti.includes(f.qty+'x '+f.tipo));
+      return 'Come li vuoi? 🍟\n• **Misti** (assortiti)\n• Olive ascolane\n• Mozzarelline\n• Nuggets pollo\n• Crocchettine patate\n• Anellini di cipolla\n\nEs. _"uno misto e uno olive"_';
+    }
     if(ordine.frittini.length > 0){
       ordineStep = 'bibita';
       return 'Aggiunto: '+aggiunti.join(', ')+' 🍟\n\nVuoi aggiungere anche una **bibita**? 🥤\nCon frittino + bibita analcolica o birra lattina sei a **4,00€** totale!\nOppure **"no"** per procedere.';
@@ -929,7 +988,8 @@ function gestisciOrdine(input){
     const keyBibita = (typeof trovaBibita==='function') ? trovaBibita(input) : null;
     if(keyBibita && typeof BIBITE!=='undefined' && BIBITE[keyBibita]){
       const bib=BIBITE[keyBibita];
-      const haFrittCombo=ordine.frittini.some(f=>!['Alette di pollo','Verdure pastellate','Patate fritte'].includes(f.tipo));
+      // Combo solo con frittini 5pz (prezzo 2.50€), non con patate/verdure/alette (prezzo pieno)
+      const haFrittCombo = ordine.frittini.some(f=>f.prezzo<=2.50);
       const prezBibita=(haFrittCombo&&(bib.tipo==='analcolica'||bib.tipo==='lattina'))?1.50:bib.prezzo;
       ordine.bibite=ordine.bibite||[];
       ordine.bibite.push({qty:1,label:bib.label,prezzo:prezBibita});
