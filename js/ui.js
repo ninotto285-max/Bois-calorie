@@ -1,8 +1,7 @@
 let ultimaPizzaMenzionata = null;
-let bpLoading = false;
-let msgsSinceFritino = 0;
-let ordineDomandaCottura = null;
-let panelOpen = false;
+if(typeof bpLoading==='undefined') var bpLoading=false;
+if(typeof msgsSinceFritino==='undefined') var msgsSinceFritino=0;
+if(typeof ordineDomandaCottura==='undefined') var ordineDomandaCottura=null;
 let contatorContestoPizza = 0;
 
 // ── STATO ORDINE ──
