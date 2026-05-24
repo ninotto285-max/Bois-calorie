@@ -130,6 +130,13 @@ export default async function handler(req, res) {
         });
       }
 
+      // Pulizia automatica: elimina record più vecchi di 7 giorni
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - 7);
+      const cutoffStr = cutoff.toLocaleDateString('sv-SE', { timeZone: 'Europe/Rome' });
+      supabaseFetch(`/slot_ordini?data=lt.${cutoffStr}`, { method: 'DELETE' })
+        .catch(e => console.warn('Pulizia slot fallita:', e));
+
       return res.status(200).json({ ok: true });
     }
 
