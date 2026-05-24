@@ -791,7 +791,7 @@ function gestisciOrdine(input){
       ordineStep = 'bibita';
       return '🥤 Vuoi aggiungere anche una **bibita**?\nCon frittino + bibita analcolica o birra lattina sei a **4,00€** totale!\nOppure **"no"** per procedere.';
     }
-    const tF = norm(input.trim());
+    const tF = norm(correggiTypo(input).trim());
     // No esplicito
     if(['no','niente','nope','nah','no grazie','non voglio'].some(k=>tF===k)){
       ordineStep = 'conferma';
@@ -866,19 +866,18 @@ function gestisciOrdine(input){
   }
 
   if(ordineStep === 'frittini_tipo'){
-    const tT = norm(input.trim());
+    const tT = norm(correggiTypo(input).trim());
     const qty = ordine._frittiniQtyPending || 1;
-    // Fritto misto
-    // Controlla se è solo 'misti' generico (senza altri tipi)
-    const soloMisti = (tT==='misti'||tT==='misto'||tT==='assortiti'||tT==='assortito');
+    // Solo misti
+    const soloMisti = ['misti','misto','assortiti','assortito'].includes(tT);
     if(soloMisti){
+      ordine.frittini.push({ qty, tipo:'Misti', prezzo:2.50 });
+      delete ordine._frittiniQtyPending;
       ordineStep='bibita';
       return 'Aggiunto: '+qty+'x Frittino Misti 5pz — '+fmtE(qty*2.50)+'€ 🍟\n\nVuoi aggiungere anche una **bibita**? 🥤\nCon frittino + bibita analcolica o birra lattina sei a **4,00€** totale!\nOppure **"no"** per procedere.';
     }
-    // Più tipi: 'uno misto e uno olive'
-    // Splitta su "e", virgola, o su "N tipo N tipo" senza "e"
+    // Splitta su "e", virgola, o "N tipo N tipo" senza "e"
     const inputNorm2 = correggiTypo(input);
-    // Inserisci separatore tra "qty tipo" ripetuti: "1 olive 1 nuggets" → "1 olive, 1 nuggets"
     const inputSplit = inputNorm2.replace(/((?:\d+|uno|due|tre|quattro)\s+\w+(?:\s+\w+)?)\s+(?=(?:\d+|uno|due|tre|quattro))/g,'$1,');
     const partiTipo = inputSplit.split(/\s+e\s+|,/i).filter(p=>p.trim());
     const aggiunti = [];
@@ -889,15 +888,12 @@ function gestisciOrdine(input){
       let tipoP = 'Misti';
       if(tP.includes('mist')||tP.includes('assort')) tipoP='Misti';
       else {
-        // Cerca match: "olive" matcha "olive ascolane", "crocchette" matcha "crocchettine patate"
         const paroleP = tP.split(/\s+/);
         for(const [nome] of Object.entries(FRITTINI)){
           const nomeN = norm(nome);
-          // Match parziale: parola dell'input inclusa nel nome, o nome incluso nell'input
-          if(paroleP.some(pw=>pw.length>2&&(nomeN.includes(pw)||tP.includes(nomeN.substring(0,pw.length+2))))||(tP.includes('mist')||tP.includes('assort'))){ 
-            tipoP=nome.charAt(0).toUpperCase()+nome.slice(1); 
-            if(tP.includes('mist')||tP.includes('assort')) tipoP='Misti';
-            break; 
+          if(paroleP.some(pw=>pw.length>2&&nomeN.includes(pw))){
+            tipoP=nome.charAt(0).toUpperCase()+nome.slice(1);
+            break;
           }
         }
       }
@@ -905,127 +901,77 @@ function gestisciOrdine(input){
       aggiunti.push(qP+'x '+tipoP);
     }
     delete ordine._frittiniQtyPending;
-    // Proponi bibita combo se hanno frittini analcolica/lattina
-    const haFrittini = ordine.frittini.length > 0;
-    if(haFrittini){
+    if(ordine.frittini.length > 0){
       ordineStep = 'bibita';
-      return 'Aggiunto: '+aggiunti.join(', ')+' 🍟\n\nVuoi aggiungere anche una **bibita**? 🥤\nCon frittino + bibita analcolica o birra lattina sei a **4,00€** totale (risparmi 1,00€!)\nOppure scrivi **"no"** per procedere.';
+      return 'Aggiunto: '+aggiunti.join(', ')+' 🍟\n\nVuoi aggiungere anche una **bibita**? 🥤\nCon frittino + bibita analcolica o birra lattina sei a **4,00€** totale!\nOppure **"no"** per procedere.';
     }
     ordineStep='conferma';
-    return 'Aggiunto: '+aggiunti.join(', ')+' 🍟\n\n'+fmtOrdine()+'\n\nÈ tutto corretto?';
+    return fmtOrdine()+'\n\nÈ tutto corretto?';
   }
 
-  
 
   if(ordineStep === 'bibita'){
     const tB = norm(input.trim());
-    // No
     if(['no','niente','nope','basta','no grazie','non voglio'].some(k=>tB===k||tB.startsWith(k))){
-      ordineStep = 'conferma';
-      return fmtOrdine() + '\n\nÈ tutto corretto?';
+      ordineStep='conferma';
+      return fmtOrdine()+'\n\nÈ tutto corretto?';
     }
-    // Cerca bibita
     const keyBibita = trovaBibita(input);
     if(keyBibita && BIBITE[keyBibita]){
-      const bib = BIBITE[keyBibita];
-      // Calcola prezzo combo: se ha frittini analcolica/lattina → combo 4€
-      // Combo: 1 frittino 5pz (2,50€) + bibita analcolica/lattina = 4,00€ totale
-      // Quindi bibita costa 1,50€ invece di 2,50€
-      const haFrittCombo = ordine.frittini.some(f=>f.tipo!=='Alette di pollo'&&f.tipo!=='Verdure pastellate'&&f.tipo!=='Patate fritte');
-      const prezBibita = (haFrittCombo && (bib.tipo==='analcolica'||bib.tipo==='lattina'))
-        ? 1.50
-        : bib.prezzo;
-      ordine.bibite = ordine.bibite || [];
-      ordine.bibite.push({ qty:1, label:bib.label, prezzo:prezBibita });
-      ordineStep = 'conferma';
+      const bib=BIBITE[keyBibita];
+      const haFrittCombo=ordine.frittini.some(f=>!['Alette di pollo','Verdure pastellate','Patate fritte'].includes(f.tipo));
+      const prezBibita=(haFrittCombo&&(bib.tipo==='analcolica'||bib.tipo==='lattina'))?1.50:bib.prezzo;
+      ordine.bibite=ordine.bibite||[];
+      ordine.bibite.push({qty:1,label:bib.label,prezzo:prezBibita});
+      ordineStep='conferma';
       return 'Aggiunto: 1x '+bib.label+' — '+fmtE(prezBibita)+'€ 🥤\n\n'+fmtOrdine()+'\n\nÈ tutto corretto?';
     }
-    // Sì generico → chiedi quale
     if(['si','sì','ok','yes','certo','dai'].some(k=>tB===k)){
       return 'Quale bibita vuoi? 🥤\n• Bibita analcolica (Coca, Fanta, Sprite, Lemonsoda) — **1,50€ in più** con combo\n• Birra lattina — **1,50€ in più** con combo\n• Birra bottiglia 33/50/66cl — **3,50€**\n• Franziskaner 50cl — **3,50€**\n• Tuborg 66cl — **3,50€**\n• Birra da litro — **6,00€**';
     }
-    // Non capisce
-    ordineStep = 'conferma';
-    return fmtOrdine() + '\n\nÈ tutto corretto?';
+    ordineStep='conferma';
+    return fmtOrdine()+'\n\nÈ tutto corretto?';
   }
 
-
-
   if(ordineStep === 'conferma'){
-    // Aggiunta pizza/fritto post-conferma
+    const t = norm(input.trim());
+    // Aggiunta post-conferma
     if(['aggiungi','aggiungimi','metti anche','e anche','vorrei anche'].some(k=>t.startsWith(norm(k)))||t.includes('aggiungi')){
-      const parteAgg = input.replace(/^(?:aggiungi|aggiungimi|metti anche|e anche|vorrei anche)\s*/i,'').trim();
-      const prevQt = ordine.pizze.reduce((s,p)=>s+p.qty,0);
-      const prevFritt = ordine.frittini.length;
+      const parteAgg=input.replace(/^(?:aggiungi|aggiungimi|metti anche|e anche|vorrei anche)\s*/i,'').trim();
+      const prevQt=ordine.pizze.reduce((s,p)=>s+p.qty,0);
+      const prevFr=(ordine.frittini||[]).length;
       ordineStep='altra'; gestisciOrdine(parteAgg); ordineStep='conferma';
-      const dopoQt = ordine.pizze.reduce((s,p)=>s+p.qty,0);
-      if(dopoQt > prevQt || ordine.frittini.length > prevFritt)
+      if(ordine.pizze.reduce((s,p)=>s+p.qty,0)>prevQt||(ordine.frittini||[]).length>prevFr)
         return '✅ Aggiunto!\n\n'+fmtOrdine()+'\n\nConfermi ora?';
     }
     if(['si','sì','ok','confermo','giusto','esatto','corretto','vai'].some(k=>t.includes(k))){
-      // Controlla slot prima di mostrare pulsante conferma
-      const _nPizze = ordine.pizze.reduce((s,p)=>s+p.qty,0);
-      checkSlot(ordine.orario, _nPizze).then(slot => {
-        if(slot && !slot.disponibile){
-          if(slot.tuttoEsaurito){
-            addBotMsg('⚠️ **Slot esaurito!** Per l\'orario '+ordine.orario+' non ci sono più posti.\nChiama al **0422 670631** per verificare disponibilità!');
-          } else if(slot.slotsVicini && slot.slotsVicini.length > 0){
-            const alt = slot.slotsVicini.map(s=>s.orario).join(' o ');
-            addBotMsg('⚠️ Per le **'+_nPizze+' pizze** alle **'+ordine.orario+'** lo slot è quasi pieno ('+slot.libere+' posti liberi).\nTi va bene alle **'+alt+'**? Se sì, conferma pure e aggiorno l\'orario.');
-          }
-        }
-      }).catch(()=>{});
-      // Mostra pulsante conferma
       return 'MOSTRA_PULSANTE';
     }
-    if(['annulla','cancella ordine','voglio annullare'].some(k=>t.includes(norm(k)))){
+    if(['annulla','cancella ordine'].some(k=>t.includes(norm(k)))){
       resetOrdine();
       return 'Ordine annullato. Ricominciamo quando vuoi! 🐧';
     }
-    if(norm(input.trim())==='no'||norm(input.trim())==='sbagliato'){
+    if(t==='no'||t==='sbagliato'){
       return 'Vuoi **annullare** l\'ordine o **modificarlo**? ✏️\nDimmi cosa cambiare oppure scrivi **"annulla"** per ricominciare.';
     }
     return 'Scrivi **"sì"** per confermare o **"no"** per annullare. 🐧';
   }
 
   return null;
+}
 
-function togglePanel(){
-  panelOpen=!panelOpen;
-  document.getElementById('bois-panel').classList.toggle('open',panelOpen);
-  if(panelOpen&&bpHistory.length===0)
-    setTimeout(()=>addBotMsg('Ciao! 🐧🍕 Sono il Pinguino di BoisPizza!\nDimmi che pizza ti va e ti dico calorie e prezzo — oppure chiedimi tutto sul menù!'),300);
+function mostraCuriosita(){
+  if(!panelOpen) togglePanel();
+  setTimeout(()=>{
+    const r = rispostaLocale('curiosità');
+    if(r) addBotMsg(r);
+  }, 350);
 }
-function addBotMsg(text){
-  const el=document.getElementById('bp-messages');
-  const d=document.createElement('div'); d.className='bp-msg bot';
-  d.innerHTML='<div class="bp-msg-av">🐧</div><div class="bp-bubble">'+fmt(text)+'</div>';
-  el.appendChild(d); el.scrollTop=el.scrollHeight;
-  bpHistory.push({role:'assistant',content:text});
-  if(bpHistory.length>30) bpHistory.shift();
+
+function quickSend(text){
+  if(!panelOpen) togglePanel();
+  setTimeout(()=>{ document.getElementById('bp-input').value=text; bpSend(); },350);
 }
-function addUserMsg(text){
-  const el=document.getElementById('bp-messages');
-  const d=document.createElement('div'); d.className='bp-msg user';
-  d.innerHTML='<div class="bp-msg-av">👤</div><div class="bp-bubble">'+esc(text)+'</div>';
-  el.appendChild(d); el.scrollTop=el.scrollHeight;
-  bpHistory.push({role:'user',content:text});
-  if(bpHistory.length>30) bpHistory.shift();
-}
-function showOrderButtons(){
-  if(orderShown) return; orderShown=true;
-  const el=document.getElementById('bp-messages');
-  const d=document.createElement('div'); d.className='bp-msg bot';
-  d.innerHTML='<div class="bp-msg-av">🐧</div><div class="bp-bubble"><div style="font-size:0.78rem;color:#9e7a5a;margin-bottom:8px;">Come vuoi contattarci? 👇</div><div class="order-btns"><a href="'+WA+'" target="_blank" class="btn-wa"><span>💬</span> WhatsApp (info)</a><a href="'+TEL+'" class="btn-tel"><span>📞</span> Chiama 0422 670631</a></div></div>';
-  el.appendChild(d); el.scrollTop=el.scrollHeight;
-}
-function showTyping(){
-  const el=document.getElementById('bp-messages');
-  const d=document.createElement('div'); d.className='bp-msg bot'; d.id='bp-typing';
-  d.innerHTML='<div class="bp-msg-av">🐧</div><div class="bp-bubble"><div class="bp-typing"><span></span><span></span><span></span></div></div>';
-  el.appendChild(d); el.scrollTop=el.scrollHeight;
-}
-function removeTyping(){ const t=document.getElementById('bp-typing'); if(t) t.remove(); }
 
 async function bpSend(){
   // Gestione consenso privacy post-ordine
@@ -1056,53 +1002,51 @@ async function bpSend(){
     return;
   }
 
-  const inp=document.getElementById('bp-input');
-  const text=inp.value.trim();
-  if(!text||bpLoading) return;
-  inp.value=''; addUserMsg(text);
+  const input = document.getElementById('bp-input');
+  const text = input.value.trim();
+  if(!text) return;
+  input.value = '';
+  addUserMsg(text);
+  bpLoading = true;
 
-  // ── FLUSSO ORDINE ATTIVO ──
+  // Cancellami / cambia numero
+  if(norm(text).includes('cancellami')||norm(text).includes('cancella i miei dati')||
+     norm(text).includes('cambia numero')||norm(text).includes('cancella profilo')){
+    setTimeout(()=>addBotMsg('Per cancellare i tuoi dati o cambiare numero chiama il **0422 670631** o WhatsApp **340 532 7257** 🐧\nProvvediamo entro 24 ore!'),300);
+    bpLoading=false; return;
+  }
+
+  // Se ordine attivo → gestisciOrdine
   if(ordineAttivo){
-    const rispOrdine = gestisciOrdine(text);
-    if(rispOrdine === 'MOSTRA_PULSANTE'){
-      setTimeout(()=>{ addBotMsg(fmtOrdine()); setTimeout(mostraPulsanteConferma, 400); }, 300);
-    } else if(rispOrdine){
-      setTimeout(()=>addBotMsg(rispOrdine), 300);
+    const r = gestisciOrdine(text);
+    if(r === 'MOSTRA_PULSANTE'){
+      mostraPulsanteConferma();
+    } else if(r){
+      setTimeout(()=>addBotMsg(r),300);
     }
+    bpLoading=false;
     return;
   }
 
-  // ── TRIGGER ORDINE ──
-  const triggerOrdine = [
-    'voglio ordinare','vorrei ordinare','posso ordinare',
-    'fare un ordine','faccio un ordine','mando un ordine','faccio ordine',
-    'voglio prenotare','vorrei prenotare',
-    'mi servono le pizze','ho bisogno di pizze',
-    'prendiamo le pizze','ordiniamo le pizze','ordiniamo stasera',
-    'voglio prenotare','prenota per'
-  ];
-  if(triggerOrdine.some(k=>norm(text).includes(norm(k)))){
+  // Avvio ordine
+  const locale = rispostaLocale(text);
+  if(locale === 'ORDER'){
     ordineAttivo = true;
-    // Prova a estrarre orario già dal messaggio iniziale
+    ordineStep = 'nome';
+    resetOrdine();
     const orarioGia = parseOrario(norm(text));
     if(orarioGia){
       ordine.orario = orarioGia;
-      ordineStep = 'nome';
-      setTimeout(()=>addBotMsg(`Perfetto! 🍕 Ho visto che vuoi venire alle **${orarioGia}**.\n\nCome ti chiami? Scrivi nome e cognome 😊`), 300);
+      setTimeout(()=>addBotMsg('Perfetto! 🍕 Ho visto che vuoi venire alle **'+orarioGia+'**.\n\nCome ti chiami? Scrivi nome e cognome 😊'), 300);
     } else {
-      ordineStep = 'nome';
       setTimeout(()=>addBotMsg('Perfetto! 🍕 Raccogliamo il tuo ordine.\n\nCome ti chiami? Scrivi nome e cognome 😊'), 300);
     }
+    bpLoading=false;
     return;
   }
-
-  const locale = ordineAttivo ? null : rispostaLocale(text);
-  if(locale==='ORDER'){
-    addBotMsg('Vuoi ordinare? Scrivi **"voglio ordinare"** e ti guido passo passo! 🐧\nOppure contattaci direttamente:');
-    setTimeout(showOrderButtons,300); return;
-  }
-  if(locale==='COSA_SAI_FARE'){
-    setTimeout(()=>addBotMsg('🐧 **Cosa so fare:**\n\n🍕 Calorie e prezzo di ogni pizza\n➕ Calcolo modifiche (senza/con ingredienti)\n🥗 Pizze per carattere: leggera, pesante, piccante, elegante...\n🔍 Pizze con un ingrediente specifico\n⚠️ Allergeni per ogni pizza\n🌿 Ingredienti stagionali\n🍷 Abbinamenti tra ingredienti\n📞 Orari, indirizzo e contatti\n\nSono il tuo complice nei peccati di gola e il tuo personal trainer calorico 🔥🐧'),300);
+  if(locale === 'COSA_SAI_FARE'){
+    setTimeout(()=>addBotMsg('🐧 **Cosa so fare:**\n\n🍕 Calorie e prezzo di ogni pizza\n➕ Consulto ingredienti e allergeni\n📋 **Ordini** — guidati passo passo\n🍟 Frittini e bibite\n🔪 Taglio a spicchi\n⭐ Pizza del giorno\n\nScrivimi pure o premi **Ordina** per iniziare!'),300);
+    bpLoading=false;
     return;
   }
   if(locale){
@@ -1110,28 +1054,10 @@ async function bpSend(){
     const mostraFritino = msgsSinceFritino>=3 && Math.random()<0.4 && locale.includes('kcal');
     if(mostraFritino){ msgsSinceFritino=0; setTimeout(()=>addBotMsg(locale+'\n\n🍟 Vuoi aggiungere un **Fritino da 5pz misti a 2,50€**?'),300); }
     else setTimeout(()=>addBotMsg(locale),300);
+    bpLoading=false;
     return;
   }
 
-  // Cancellazione dati o cambio numero → manuale
-  if(norm(text).includes('cancellami')||norm(text).includes('cancella i miei dati')||
-     norm(text).includes('cambia numero')||norm(text).includes('cancella profilo')){
-    setTimeout(()=>addBotMsg('Per cancellare i tuoi dati o cambiare numero chiama il **0422 670631** o WhatsApp **340 532 7257** 🐧\nProvvediamo entro 24 ore!'),300);
-    bpLoading=false; return;
-  }
   setTimeout(()=>addBotMsg(rispostaGenerica(norm(text))),300);
   bpLoading=false;
-}
-function mostraCuriosita(){
-  if(!panelOpen) togglePanel();
-  setTimeout(()=>{
-    const r = rispostaLocale('curiosità');
-    if(r) addBotMsg(r);
-  }, 350);
-}
-
-function quickSend(text){
-  if(!panelOpen) togglePanel();
-  setTimeout(()=>{ document.getElementById('bp-input').value=text; bpSend(); },350);
-}
 }
