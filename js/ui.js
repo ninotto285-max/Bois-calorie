@@ -1091,16 +1091,10 @@ async function bpSend(){
     return;
   }
 
-  // Cancellazione dati GDPR
-  if(norm(text).includes('cancellami')||norm(text).includes('cancella i miei dati')){
-    const tel = ordine && ordine.telefono ? ordine.telefono : null;
-    if(tel){
-      fetch('/api/clienti?telefono='+encodeURIComponent(tel), { method:'DELETE' })
-        .then(()=>setTimeout(()=>addBotMsg('✅ I tuoi dati sono stati eliminati. Ci vediamo al prossimo ordine 🐧'),300))
-        .catch(()=>setTimeout(()=>addBotMsg('⚠️ Errore nella cancellazione, chiama il 0422 670631'),300));
-    } else {
-      setTimeout(()=>addBotMsg('Non trovo il tuo numero. Chiama il **0422 670631** per richiedere la cancellazione 🐧'),300);
-    }
+  // Cancellazione dati o cambio numero → manuale
+  if(norm(text).includes('cancellami')||norm(text).includes('cancella i miei dati')||
+     norm(text).includes('cambia numero')||norm(text).includes('cancella profilo')){
+    setTimeout(()=>addBotMsg('Per cancellare i tuoi dati o cambiare numero chiama il **0422 670631** o WhatsApp **340 532 7257** 🐧\nProvvediamo entro 24 ore!'),300);
     bpLoading=false; return;
   }
   setTimeout(()=>addBotMsg(rispostaGenerica(norm(text))),300);
