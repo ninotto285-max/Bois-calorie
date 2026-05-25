@@ -282,10 +282,10 @@ function gestisciOrdine(input){
       return 'Come ti chiami? Scrivi nome e cognome 😊';
     }
     // Se sembra un intento di ordinare, non un nome → ripeti la domanda
-    const _tNome = norm(input.trim());
-    const _intentOrdine = ['voglio','vorrei','ordino','ordina','ordine','pizza','margherita','diavola','capricciosa'];
-    if(_intentOrdine.some(k=>_tNome.startsWith(k))){
-      return 'Perfetto! Prima dimmi il tuo nome e cognome 😊';
+    const _tNome2 = norm(input.trim());
+    const _intentOrdine = ['voglio','vorrei','ordino','ordina','ordine','pizza','margherita','diavola','capricciosa','voglio ordinare','vorrei ordinare','fare un ordine','prenot'];
+    if(_intentOrdine.some(k=>_tNome2.includes(k))){
+      return 'Come ti chiami? Scrivi nome e cognome 😊';
     }
     ordine.nome = input.trim();
     ordineStep = 'telefono';
@@ -1044,19 +1044,45 @@ function gestisciOrdine(input){
       ordineStep='conferma';
       return fmtOrdine()+'\n\nÈ tutto corretto?';
     }
+    // Estrai quantità dall'input (es. "3 coca", "si 2", "due fante")
+    const _paroleNum={'uno':1,'una':1,'due':2,'tre':3,'quattro':4,'cinque':5};
+    let _qtyBib = 1;
+    const _numMatch = input.match(/(\d+)/);
+    if(_numMatch) _qtyBib = Math.min(parseInt(_numMatch[1]), 10);
+    else { for(const[w,n] of Object.entries(_paroleNum)){ if(tB.includes(w)){ _qtyBib=n; break; } } }
+
     const keyBibita = (typeof trovaBibita==='function') ? trovaBibita(input) : null;
     if(keyBibita && typeof BIBITE!=='undefined' && BIBITE[keyBibita]){
       const bib=BIBITE[keyBibita];
-      // Combo solo con frittini 5pz (prezzo 2.50€), non con patate/verdure/alette (prezzo pieno)
-      const haFrittCombo = ordine.frittini.some(f=>f.prezzo<=2.50);
-      const prezBibita=(haFrittCombo&&(bib.tipo==='analcolica'||bib.tipo==='lattina'))?1.50:bib.prezzo;
-      ordine.bibite=ordine.bibite||[];
-      ordine.bibite.push({qty:1,label:bib.label,prezzo:prezBibita});
+      // Frittini 5pz disponibili per combo
+      const _nFrittCombo = (ordine.frittini||[]).filter(f=>f.prezzo<=2.50).reduce((s,f)=>s+f.qty,0);
+      // Già usati in bibite precedenti
+      const _bibComboGia = (ordine.bibite||[]).filter(b=>b.prezzo<=1.50).reduce((s,b)=>s+b.qty,0);
+      const _comboDisp = Math.max(0, _nFrittCombo - _bibComboGia);
+      
+      ordine.bibite = ordine.bibite || [];
+      let _descrizione = '';
+      
+      if(bib.tipo==='analcolica'||bib.tipo==='lattina'){
+        // Quante vanno a 1.50€ (combo) e quante a prezzo pieno
+        const _aCombo = Math.min(_qtyBib, _comboDisp);
+        const _aNormale = _qtyBib - _aCombo;
+        if(_aCombo > 0) ordine.bibite.push({qty:_aCombo, label:bib.label, prezzo:1.50});
+        if(_aNormale > 0) ordine.bibite.push({qty:_aNormale, label:bib.label, prezzo:bib.prezzo});
+        const totBib = _aCombo*1.50 + _aNormale*bib.prezzo;
+        _descrizione = 'Aggiunto: '+_qtyBib+'x '+bib.label+' — '+fmtE(totBib)+'€ 🥤';
+        if(_aCombo>0 && _aNormale>0) _descrizione += '\n('+_aCombo+'x a 1,50€ combo + '+_aNormale+'x a '+fmtE(bib.prezzo)+'€)';
+        else if(_aCombo>0) _descrizione += ' (combo 1,50€ cad)';
+      } else {
+        ordine.bibite.push({qty:_qtyBib, label:bib.label, prezzo:bib.prezzo});
+        _descrizione = 'Aggiunto: '+_qtyBib+'x '+bib.label+' — '+fmtE(bib.prezzo*_qtyBib)+'€ 🥤';
+      }
       ordineStep='conferma';
-      return 'Aggiunto: 1x '+bib.label+' — '+fmtE(prezBibita)+'€ 🥤\n\n'+fmtOrdine()+'\n\nÈ tutto corretto?';
+      return _descrizione+'\n\n'+fmtOrdine()+'\n\nÈ tutto corretto?';
     }
-    if(['si','sì','ok','yes','certo','dai'].some(k=>tB===k)){
-      return 'Quale bibita vuoi? 🥤\n• Bibita analcolica (Coca, Fanta, Sprite, Lemonsoda) — **1,50€ in più** con combo\n• Birra lattina — **1,50€ in più** con combo\n• Birra bottiglia 33/50/66cl — **3,50€**\n• Franziskaner 50cl — **3,50€**\n• Tuborg 66cl — **3,50€**\n• Birra da litro — **6,00€**';
+    // "sì" generico → chiedi quale bibita
+    if(['si','sì','ok','yes','certo','dai'].some(k=>tB===k||tB.startsWith(k))){
+      return 'Quale bibita e quante? 🥤\n• Analcolica (Coca, Fanta, Sprite) — **1,50€** con combo\n• Birra lattina — **1,50€** con combo\n• Birra bottiglia 33/50/66cl — **3,50€**\n• Franziskaner 50cl — **3,50€**\n• Tuborg 66cl — **3,50€**\n• Birra litro — **6,00€**\n\nEs. _"3 coca cola"_ o _"2 fanta e una birra"_';
     }
     ordineStep='conferma';
     return fmtOrdine()+'\n\nÈ tutto corretto?';
