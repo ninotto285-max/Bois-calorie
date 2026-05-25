@@ -15,11 +15,6 @@ function togglePanel(){
 }
 // Esponi funzioni globalmente per onclick in HTML
 window.togglePanel = togglePanel;
-window.bpSend = function(){ if(typeof bpSend==='function') bpSend(); };
-window.quickSend = function(t){ if(typeof quickSend==='function') quickSend(t); };
-window.mostraCuriosita = function(){ if(typeof mostraCuriosita==='function') mostraCuriosita(); };
-window.confermaMandaOrdine = function(){ if(typeof confermaMandaOrdine==='function') confermaMandaOrdine(); };
-window.annullaOrdine = function(){ if(typeof annullaOrdine==='function') annullaOrdine(); };
 
 function addBotMsg(text){
   const el = document.getElementById('bp-messages');
