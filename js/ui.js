@@ -1149,15 +1149,21 @@ async function bpSend(){
     } else {
       // Fallback: se null durante ordine, ripeti domanda per lo step corrente
       const fallback = {
-        'frittini_tipo': 'Come li vuoi? 🍟\n• **Misti** (assortiti)\n• Olive ascolane\n• Mozzarelline\n• Nuggets pollo\n• Crocchettine patate\n• Anellini di cipolla\n\nEs. "uno misto e uno olive"',
-        'frittini_qty': 'Quanti frittini vuoi? (5pz a 2,50€ l\'uno)',
-        'frittini': '🍟 Vuoi aggiungere dei **frittini**? Scrivi il tipo (olive, nuggets, misto...) oppure **"no"**',
-        'bibita': 'Quale bibita vuoi? Oppure **"no"** per procedere.',
+        'nome': 'Come ti chiami? Scrivi nome e cognome 😊',
+        'telefono': 'E il tuo numero di telefono? 📱',
+        'orario': 'A che ora vieni? (es. 19:30, sette e mezza, alle 8)',
+        'pizze': 'Dimmi le pizze! Es: "2 margherite e 1 diavola" 🍕',
+        'altra': 'Vuoi aggiungere altre pizze? Oppure scrivi **"basta"**',
         'note': 'Hai note particolari? Scrivi pure o **"no"** per procedere.',
         'spicchi': '🔪 Vuole la pizza tagliata a spicchi? **sì** o **no**',
+        'frittini': '🍟 Vuoi aggiungere dei **frittini**? Scrivi il tipo oppure **"no"**',
+        'frittini_qty': 'Quanti frittini vuoi? (5pz a 2,50€ l\'uno)',
+        'frittini_tipo': 'Come li vuoi? 🍟\n• Misti • Olive • Mozzarelline • Nuggets • Crocchettine • Anellini',
+        'bibita': 'Quale bibita vuoi? Oppure **"no"** per procedere.',
+        'conferma': 'Scrivi **"sì"** per confermare o **"no"** per annullare.',
       };
       if(fallback[ordineStep]){
-        setTimeout(()=>addBotMsg('Non ho capito 😅\n'+fallback[ordineStep]),300);
+        setTimeout(()=>addBotMsg(fallback[ordineStep]),300);
       }
     }
     bpLoading=false;
@@ -1167,10 +1173,10 @@ async function bpSend(){
   // Avvio ordine
   const locale = rispostaLocale(text);
   if(locale === 'ORDER'){
+    resetOrdine();
     ordineAttivo = true;
     ordineStep = 'nome';
-    resetOrdine();
-    const orarioGia = parseOrario(norm(text));
+    // (resetOrdine spostato sopra)
     if(orarioGia){
       ordine.orario = orarioGia;
       setTimeout(()=>addBotMsg('Perfetto! 🍕 Ho visto che vuoi venire alle **'+orarioGia+'**.\n\nCome ti chiami? Scrivi nome e cognome 😊'), 300);
