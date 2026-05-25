@@ -1,5 +1,5 @@
 // netlify/functions/slot.js
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://nndriusznthrpdamgtst.supabase.co';
+const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_ANON = process.env.SUPABASE_ANON_KEY;
 const SUPABASE_SERVICE = process.env.SUPABASE_SERVICE_KEY;
 
