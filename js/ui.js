@@ -176,7 +176,7 @@ function fmtOrdine(){
 async function checkSlot(orario, nPizze) {
   try {
     const oggi = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Rome' });
-    const r = await fetch(`/api/slot?data=${oggi}&orario=${orario}&pizze=${nPizze}`);
+    const r = await fetch(`/.netlify/functions/slot?data=${oggi}&orario=${orario}&pizze=${nPizze}`);
     return await r.json();
   } catch(e) { return { disponibile: true }; } // fallback: lascia passare
 }
@@ -184,7 +184,7 @@ async function checkSlot(orario, nPizze) {
 async function prenotaSlot(orario, nPizze) {
   try {
     const oggi = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Rome' });
-    await fetch('/api/slot', {
+    await fetch('/.netlify/functions/slot', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ data: oggi, orario, pizze: nPizze })
@@ -198,7 +198,7 @@ async function inviaOrdine(){
   const totBib2 = (ordine.bibite||[]).reduce((s,b)=>s+b.prezzo*b.qty,0);
   const tot = totPizze2 + totFrit2 + totBib2;
   try {
-    const r = await fetch('/api/ordine', {
+    const r = await fetch('/.netlify/functions/ordine', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({
@@ -225,7 +225,7 @@ async function inviaOrdine(){
         }, 1500);
       } else {
         // Cliente noto → aggiorna contatore ordini
-        fetch('/api/clienti', {
+        fetch('/.netlify/functions/clienti', {
           method: 'POST',
           headers: {'Content-Type':'application/json'},
           body: JSON.stringify({
@@ -300,7 +300,7 @@ function gestisciOrdine(input){
     // Cerca cliente con timeout 3 secondi
     const _ctrl = new AbortController();
     const _timeout = setTimeout(()=>_ctrl.abort(), 3000);
-    fetch('/api/clienti?telefono='+encodeURIComponent(ordine.telefono), {signal:_ctrl.signal})
+    fetch('/.netlify/functions/clienti?telefono='+encodeURIComponent(ordine.telefono), {signal:_ctrl.signal})
       .then(r=>r.json())
       .then(d=>{
         clearTimeout(_timeout);
@@ -1111,7 +1111,7 @@ async function bpSend(){
     const tn = t.toLowerCase().trim();
     if(['si','sì','ok','yes','certo','dai','salva'].some(k=>tn===k||tn.includes(k))){
       ordine._aspettaConsensoPrivacy = false;
-      fetch('/api/clienti', {
+      fetch('/.netlify/functions/clienti', {
         method: 'POST',
         headers: {'Content-Type':'application/json'},
         body: JSON.stringify({
