@@ -1,8 +1,8 @@
 let ultimaPizzaMenzionata = null;
 // ── FUNZIONI UI BASE ──
-let panelOpen = false;
-let bpHistory = [];
-let orderShown = false;
+var panelOpen = panelOpen || false;
+var bpHistory = bpHistory || [];
+var orderShown = orderShown || false;
 
 function togglePanel(){
   panelOpen = !panelOpen;
