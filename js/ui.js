@@ -1,7 +1,3 @@
-window.onerror = function(msg, src, line, col, err){
-  alert('ERRORE JS: ' + msg + ' (riga ' + line + ')');
-  return false;
-};
 let ultimaPizzaMenzionata = null;
 // ── FUNZIONI UI BASE ──
 let panelOpen = false;
@@ -17,6 +13,13 @@ function togglePanel(){
     setTimeout(()=>addBotMsg('Ciao! 🐧🍕 Sono il Pinguino di BoisPizza!\nDimmi che pizza ti va e ti dico calorie e prezzo — oppure premi **Ordina** per fare un ordine!'), 300);
   }
 }
+// Esponi funzioni globalmente per onclick in HTML
+window.togglePanel = togglePanel;
+window.bpSend = function(){ if(typeof bpSend==='function') bpSend(); };
+window.quickSend = function(t){ if(typeof quickSend==='function') quickSend(t); };
+window.mostraCuriosita = function(){ if(typeof mostraCuriosita==='function') mostraCuriosita(); };
+window.confermaMandaOrdine = function(){ if(typeof confermaMandaOrdine==='function') confermaMandaOrdine(); };
+window.annullaOrdine = function(){ if(typeof annullaOrdine==='function') annullaOrdine(); };
 
 function addBotMsg(text){
   const el = document.getElementById('bp-messages');
