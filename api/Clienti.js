@@ -1,18 +1,17 @@
-// functions/api/clienti.js — Cloudflare Pages Function
+// api/clienti.js — BoisPizza Pinguino — Gestione clienti Supabase
+
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://nndriusznthrpdamgtst.supabase.co';
+const SUPABASE_ANON = process.env.SUPABASE_ANON_KEY;
+const SUPABASE_SERVICE = process.env.SUPABASE_SERVICE_KEY;
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type',
 };
 
-function jsonResp(data, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-  });
-}
-
-async function supabaseFetch(url, key, path, options = {}) {
-  const res = await fetch(`${url}/rest/v1${path}`, {
+async function supabaseFetch(path, key, options = {}) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1${path}`, {
     ...options,
     headers: {
       'apikey': key,
@@ -23,68 +22,81 @@ async function supabaseFetch(url, key, path, options = {}) {
     },
   });
   const text = await res.text();
+  if (!res.ok) throw new Error(`Supabase ${res.status}: ${text}`);
   return text ? JSON.parse(text) : null;
 }
 
-export async function onRequestOptions() {
-  return new Response(null, { headers: corsHeaders });
-}
+export default async function handler(req, res) {
+  Object.entries(corsHeaders).forEach(([k, v]) => res.setHeader(k, v));
+  if (req.method === 'OPTIONS') return res.status(200).end();
 
-export async function onRequestGet(context) {
-  const url = context.env.SUPABASE_URL;
-  const key = context.env.SUPABASE_SERVICE_KEY;
-  const params = new URL(context.request.url).searchParams;
-  const telefono = params.get('telefono');
+  try {
+    if (req.method === 'GET') {
+      const { telefono } = req.query;
+      if (!telefono) return res.status(400).json({ error: 'telefono richiesto' });
 
-  if (!telefono) return jsonResp({ error: 'telefono richiesto' }, 400);
+      const rows = await supabaseFetch(
+        `/clienti?telefono=eq.${encodeURIComponent(telefono)}&select=*`,
+        SUPABASE_ANON
+      );
+      if (rows && rows.length > 0) return res.status(200).json({ trovato: true, cliente: rows[0] });
+      return res.status(200).json({ trovato: false });
+    }
 
-  const rows = await supabaseFetch(url, key,
-    `/clienti?telefono=eq.${encodeURIComponent(telefono)}&select=*`
-  );
+    if (req.method === 'POST') {
+      const { telefono, nome, pizza_preferita } = req.body;
+      if (!telefono || !nome) return res.status(400).json({ error: 'dati mancanti' });
 
-  if (rows && rows.length > 0) return jsonResp({ trovato: true, cliente: rows[0] });
-  return jsonResp({ trovato: false });
-}
+      const oggi = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Rome' });
+      const existing = await supabaseFetch(
+        `/clienti?telefono=eq.${encodeURIComponent(telefono)}&select=ordini_count`,
+        SUPABASE_ANON
+      );
 
-export async function onRequestPost(context) {
-  const url = context.env.SUPABASE_URL;
-  const key = context.env.SUPABASE_SERVICE_KEY;
-  const body = await context.request.json();
-  const { telefono, nome, pizza_preferita } = body;
+      if (existing && existing.length > 0) {
+        await supabaseFetch(
+          `/clienti?telefono=eq.${encodeURIComponent(telefono)}`,
+          SUPABASE_SERVICE,
+          {
+            method: 'PATCH',
+            body: JSON.stringify({
+              nome,
+              ordini_count: (existing[0].ordini_count || 0) + 1,
+              ultima_visita: oggi,
+              ...(pizza_preferita ? { pizza_preferita } : {}),
+            }),
+          }
+        );
+      } else {
+        await supabaseFetch('/clienti', SUPABASE_SERVICE, {
+          method: 'POST',
+          body: JSON.stringify({
+            telefono,
+            nome,
+            ordini_count: 1,
+            ultima_visita: oggi,
+            pizza_preferita: pizza_preferita || null,
+          }),
+        });
+      }
+      return res.status(200).json({ ok: true });
+    }
 
-  if (!telefono || !nome) return jsonResp({ error: 'dati mancanti' }, 400);
+    if (req.method === 'DELETE') {
+      const { telefono } = req.query;
+      if (!telefono) return res.status(400).json({ error: 'telefono richiesto' });
+      await supabaseFetch(
+        `/clienti?telefono=eq.${encodeURIComponent(telefono)}`,
+        SUPABASE_SERVICE,
+        { method: 'DELETE' }
+      );
+      return res.status(200).json({ ok: true });
+    }
 
-  const oggi = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Rome' });
-  const rows = await supabaseFetch(url, key,
-    `/clienti?telefono=eq.${encodeURIComponent(telefono)}&select=ordini_count`
-  );
+    return res.status(405).json({ error: 'Method not allowed' });
 
-  if (rows && rows.length > 0) {
-    await supabaseFetch(url, key, `/clienti?telefono=eq.${encodeURIComponent(telefono)}`, {
-      method: 'PATCH',
-      body: JSON.stringify({
-        nome,
-        ordini_count: (rows[0].ordini_count || 0) + 1,
-        ultima_visita: oggi,
-        ...(pizza_preferita ? { pizza_preferita } : {}),
-      }),
-    });
-  } else {
-    await supabaseFetch(url, key, '/clienti', {
-      method: 'POST',
-      body: JSON.stringify({ telefono, nome, ordini_count: 1, ultima_visita: oggi, pizza_preferita: pizza_preferita || null }),
-    });
+  } catch (err) {
+    console.error('Clienti error:', err);
+    return res.status(500).json({ error: err.message });
   }
-  return jsonResp({ ok: true });
-}
-
-export async function onRequestDelete(context) {
-  const url = context.env.SUPABASE_URL;
-  const key = context.env.SUPABASE_SERVICE_KEY;
-  const params = new URL(context.request.url).searchParams;
-  const telefono = params.get('telefono');
-
-  if (!telefono) return jsonResp({ error: 'telefono richiesto' }, 400);
-  await supabaseFetch(url, key, `/clienti?telefono=eq.${encodeURIComponent(telefono)}`, { method: 'DELETE' });
-  return jsonResp({ ok: true });
 }
