@@ -138,7 +138,7 @@ function parseOrario(t){
 
 function resetOrdine(){
   ordineAttivo = false;
-  ordine = { nome:'', orario:'', pizze:[], note:'', telefono:'', frittini:[], bibite:[], _noteVariazioni:[] };
+  ordine = { nome:'', orario:'', pizze:[], note:'', telefono:'', frittini:[], bibite:[], _noteVariazioni:[], _aspettaConsensoPrivacy:false, _clienteNoto:false };
   ordineStep = '';
   ordineDomandaCottura = null;
 }
@@ -280,6 +280,12 @@ function gestisciOrdine(input){
   if(ordineStep === 'nome'){
     if(!input.trim() || norm(input.trim()).length < 2){
       return 'Come ti chiami? Scrivi nome e cognome 😊';
+    }
+    // Se sembra un intento di ordinare, non un nome → ripeti la domanda
+    const _tNome = norm(input.trim());
+    const _intentOrdine = ['voglio','vorrei','ordino','ordina','ordine','pizza','margherita','diavola','capricciosa'];
+    if(_intentOrdine.some(k=>_tNome.startsWith(k))){
+      return 'Perfetto! Prima dimmi il tuo nome e cognome 😊';
     }
     ordine.nome = input.trim();
     ordineStep = 'telefono';
