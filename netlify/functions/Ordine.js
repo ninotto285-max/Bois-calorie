@@ -1,74 +1,54 @@
-// api/ordine.js — BoisPizza Pinguino
-// Riceve ordini dal chatbot e li manda su Telegram
+// netlify/functions/ordine.js
+const headers = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type',
+  'Content-Type': 'application/json',
+};
 
-const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN;
-const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
-
-export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+export const handler = async (event) => {
+  if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers, body: '' };
+  if (event.httpMethod !== 'POST') return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method not allowed' }) };
 
   try {
-    const { nome, telefono, orario, pizze, totale, note } = req.body;
+    const { nome, telefono, orario, pizze, frittini, bibite, note, totale, noteVariazioni } = JSON.parse(event.body || '{}');
+    const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN;
+    const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
-    if (!nome || !orario || !pizze?.length) {
-      return res.status(400).json({ error: 'Dati ordine incompleti' });
+    if (!TELEGRAM_TOKEN || !TELEGRAM_CHAT_ID) return { statusCode: 500, headers, body: JSON.stringify({ ok: false, error: 'Config mancante' }) };
+
+    const ora = new Date().toLocaleTimeString('it-IT', { timeZone: 'Europe/Rome', hour: '2-digit', minute: '2-digit' });
+    let msg = `🍕 *NUOVO ORDINE* — ${ora}\n\n`;
+    msg += `👤 *${nome}*\n📱 ${telefono}\n🕐 Ritiro: *${orario}*\n\n`;
+
+    if (pizze && pizze.length > 0) {
+      msg += `🍕 *PIZZE:*\n`;
+      for (const p of pizze) msg += `  • ${p.qty}x ${p.nome} — ${String(p.prezzo.toFixed(2)).replace('.',',')}€\n`;
     }
-
-    // ── Formatta messaggio Telegram ──
-    const ora = new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Rome' });
-    
-    let msg = `🍕 *NUOVO ORDINE* — ${ora}\n`;
-    msg += `━━━━━━━━━━━━━━━━━\n\n`;
-    msg += `👤 *${nome}*\n`;
-    if (telefono) msg += `📱 ${telefono}\n`;
-    msg += `🕐 Ritiro: *${orario}*\n\n`;
-    
-    msg += `*PIZZE:*\n`;
-    let totaleCalc = 0;
-    for (const p of pizze) {
-      const subtot = (p.prezzo * p.qty).toFixed(2).replace('.', ',');
-      msg += `• ${p.qty}x *${p.nome}* — ${subtot}€\n`;
-      totaleCalc += p.prezzo * p.qty;
+    if (frittini && frittini.length > 0) {
+      msg += `\n🍟 *FRITTINI:*\n`;
+      for (const f of frittini) msg += `  • ${f.qty}x ${f.tipo} — ${String(f.prezzo.toFixed(2)).replace('.',',')}€\n`;
     }
-    
-    const totStr = (totale || totaleCalc).toFixed(2).replace('.', ',');
-    msg += `\n💰 *Totale: ${totStr}€*\n`;
-    
-    if (note && note.trim()) {
-      msg += `\n📝 *Note:* ${note}\n`;
+    if (bibite && bibite.length > 0) {
+      msg += `\n🥤 *BIBITE:*\n`;
+      for (const b of bibite) msg += `  • ${b.qty}x ${b.label} — ${String(b.prezzo.toFixed(2)).replace('.',',')}€\n`;
     }
-    
-    msg += `\n━━━━━━━━━━━━━━━━━`;
-
-    // ── Invia su Telegram ──
-    const tgRes = await fetch(
-      `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id: TELEGRAM_CHAT_ID,
-          text: msg,
-          parse_mode: 'Markdown',
-        }),
-      }
-    );
-
-    const tgData = await tgRes.json();
-
-    if (!tgData.ok) {
-      console.error('Telegram error:', tgData);
-      return res.status(500).json({ error: 'Errore invio Telegram', detail: tgData.description });
+    msg += `\n💰 *TOTALE: ${totale}€*\n`;
+    if (noteVariazioni && noteVariazioni.length > 0) {
+      msg += `\n⚠️ *RICHIESTE SPECIALI:*\n`;
+      for (const n of noteVariazioni) msg += `  ${n}\n`;
     }
+    if (note) msg += `\n📝 *NOTE:* ${note}\n`;
 
-    return res.status(200).json({ ok: true, message: 'Ordine inviato su Telegram!' });
+    const r = await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text: msg, parse_mode: 'Markdown' }),
+    });
+    const d = await r.json();
+    return { statusCode: 200, headers, body: JSON.stringify({ ok: d.ok }) };
 
   } catch (err) {
-    console.error('Errore ordine.js:', err);
-    return res.status(500).json({ error: 'Errore interno', detail: err.message });
+    return { statusCode: 500, headers, body: JSON.stringify({ ok: false, error: err.message }) };
   }
-}
+};
