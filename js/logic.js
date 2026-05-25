@@ -115,9 +115,14 @@ function correggiTypo(s){
     .replace(/\bnugghets?\b/gi,'nuggets')
     .replace(/\bnugget\b/gi,'nuggets')
     .replace(/\bolive\s+ascolan\w*/gi,'olive ascolane')
+    .replace(/\bolive\b/gi,'olive ascolane')
     .replace(/\bmozzarelin\w*/gi,'mozzarelline')
-    .replace(/\bcrocchetti\b/gi,'crocchettine')
-    .replace(/\banellin\b/gi,'anellini');
+    .replace(/\bmozzarel\b/gi,'mozzarelline')
+    .replace(/\bcrocchett\w*/gi,'crocchettine patate')
+    .replace(/\bcrocche\b/gi,'crocchettine patate')
+    .replace(/\banellin\w*/gi,'anellini di cipolla')
+    .replace(/\banell\b/gi,'anellini di cipolla')
+    .replace(/\bmist\w*\b/gi,'misto');
 }
 
 function rispostaLocale(input){
@@ -654,7 +659,7 @@ const ING_CHIEDI_COTTURA = ['bufala','burrata']; // chiedi in cottura o fine cot
 const ING_CHIEDI_SOSTITUZIONE = ['bufala','burrata']; // chiedi se al posto di mozzarella
 
 // Stato domanda cottura nell'ordine
-let ordineDomandaCottura = null; // {tipo:'sostituzione'|'cottura', ing, pizzaIdx}
+// ordineDomandaCottura è dichiarata in ui.js
 
 function checkAggiuntaSpeciale(nomeIng, pizzaHaMozzarella){
   const n = norm(nomeIng);
@@ -844,4 +849,4 @@ function rispostaGenerica(t){
   return rnd(RISPOSTE_RANDOM);
 }
 
-let bpHistory=[], bpLoading=false, panelOpen=false, orderShown=false, msgsSinceFritino=0;
+// variabili globali dichiarate in index.html e ui.js
