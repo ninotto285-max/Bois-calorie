@@ -1,3 +1,7 @@
+window.onerror = function(msg, src, line, col, err){
+  alert('ERRORE JS: ' + msg + ' (riga ' + line + ')');
+  return false;
+};
 let ultimaPizzaMenzionata = null;
 // ── FUNZIONI UI BASE ──
 let panelOpen = false;
