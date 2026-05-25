@@ -291,9 +291,13 @@ function gestisciOrdine(input){
     if(!numM) return 'Non ho capito il numero 😅 Scrivi tipo 3401234567';
     ordine.telefono = numM[0];
     // Cerca cliente nel database
-    fetch('/api/clienti?telefono='+encodeURIComponent(ordine.telefono))
+    // Cerca cliente con timeout 3 secondi
+    const _ctrl = new AbortController();
+    const _timeout = setTimeout(()=>_ctrl.abort(), 3000);
+    fetch('/api/clienti?telefono='+encodeURIComponent(ordine.telefono), {signal:_ctrl.signal})
       .then(r=>r.json())
       .then(d=>{
+        clearTimeout(_timeout);
         if(d.trovato && d.cliente){
           const c = d.cliente;
           ordine._clienteNoto = true;
@@ -303,7 +307,7 @@ function gestisciOrdine(input){
             : `Bentornato **${c.nome}**! 🐧`;
           addBotMsg(saluto);
         }
-      }).catch(()=>{});
+      }).catch(()=>{ clearTimeout(_timeout); });
     if(ordine.orario){
       // Orario già estratto dal messaggio iniziale
       ordineStep = 'pizze';
