@@ -1,4 +1,59 @@
 let ultimaPizzaMenzionata = null;
+// ── FUNZIONI UI BASE ──
+let panelOpen = false;
+let bpHistory = [];
+let orderShown = false;
+
+function togglePanel(){
+  panelOpen = !panelOpen;
+  const panel = document.getElementById('bois-panel');
+  if(panel) panel.classList.toggle('open', panelOpen);
+  if(panelOpen && !orderShown){
+    orderShown = true;
+    setTimeout(()=>addBotMsg('Ciao! 🐧🍕 Sono il Pinguino di BoisPizza!\nDimmi che pizza ti va e ti dico calorie e prezzo — oppure premi **Ordina** per fare un ordine!'), 300);
+  }
+}
+
+function addBotMsg(text){
+  const el = document.getElementById('bp-messages');
+  if(!el) return;
+  const div = document.createElement('div');
+  div.className = 'bp-msg bot';
+  const md = text
+    .replace(/\*\*(.+?)\*\*/g,'<b>$1</b>')
+    .replace(/\_(.+?)\_/g,'<i>$1</i>')
+    .replace(/\n/g,'<br>');
+  div.innerHTML = '<div class="bp-msg-av">🐧</div><div class="bp-bubble">'+md+'</div>';
+  el.appendChild(div);
+  el.scrollTop = el.scrollHeight;
+}
+
+function addUserMsg(text){
+  const el = document.getElementById('bp-messages');
+  if(!el) return;
+  const div = document.createElement('div');
+  div.className = 'bp-msg user';
+  div.innerHTML = '<div class="bp-bubble">'+text+'</div><div class="bp-msg-av">👤</div>';
+  el.appendChild(div);
+  el.scrollTop = el.scrollHeight;
+}
+
+function showTyping(){
+  const el = document.getElementById('bp-messages');
+  if(!el) return;
+  const div = document.createElement('div');
+  div.className = 'bp-msg bot'; div.id = 'bp-typing';
+  div.innerHTML = '<div class="bp-msg-av">🐧</div><div class="bp-bubble bp-typing"><span></span><span></span><span></span></div>';
+  el.appendChild(div);
+  el.scrollTop = el.scrollHeight;
+}
+
+function removeTyping(){
+  const t = document.getElementById('bp-typing');
+  if(t) t.remove();
+}
+
+
 if(typeof bpLoading==='undefined') var bpLoading=false;
 if(typeof msgsSinceFritino==='undefined') var msgsSinceFritino=0;
 if(typeof ordineDomandaCottura==='undefined') var ordineDomandaCottura=null;
@@ -218,14 +273,6 @@ function annullaOrdine(){
 }
 
 function gestisciOrdine(input){
-  if(!gestisciOrdine._depth) gestisciOrdine._depth = 0;
-  gestisciOrdine._depth++;
-  if(gestisciOrdine._depth > 10){
-    gestisciOrdine._depth = 0;
-    console.warn('RICORSIONE BLOCCATA per input:', input.substring(0,50));
-    return null;
-  }
-  const _cleanup = ()=>{ gestisciOrdine._depth = Math.max(0, gestisciOrdine._depth-1); };
   const t = norm(input);
 
   if(ordineStep === 'nome'){
