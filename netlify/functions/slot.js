@@ -3,7 +3,7 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_ANON = process.env.SUPABASE_ANON_KEY;
 const SUPABASE_SERVICE = process.env.SUPABASE_SERVICE_KEY;
 
-const MAX_PIZZE_DEFAULT = { feriale: 6, weekend: 10 };
+const MAX_PIZZE_DEFAULT = { feriale: 12, weekend: 12 };
 
 function isWeekend(dateStr) {
   const d = new Date(dateStr);
@@ -46,7 +46,7 @@ async function getSlotInfo(data, orario) {
   try {
     const rows = await sbFetch(
       `/slot_ordini?data=eq.${data}&orario=eq.${orDb(orario)}&select=id,pizze_count,slot_esclusivo,max_pizze`,
-      SUPABASE_ANON
+      SUPABASE_SERVICE
     );
     return rows && rows.length > 0 ? rows[0] : null;
   } catch(e) { return null; }
@@ -127,7 +127,7 @@ export const handler = async (event) => {
 
       const existing = await sbFetch(
         `/slot_ordini?data=eq.${data}&orario=eq.${orDb(orario)}&select=id,pizze_count,max_pizze`,
-        SUPABASE_ANON
+        SUPABASE_SERVICE
       );
 
       if (existing && existing.length > 0) {
