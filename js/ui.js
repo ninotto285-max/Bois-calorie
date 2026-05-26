@@ -190,7 +190,6 @@ async function prenotaSlot(orario, nPizze) {
       body: JSON.stringify({ data: oggi, orario, pizze: nPizze })
     });
     const d = await r.json();
-    alert('Slot risposta: ' + JSON.stringify(d));
   } catch(e) { alert('Slot ERRORE: ' + e.message); }
 }
 
@@ -216,11 +215,9 @@ async function inviaOrdine(){
       })
     });
     const d = await r.json();
-    console.log('[inviaOrdine] risposta:', JSON.stringify(d));
-    alert('Risposta ordine: ' + JSON.stringify(d));
+    alert('Ordine: ' + JSON.stringify(d));
     if(d.ok){
       const nPizze = ordine.pizze.reduce((s,p)=>s+p.qty,0);
-      console.log('[inviaOrdine] prenotaSlot', ordine.orario, nPizze);
       await prenotaSlot(ordine.orario, nPizze);
       // Se cliente non noto → chiedi consenso salvataggio
       if(!ordine._clienteNoto){
@@ -242,7 +239,7 @@ async function inviaOrdine(){
       }
     }
     return d.ok;
-  } catch(e){ alert('ERRORE inviaOrdine: ' + e.message); return false; }
+  } catch(e){ return false; }
 }
 
 function mostraPulsanteConferma(){
@@ -333,14 +330,43 @@ function gestisciOrdine(input){
     const orarioTrovato = parseOrario(t);
     if(!orarioTrovato) return `Non ho capito l'orario 😅 Scegli tra: ${ORARI_DISPONIBILI.join(' · ')}\n(Puoi scrivere anche "alle 8", "7 e mezza", "per le 20" ecc.)`;
     ordine.orario = orarioTrovato;
-    ordineStep = 'pizze';
-    // Check slot disponibilità in background
-    checkSlot(ordine.orario, 1).then(slot => {
-      if(slot && !slot.disponibile && slot.tuttoEsaurito){
-        addBotMsg('⚠️ Le prenotazioni per stasera sono quasi esaurite. Se hai molte pizze chiama prima il **0422 670631**!');
+    // Blocca orari già passati
+    const _adessoRoma = new Date().toLocaleTimeString('it-IT', {timeZone:'Europe/Rome', hour:'2-digit', minute:'2-digit'});
+    const [_hOra, _mOra] = _adessoRoma.split(':').map(Number);
+    const [_hSlot, _mSlot] = orarioTrovato.split(':').map(Number);
+    const _minutiAdesso = _hOra*60+_mOra;
+    const _minutiSlot = _hSlot*60+_mSlot;
+    if(_minutiSlot <= _minutiAdesso + 15){ // 15 min di buffer preparazione
+      return 'Ops! Le **'+orarioTrovato+'** sono già passate 😅\nScegli un orario disponibile: '+ORARI_DISPONIBILI.filter(o=>{ const [h,m]=o.split(':').map(Number); return h*60+m > _minutiAdesso; }).join(' · ');
+    }
+    // Check slot PRIMA di procedere
+    ordineStep = 'orario'; // resta su orario finché non confermiamo
+    checkSlot(orarioTrovato, 1).then(slot => {
+      if(!slot || slot.disponibile){
+        ordine.orario = orarioTrovato;
+        ordineStep = 'pizze';
+        addBotMsg('Orario **'+orarioTrovato+'** ✅\n\nOra dimmi le pizze! Scrivi tipo:\n"2 margherite e 1 diavola"\noppure aggiungile una per volta 🍕');
+      } else if(slot.tuttoEsaurito){
+        ordine.orario = '';
+        ordineStep = 'orario';
+        addBotMsg('😔 Purtroppo per stasera non ci sono più slot disponibili. Chiama il **0422 670631** per verificare!');
+      } else if(slot.slotsVicini && slot.slotsVicini.length > 0){
+        ordine.orario = '';
+        ordineStep = 'orario';
+        const vicini = slot.slotsVicini.map(s=>s.orario).join(' · ');
+        addBotMsg('⚠️ Lo slot delle **'+orarioTrovato+'** è pieno!\n\nSlot disponibili vicini: **'+vicini+'**\n\nScegli uno di questi orari 🕐');
+      } else {
+        ordine.orario = orarioTrovato;
+        ordineStep = 'pizze';
+        addBotMsg('Orario **'+orarioTrovato+'** ✅\n\nOra dimmi le pizze! Scrivi tipo:\n"2 margherite e 1 diavola"\noppure aggiungile una per volta 🍕');
       }
-    }).catch(()=>{});
-    return `Orario **${ordine.orario}** ✅\n\nOra dimmi le pizze! Scrivi tipo:\n"2 margherite e 1 diavola"\noppure aggiungile una per volta 🍕`;
+    }).catch(()=>{
+      // Se API non risponde → procedi comunque
+      ordine.orario = orarioTrovato;
+      ordineStep = 'pizze';
+      addBotMsg('Orario **'+orarioTrovato+'** ✅\n\nOra dimmi le pizze! Scrivi tipo:\n"2 margherite e 1 diavola"\noppure aggiungile una per volta 🍕');
+    });
+    return null; // la risposta arriva via addBotMsg async
   }
 
   if(ordineStep === 'pizze'){
