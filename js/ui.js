@@ -184,12 +184,14 @@ async function checkSlot(orario, nPizze) {
 async function prenotaSlot(orario, nPizze) {
   try {
     const oggi = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Rome' });
-    await fetch('/.netlify/functions/slot', {
+    const r = await fetch('/.netlify/functions/slot', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ data: oggi, orario, pizze: nPizze })
     });
-  } catch(e) { console.warn('Slot prenotazione fallita:', e); }
+    const d = await r.json();
+    alert('Slot risposta: ' + JSON.stringify(d));
+  } catch(e) { alert('Slot ERRORE: ' + e.message); }
 }
 
 async function inviaOrdine(){
