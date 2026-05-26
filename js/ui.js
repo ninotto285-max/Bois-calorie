@@ -82,6 +82,8 @@ const ORARI_DISPONIBILI = (()=>{
 function parseOrario(t){
   if(!t) return null;
   t = t.toLowerCase().trim();
+  // Normalizza separatori: 18.30 → 18:30, 18-30 → 18:30
+  t = t.replace(/(\d{1,2})[\.,\-](\d{2})\b/g, '$1:$2');
 
   // Parole → numeri
   const parole = {'uno':1,'due':2,'tre':3,'quattro':4,'cinque':5,'sei':6,'sette':7,'otto':8,'nove':9,'dieci':10,'undici':11,'dodici':12,'tredici':13,'quattordici':14,'quindici':15,'sedici':16,'diciassette':17,'diciotto':18,'diciannove':19,'venti':20,'ventuno':21,'ventidue':22};
@@ -326,7 +328,7 @@ function gestisciOrdine(input){
     return `Perfetto **${ordine.nome}**! 🐧\nA che ora vieni? Gli orari disponibili sono:\n${orariStr}\n\n(Puoi scrivere anche "alle 8", "7 e mezza" ecc.)`;
   }
 
-  if(ordineStep === 'orario'){
+  if(ordineStep === 'orario' || ordineStep === 'orario_checking'){
     const orarioTrovato = parseOrario(t);
     if(!orarioTrovato) return `Non ho capito l'orario 😅 Scegli tra: ${ORARI_DISPONIBILI.join(' · ')}\n(Puoi scrivere anche "alle 8", "7 e mezza", "per le 20" ecc.)`;
     ordine.orario = orarioTrovato;
@@ -340,12 +342,19 @@ function gestisciOrdine(input){
       return 'Ops! Le **'+orarioTrovato+'** sono già passate 😅\nScegli un orario disponibile: '+ORARI_DISPONIBILI.filter(o=>{ const [h,m]=o.split(':').map(Number); return h*60+m > _minutiAdesso; }).join(' · ');
     }
     // Check slot PRIMA di procedere
-    ordineStep = 'orario'; // resta su orario finché non confermiamo
+    ordineStep = 'orario_checking'; // stato intermedio per bloccare il fallback
     checkSlot(orarioTrovato, 1).then(slot => {
       if(!slot || slot.disponibile){
         ordine.orario = orarioTrovato;
         ordineStep = 'pizze';
-        addBotMsg('Orario **'+orarioTrovato+'** ✅\n\nOra dimmi le pizze! Scrivi tipo:\n"2 margherite e 1 diavola"\noppure aggiungile una per volta 🍕');
+        // Se slot carico (più di metà occupato) → avvisa possibile ritardo
+        const _libere = slot ? slot.libere : 12;
+        const _max = slot ? slot.maxPizze : 12;
+        const _carico = _libere < _max/2;
+        const _msg = _carico
+          ? 'Orario **'+orarioTrovato+'** ✅\n\n⚠️ Attenzione: lo slot è quasi pieno, potrebbe esserci un ritardo di 5-10 minuti.\n\nOra dimmi le pizze! 🍕'
+          : 'Orario **'+orarioTrovato+'** ✅\n\nOra dimmi le pizze! Scrivi tipo:\n"2 margherite e 1 diavola"\noppure aggiungile una per volta 🍕';
+        addBotMsg(_msg);
       } else if(slot.tuttoEsaurito){
         ordine.orario = '';
         ordineStep = 'orario';
@@ -1218,6 +1227,7 @@ async function bpSend(){
         'nome': 'Come ti chiami? Scrivi nome e cognome 😊',
         'telefono': 'E il tuo numero di telefono? 📱',
         'orario': 'A che ora vieni? (es. 19:30, sette e mezza, alle 8)',
+        'orario_checking': null, // in attesa risposta API — non ripetere domanda
         'pizze': 'Dimmi le pizze! Es: "2 margherite e 1 diavola" 🍕',
         'altra': 'Vuoi aggiungere altre pizze? Oppure scrivi **"basta"**',
         'note': 'Hai note particolari? Scrivi pure o **"no"** per procedere.',
@@ -1230,6 +1240,8 @@ async function bpSend(){
       };
       if(fallback[ordineStep]){
         setTimeout(()=>addBotMsg(fallback[ordineStep]),300);
+      } else if(ordineStep === 'orario_checking'){
+        // In attesa del check slot — non fare niente
       }
     }
     bpLoading=false;
