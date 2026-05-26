@@ -2,80 +2,135 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>BoisPizza — Admin</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&display=swap');
-  :root{--bg:#0f0f0f;--surface:#1a1a1a;--border:#2a2a2a;--accent:#ff4d00;--accent2:#ffb800;--text:#f0f0f0;--muted:#888;--green:#00e676;--red:#ff1744;--yellow:#ffd740;}
-  *{margin:0;padding:0;box-sizing:border-box;}
+  :root{--bg:#0f0f0f;--surface:#1a1a1a;--border:#2a2a2a;--accent:#ff4d00;--accent2:#ffb800;--text:#f0f0f0;--muted:#666;--green:#00e676;--red:#ff1744;--yellow:#ffd740;}
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;min-height:100vh;}
-  #login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;}
-  .login-box{background:var(--surface);border:1px solid var(--border);padding:48px;width:360px;text-align:center;}
-  .login-box h1{font-family:'Syne',sans-serif;font-size:2rem;color:var(--accent);margin-bottom:8px;}
-  .login-box p{color:var(--muted);font-size:0.8rem;margin-bottom:32px;}
-  .login-box input{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:12px 16px;font-family:'DM Mono',monospace;font-size:1rem;margin-bottom:16px;outline:none;}
+
+  /* LOGIN */
+  #login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px;}
+  .login-box{background:var(--surface);border:1px solid var(--border);padding:40px 32px;width:100%;max-width:360px;text-align:center;}
+  .login-box h1{font-family:'Syne',sans-serif;font-size:2rem;color:var(--accent);margin-bottom:6px;}
+  .login-box p{color:var(--muted);font-size:0.8rem;margin-bottom:28px;}
+  .login-box input{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:14px 16px;font-family:'DM Mono',monospace;font-size:1rem;margin-bottom:14px;outline:none;border-radius:0;}
   .login-box input:focus{border-color:var(--accent);}
-  .btn-login{width:100%;background:var(--accent);color:white;border:none;padding:12px;font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;cursor:pointer;}
-  .btn-login:hover{background:#ff6620;}
-  .login-error{color:var(--red);font-size:0.8rem;margin-top:12px;display:none;}
+  .btn-login{width:100%;background:var(--accent);color:white;border:none;padding:14px;font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;cursor:pointer;letter-spacing:1px;}
+  .login-error{color:var(--red);font-size:0.8rem;margin-top:10px;display:none;}
+
+  /* LAYOUT */
   #dashboard{display:none;}
-  header{background:var(--surface);border-bottom:1px solid var(--border);padding:16px 24px;display:flex;align-items:center;justify-content:space-between;}
-  header h1{font-family:'Syne',sans-serif;font-size:1.3rem;color:var(--accent);}
-  header span{color:var(--muted);font-size:0.75rem;}
-  .logout-btn{background:none;border:1px solid var(--border);color:var(--muted);padding:6px 12px;font-family:'DM Mono',monospace;font-size:0.75rem;cursor:pointer;}
-  .logout-btn:hover{border-color:var(--accent);color:var(--accent);}
-  .tabs{display:flex;border-bottom:1px solid var(--border);background:var(--surface);padding:0 24px;}
-  .tab{padding:14px 20px;font-size:0.8rem;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;}
+  header{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+  header h1{font-family:'Syne',sans-serif;font-size:1.1rem;color:var(--accent);}
+  .logout-btn{background:none;border:1px solid var(--border);color:var(--muted);padding:6px 10px;font-family:'DM Mono',monospace;font-size:0.72rem;cursor:pointer;}
+
+  /* TABS */
+  .tabs{display:flex;border-bottom:1px solid var(--border);background:var(--surface);overflow-x:auto;position:sticky;top:49px;z-index:99;}
+  .tab{padding:14px 18px;font-size:0.78rem;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;white-space:nowrap;flex-shrink:0;}
   .tab.active{color:var(--accent);border-bottom-color:var(--accent);}
-  .tab-content{display:none;padding:24px;}
+  .tab-content{display:none;padding:16px;}
   .tab-content.active{display:block;}
-  .section-title{font-family:'Syne',sans-serif;font-size:1.1rem;margin-bottom:20px;color:var(--accent2);}
-  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;}
-  .form-group{display:flex;flex-direction:column;gap:6px;}
-  .form-group label{font-size:0.72rem;color:var(--muted);}
-  .form-input{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:10px 12px;font-family:'DM Mono',monospace;font-size:0.85rem;outline:none;width:100%;}
+
+  /* FORM */
+  .section-title{font-family:'Syne',sans-serif;font-size:1rem;margin-bottom:14px;color:var(--accent2);}
+  .form-group{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;}
+  .form-group label{font-size:0.7rem;color:var(--muted);letter-spacing:0.5px;}
+  .form-input{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:12px 14px;font-family:'DM Mono',monospace;font-size:0.9rem;outline:none;width:100%;border-radius:0;-webkit-appearance:none;}
   .form-input:focus{border-color:var(--accent);}
-  select.form-input option{background:var(--surface);}
-  .pizze-list{background:var(--surface);border:1px solid var(--border);padding:12px;margin-bottom:16px;min-height:60px;}
-  .pizza-item{display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:0.82rem;}
+  select.form-input{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23888' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px;}
+
+  /* RICERCA */
+  .search-box{position:relative;margin-bottom:10px;}
+  .search-box input{background:var(--bg);border:1px solid var(--border);color:var(--text);padding:10px 14px 10px 36px;font-family:'DM Mono',monospace;font-size:0.85rem;outline:none;width:100%;}
+  .search-box input:focus{border-color:var(--accent2);}
+  .search-box::before{content:'🔍';position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:0.85rem;}
+
+  /* PIZZA SELECT */
+  .pizza-results{background:var(--surface);border:1px solid var(--border);max-height:220px;overflow-y:auto;margin-bottom:10px;display:none;}
+  .pizza-result-item{padding:12px 14px;cursor:pointer;font-size:0.85rem;display:flex;justify-content:space-between;border-bottom:1px solid var(--border);}
+  .pizza-result-item:last-child{border-bottom:none;}
+  .pizza-result-item:active,.pizza-result-item.selected{background:rgba(255,77,0,0.15);}
+  .pizza-result-item .prezzo{color:var(--accent2);font-size:0.8rem;}
+  .pizza-selected{background:var(--surface);border:1px solid var(--accent);padding:10px 14px;margin-bottom:10px;font-size:0.85rem;display:none;justify-content:space-between;align-items:center;}
+
+  /* QTY */
+  .qty-row{display:flex;align-items:center;gap:12px;margin-bottom:14px;}
+  .qty-btn{background:var(--surface);border:1px solid var(--border);color:var(--text);width:40px;height:40px;font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+  .qty-display{font-family:'Syne',sans-serif;font-size:1.3rem;min-width:30px;text-align:center;}
+
+  /* CHECKBOX VARIAZIONI */
+  .variazioni-container{background:var(--surface);border:1px solid var(--border);padding:10px;margin-bottom:14px;}
+  .variaz-group{margin-bottom:12px;}
+  .variaz-group-title{font-size:0.68rem;color:var(--muted);letter-spacing:0.5px;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--border);}
+  .variaz-search{background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 10px 8px 28px;font-family:'DM Mono',monospace;font-size:0.8rem;outline:none;width:100%;margin-bottom:8px;}
+  .variaz-search-wrap{position:relative;margin-bottom:8px;}
+  .variaz-search-wrap::before{content:'🔍';position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:0.75rem;}
+  .checkbox-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+  .cb-item{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg);border:1px solid var(--border);cursor:pointer;font-size:0.78rem;}
+  .cb-item.checked{background:rgba(255,77,0,0.12);border-color:var(--accent);}
+  .cb-item input{display:none;}
+  .cb-check{width:16px;height:16px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:0.65rem;}
+  .cb-item.checked .cb-check{background:var(--accent);border-color:var(--accent);}
+  .cb-label{flex:1;line-height:1.2;}
+  .cb-price{color:var(--accent2);font-size:0.72rem;white-space:nowrap;}
+  .cb-item.hidden{display:none;}
+
+  /* PIZZE LISTA */
+  .pizze-list{background:var(--surface);border:1px solid var(--border);padding:10px;margin-bottom:14px;min-height:50px;}
+  .pizza-item{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:0.82rem;gap:8px;}
   .pizza-item:last-child{border-bottom:none;}
-  .pizza-item button{background:none;border:none;color:var(--red);cursor:pointer;}
-  .add-pizza-row{display:grid;grid-template-columns:2fr 80px 1fr auto;gap:8px;margin-bottom:16px;align-items:end;}
-  .btn{padding:10px 16px;font-family:'Syne',sans-serif;font-weight:700;font-size:0.8rem;cursor:pointer;border:none;}
-  .btn-primary{background:var(--accent);color:white;}
-  .btn-secondary{background:var(--surface);color:var(--text);border:1px solid var(--border);}
+  .pizza-item-nome{flex:1;line-height:1.3;}
+  .pizza-item button{background:none;border:none;color:var(--red);cursor:pointer;font-size:1rem;padding:4px;}
+
+  /* TOTALE */
+  .totale-box{background:var(--surface);border:1px solid var(--accent);padding:12px 14px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;}
+  .totale-box .label{font-size:0.75rem;color:var(--muted);}
+  .totale-box .valore{font-family:'Syne',sans-serif;font-size:1.2rem;color:var(--accent2);}
+
+  /* BYPASS */
+  .bypass-row{display:flex;align-items:center;gap:10px;margin-bottom:14px;padding:10px;background:rgba(255,215,64,0.08);border:1px solid rgba(255,215,64,0.2);}
+  .bypass-toggle{width:44px;height:24px;background:var(--border);border-radius:12px;position:relative;cursor:pointer;transition:background 0.2s;flex-shrink:0;}
+  .bypass-toggle.on{background:var(--yellow);}
+  .bypass-toggle::after{content:'';position:absolute;width:18px;height:18px;background:white;border-radius:50%;top:3px;left:3px;transition:left 0.2s;}
+  .bypass-toggle.on::after{left:23px;}
+  .bypass-label{font-size:0.78rem;color:var(--yellow);}
+
+  .btn{padding:12px 16px;font-family:'Syne',sans-serif;font-weight:700;font-size:0.85rem;cursor:pointer;border:none;width:100%;margin-bottom:8px;}
   .btn-success{background:var(--green);color:#000;}
   .btn-danger{background:var(--red);color:white;}
-  .btn-warning{background:var(--yellow);color:#000;}
-  .bypass-check{display:flex;align-items:center;gap:8px;margin-bottom:16px;font-size:0.8rem;color:var(--yellow);}
-  .totale-box{background:var(--surface);border:1px solid var(--accent);padding:12px 16px;margin-bottom:16px;font-size:0.9rem;display:flex;justify-content:space-between;}
-  .totale-box span{color:var(--accent2);font-family:'Syne',sans-serif;font-size:1.1rem;}
-  .slot-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-bottom:24px;}
-  .slot-card{background:var(--surface);border:1px solid var(--border);padding:16px;}
-  .slot-card.pieno{border-color:var(--red);}
-  .slot-card.carico{border-color:var(--yellow);}
-  .slot-card.libero{border-color:var(--green);}
-  .slot-time{font-family:'Syne',sans-serif;font-size:1.2rem;margin-bottom:4px;}
-  .slot-count{font-size:0.75rem;color:var(--muted);margin-bottom:12px;}
-  .slot-bar{height:4px;background:var(--border);margin-bottom:12px;}
-  .slot-bar-fill{height:100%;}
-  .slot-actions{display:flex;gap:6px;flex-wrap:wrap;}
-  .slot-btn{font-size:0.68rem;padding:4px 8px;cursor:pointer;border:none;font-family:'DM Mono',monospace;}
-  .clienti-table{width:100%;border-collapse:collapse;font-size:0.8rem;}
-  .clienti-table th{text-align:left;padding:10px 12px;color:var(--muted);border-bottom:1px solid var(--border);font-weight:400;}
-  .clienti-table td{padding:10px 12px;border-bottom:1px solid var(--border);}
-  .clienti-table tr:hover td{background:var(--surface);}
-  .badge{display:inline-block;padding:2px 8px;font-size:0.7rem;font-family:'Syne',sans-serif;}
-  .badge-gold{background:var(--accent2);color:#000;}
-  .badge-silver{background:var(--muted);color:#000;}
-  .alert{padding:12px 16px;margin-bottom:16px;font-size:0.82rem;display:none;}
+  .btn-secondary{background:var(--surface);color:var(--text);border:1px solid var(--border);}
+
+  /* ALERT */
+  .alert{padding:12px 14px;margin-bottom:14px;font-size:0.8rem;display:none;}
   .alert.success{background:rgba(0,230,118,0.1);border:1px solid var(--green);color:var(--green);}
   .alert.error{background:rgba(255,23,68,0.1);border:1px solid var(--red);color:var(--red);}
   .alert.warning{background:rgba(255,215,64,0.1);border:1px solid var(--yellow);color:var(--yellow);}
+
+  /* SLOT */
+  .slot-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:20px;}
+  .slot-card{background:var(--surface);border:1px solid var(--border);padding:14px;}
+  .slot-card.pieno{border-color:var(--red);}
+  .slot-card.carico{border-color:var(--yellow);}
+  .slot-card.libero{border-color:var(--green);}
+  .slot-time{font-family:'Syne',sans-serif;font-size:1.1rem;margin-bottom:3px;}
+  .slot-count{font-size:0.72rem;color:var(--muted);margin-bottom:10px;}
+  .slot-bar{height:3px;background:var(--border);margin-bottom:10px;}
+  .slot-bar-fill{height:100%;}
+  .slot-actions{display:flex;gap:5px;flex-wrap:wrap;}
+  .slot-btn{font-size:0.7rem;padding:5px 8px;cursor:pointer;border:none;font-family:'DM Mono',monospace;}
+
+  /* CLIENTI */
+  .cliente-card{background:var(--surface);border:1px solid var(--border);padding:14px;margin-bottom:8px;}
+  .cliente-nome{font-family:'Syne',sans-serif;font-size:0.95rem;margin-bottom:4px;}
+  .cliente-info{font-size:0.75rem;color:var(--muted);}
+  .badge{display:inline-block;padding:2px 7px;font-size:0.68rem;font-family:'Syne',sans-serif;margin-left:6px;}
+  .badge-gold{background:var(--accent2);color:#000;}
+  .badge-silver{background:var(--muted);color:#000;}
+
+  .refresh-btn{background:none;border:1px solid var(--border);color:var(--muted);padding:8px 12px;font-size:0.75rem;cursor:pointer;font-family:'DM Mono',monospace;margin-bottom:14px;}
   .loading{color:var(--muted);font-size:0.8rem;padding:20px 0;}
-  .refresh-btn{background:none;border:1px solid var(--border);color:var(--muted);padding:6px 12px;font-size:0.75rem;cursor:pointer;font-family:'DM Mono',monospace;margin-bottom:16px;}
-  .refresh-btn:hover{border-color:var(--accent2);color:var(--accent2);}
-  @media(max-width:600px){.form-grid{grid-template-columns:1fr;}.add-pizza-row{grid-template-columns:1fr 60px;}.slot-grid{grid-template-columns:1fr 1fr;}}
 </style>
 </head>
 <body>
@@ -93,8 +148,8 @@
 <div id="dashboard">
   <header>
     <h1>🍕 BoisPizza Admin</h1>
-    <div style="display:flex;align-items:center;gap:16px;">
-      <span id="data-oggi"></span>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span id="data-oggi" style="color:var(--muted);font-size:0.72rem;"></span>
       <button class="logout-btn" onclick="doLogout()">ESCI</button>
     </div>
   </header>
@@ -105,73 +160,236 @@
     <div class="tab" onclick="showTab('clienti')">👥 CLIENTI</div>
   </div>
 
+  <!-- TAB ORDINE -->
   <div id="tab-ordine" class="tab-content active">
     <div class="section-title">Nuovo ordine manuale</div>
     <div id="alert-ordine" class="alert"></div>
-    <div class="form-grid">
-      <div class="form-group"><label>NOME CLIENTE</label><input type="text" class="form-input" id="ord-nome" placeholder="Mario Rossi"></div>
-      <div class="form-group"><label>TELEFONO</label><input type="text" class="form-input" id="ord-tel" placeholder="3401234567"></div>
-      <div class="form-group"><label>ORARIO RITIRO</label><select class="form-input" id="ord-orario"><option value="">— scegli —</option></select></div>
-      <div class="form-group"><label>NOTE</label><input type="text" class="form-input" id="ord-note" placeholder="Es. tagliare a spicchi"></div>
+
+    <div class="form-group">
+      <label>NOME CLIENTE</label>
+      <input type="text" class="form-input" id="ord-nome" placeholder="Mario Rossi" autocomplete="off">
     </div>
-    <div class="section-title" style="font-size:0.9rem;margin-bottom:12px;">PIZZE</div>
-    <div class="add-pizza-row">
-      <div><label style="font-size:0.72rem;color:var(--muted);display:block;margin-bottom:4px;">PIZZA</label><select class="form-input" id="pizza-select"></select></div>
-      <div><label style="font-size:0.72rem;color:var(--muted);display:block;margin-bottom:4px;">QTÀ</label><input type="number" class="form-input" id="pizza-qty" value="1" min="1" max="20"></div>
-      <div><label style="font-size:0.72rem;color:var(--muted);display:block;margin-bottom:4px;">VARIAZIONE</label><select class="form-input" id="pizza-var"><option value="">Normale</option><option value=" (battuta)">Battuta +2€</option><option value=" (doppia pasta)">Doppia pasta +1€</option><option value=" (baby)">Baby -0.50€</option></select></div>
-      <div style="padding-top:22px;"><button class="btn btn-secondary" onclick="aggiungiPizza()">+ ADD</button></div>
+    <div class="form-group">
+      <label>TELEFONO (opzionale)</label>
+      <input type="tel" class="form-input" id="ord-tel" placeholder="3401234567">
     </div>
-    <div class="pizze-list" id="pizze-list"><div style="color:var(--muted);font-size:0.8rem;">Nessuna pizza aggiunta</div></div>
-    <div class="totale-box"><span>TOTALE</span><span id="totale-display">0,00€</span></div>
-    <div class="bypass-check">
-      <input type="checkbox" id="bypass-slot" checked>
-      <label for="bypass-slot">⚡ BYPASS SLOT — ignora disponibilità (ordine da banco)</label>
+    <div class="form-group">
+      <label>ORARIO RITIRO</label>
+      <select class="form-input" id="ord-orario">
+        <option value="">— scegli orario —</option>
+      </select>
     </div>
-    <button class="btn btn-success" style="width:100%;padding:14px;" onclick="inviaOrdineAdmin()">📤 INVIA COMANDA SU TELEGRAM</button>
+    <div class="form-group">
+      <label>NOTE</label>
+      <input type="text" class="form-input" id="ord-note" placeholder="Es. tagliare a spicchi, allergie...">
+    </div>
+
+    <div class="section-title" style="font-size:0.9rem;">AGGIUNGI PIZZA</div>
+
+    <!-- Ricerca pizza -->
+    <div class="search-box">
+      <input type="text" id="pizza-search" placeholder="Cerca pizza..." oninput="cercaPizza(this.value)" onfocus="mostraRisultati()" autocomplete="off">
+    </div>
+    <div class="pizza-results" id="pizza-results"></div>
+    <div class="pizza-selected" id="pizza-selected">
+      <span id="pizza-sel-nome">—</span>
+      <span id="pizza-sel-prezzo" style="color:var(--accent2)">0€</span>
+    </div>
+
+    <!-- Quantità -->
+    <div class="qty-row">
+      <label style="font-size:0.72rem;color:var(--muted);">QTÀ</label>
+      <button class="qty-btn" onclick="cambiaQty(-1)">−</button>
+      <span class="qty-display" id="qty-display">1</span>
+      <button class="qty-btn" onclick="cambiaQty(1)">+</button>
+    </div>
+
+    <!-- Variazioni con checkbox -->
+    <div class="variazioni-container">
+      <div class="variaz-group">
+        <div class="variaz-group-title">FORMATO</div>
+        <div class="checkbox-grid" id="cb-formato"></div>
+      </div>
+      <div class="variaz-group" style="margin-top:10px;">
+        <div class="variaz-group-title">RIMUOVI INGREDIENTE</div>
+        <div id="cb-senza-lista" style="font-size:0.75rem;color:var(--muted);padding:6px;">Seleziona prima una pizza</div>
+      </div>
+      <div class="variaz-group" style="margin-top:10px;">
+        <div class="variaz-group-title">AGGIUNGI INGREDIENTE</div>
+        <div class="variaz-search-wrap">
+          <input type="text" class="variaz-search" id="ing-search" placeholder="Cerca ingrediente..." oninput="filtraIngredienti(this.value)">
+        </div>
+        <div class="checkbox-grid" id="cb-aggiunte"></div>
+      </div>
+    </div>
+
+    <button class="btn btn-secondary" onclick="aggiungiPizzaAdmin()">+ AGGIUNGI ALLA COMANDA</button>
+
+    <div style="margin:14px 0 8px;font-size:0.8rem;color:var(--muted);">COMANDA</div>
+    <div class="pizze-list" id="pizze-list">
+      <div style="color:var(--muted);font-size:0.8rem;">Nessuna pizza aggiunta</div>
+    </div>
+
+    <div class="totale-box">
+      <span class="label">TOTALE STIMATO</span>
+      <span class="valore" id="totale-display">0,00€</span>
+    </div>
+
+    <div class="bypass-row">
+      <div class="bypass-toggle on" id="bypass-toggle" onclick="toggleBypass()"></div>
+      <span class="bypass-label">⚡ BYPASS SLOT — ordine da banco</span>
+    </div>
+
+    <button class="btn btn-success" onclick="inviaOrdineAdmin()">📤 INVIA COMANDA SU TELEGRAM</button>
   </div>
 
+  <!-- TAB SLOT -->
   <div id="tab-slot" class="tab-content">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
       <div class="section-title" style="margin:0;">Slot oggi</div>
-      <button class="refresh-btn" onclick="caricaSlot()">↻ AGGIORNA</button>
+      <button class="refresh-btn" onclick="caricaSlot()">↻</button>
     </div>
     <div id="alert-slot" class="alert"></div>
     <div id="slot-grid" class="slot-grid"><div class="loading">Caricamento...</div></div>
-    <div class="section-title" style="margin-top:24px;">Azzera giornata</div>
-    <p style="font-size:0.78rem;color:var(--muted);margin-bottom:12px;">Cancella tutti gli slot di oggi</p>
-    <button class="btn btn-danger" onclick="azzeraGiornata()">🗑 AZZERA TUTTI GLI SLOT DI OGGI</button>
+    <button class="btn btn-danger" style="margin-top:8px;" onclick="azzeraGiornata()">🗑 AZZERA TUTTI GLI SLOT DI OGGI</button>
   </div>
 
+  <!-- TAB CLIENTI -->
   <div id="tab-clienti" class="tab-content">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
       <div class="section-title" style="margin:0;">Clienti registrati</div>
-      <button class="refresh-btn" onclick="caricaClienti()">↻ AGGIORNA</button>
+      <button class="refresh-btn" onclick="caricaClienti()">↻</button>
     </div>
     <div id="clienti-container"><div class="loading">Caricamento...</div></div>
   </div>
 </div>
 
 <script>
+// ═══════════════════
+// DATI
+// ═══════════════════
 const ORARI = ['18:30','18:45','19:00','19:15','19:30','19:45','20:00','20:15','20:30','20:45','21:00','21:15','21:30'];
-const PIZZE_MENU = {'marinara':5,'margherita':5,'diavola':8,'salsiccia':8,'viennese':7.5,'pugliese':7,'prosciutto e funghi':8,'capricciosa':9,'tonno e cipolla':9,'bufala':9,'bufalina':9,'quattro stagioni':9,'romana':7,'siciliana':9,'patatosa':9,'parma':10,'speck':10,'montello':10,'valtellina':10,'verdure':9,'estate':9,'norma':9,'parmigiana':9,'mike':13,'ciccia e friarielli':11,'formaggi':12,'paolo':11,'sfiziosa':12,'ava':12,'pps':12,'silvia':12,'wilma':9,'wanda':9,'leone':11,'giggino':11,'titti':11,'boscaiola':11,'tartufata':11,'ufo':12,'pazza':13,'repubblica':12,'capricciosa sbagliata':12,'amatriciana':10,'onta':10,'cri':13,'bois':14,'pimpa':13,'calzone classico':9,'calzone piccante':10,'calzone vegeta':9,'calzone poro mauretto':13,'calzone ade':12};
 
+const PIZZE_MENU = {
+  'marinara':5,'margherita':5,'diavola':8,'salsiccia':8,'viennese':7.5,
+  'pugliese':7,'prosciutto e funghi':8,'capricciosa':9,'tonno e cipolla':9,
+  'bufala':9,'bufalina':10,'quattro stagioni':9,'romana':8,'siciliana':9,
+  'patatosa':8,'parma':10,'speck':9.5,'montello':10.5,'valtellina':10.5,
+  'verdure':8.5,'estate':8,'norma':9,'parmigiana':8.5,'mike':10.5,
+  'ciccia e friarielli':9,'formaggi':9,'paolo':10,'sfiziosa':10,
+  'ava':12,'pps':11,'silvia':12,'wilma':8.5,'wanda':9,'leone':12,
+  'giggino':10,'titti':11.5,'boscaiola':11,'tartufata':11,'ufo':12,
+  'pazza':11.5,'repubblica':11.5,'capricciosa sbagliata':12,'amatriciana':10,
+  'onta':10,'cri':14,'bois':10,'pimpa':11,
+  'calzone classico':9,'calzone piccante':9,'calzone vegeta':9,
+  'calzone poro mauretto':12,'calzone ade':13
+};
+
+// Ingredienti per pizza (per "senza")
+const PIZZE_ING = {
+  'marinara':['pomodoro','aglio','origano','olio evo'],
+  'margherita':['pomodoro','mozzarella'],
+  'diavola':['pomodoro','mozzarella','salamino piccante'],
+  'salsiccia':['pomodoro','mozzarella','salsiccia'],
+  'viennese':['pomodoro','mozzarella','wurstel di suino'],
+  'pugliese':['pomodoro','mozzarella','cipolla di tropea'],
+  'prosciutto e funghi':['pomodoro','mozzarella','prosciutto cotto','funghi'],
+  'capricciosa':['pomodoro','mozzarella','prosciutto cotto','funghi','carciofi'],
+  'tonno e cipolla':['pomodoro','mozzarella','tonno','cipolla di tropea'],
+  'bufala':['pomodoro','bufala'],
+  'bufalina':['pomodoro','bufala','pomodorini'],
+  'quattro stagioni':['pomodoro','mozzarella','prosciutto cotto','funghi','carciofi','olive'],
+  'romana':['pomodoro','mozzarella','acciughe'],
+  'siciliana':['pomodoro','mozzarella','acciughe','capperi','olive'],
+  'patatosa':['pomodoro','mozzarella','patate fritte'],
+  'parma':['pomodoro','mozzarella','prosciutto crudo'],
+  'speck':['pomodoro','mozzarella','speck alto adige'],
+  'montello':['pomodoro','mozzarella','porchetta trevigiana','porcini'],
+  'valtellina':['pomodoro','mozzarella','bresaola','rucola','grana'],
+  'verdure':['pomodoro','mozzarella','verdure miste grigliate'],
+  'estate':['pomodoro','mozzarella','pomodorini datterini conditi'],
+  'norma':['pomodoro','mozzarella','melanzane','ricotta','grana'],
+  'parmigiana':['pomodoro','mozzarella','melanzane','grana'],
+  'mike':['rucola cotta','mozzarella','salsiccia','brie','grana'],
+  'ciccia e friarielli':['mozzarella','salsiccia','friarielli'],
+  'formaggi':['mozzarella','gorgonzola','brie','grana'],
+  'paolo':['mozzarella','gorgonzola','cipolla','salamino piccante'],
+  'sfiziosa':['mozzarella','pesto','melanzane fritte','brie','grana'],
+  'ava':['mozzarella','salsiccia','salamino piccante','pomodorini','aglio','grana'],
+  'pps':['mozzarella','porcini','scamorza','pancetta dolce'],
+  'silvia':['mozzarella','gorgonzola','porchetta trevigiana','senape e miele'],
+  'wilma':['pomodoro','mozzarella','pesto','pomodorini','mais'],
+  'wanda':['pomodoro','mozzarella','carciofi','salamino piccante','acciughe'],
+  'leone':['pomodoro','mozzarella','tonno','cipolla','acciughe','capperi','olive'],
+  'giggino':['pomodoro','mozzarella','prosciutto cotto','mais','philadelphia','pomodorini'],
+  'titti':['pomodoro','mozzarella','zucchine','philadelphia','prosciutto crudo'],
+  'boscaiola':['pomodoro','mozzarella','salsiccia','salamino piccante','funghi misti'],
+  'tartufata':['pomodoro','mozzarella','salsa al tartufo','funghi misti'],
+  'ufo':['pomodoro','mozzarella','salsiccia','salamino piccante','olive','pomodori secchi'],
+  'pazza':['pomodoro','mozzarella','salsiccia','salamino piccante','peperoni','wurstel di suino'],
+  'repubblica':['pomodoro','mozzarella','rucola','pomodorini','bufala','grana'],
+  'capricciosa sbagliata':['pomodoro','mozzarella','porcini','carciofi','porchetta trevigiana'],
+  'amatriciana':['pomodoro','mozzarella','pancetta dolce','cipolla','grana'],
+  'onta':['pomodoro','mozzarella','salsiccia','cipolla','peperoni'],
+  'cri':['mozzarella','salsiccia','brie erborinato','noci','confettura di fichi'],
+  'bois':['mozzarella','gorgonzola','salsiccia','crema al tartufo','patate fritte'],
+  'pimpa':['mozzarella','scamorza','salsa bbq','cipolla','patate fritte','pancetta dolce'],
+};
+
+const INGREDIENTI = {
+  'acciughe':1.5,'aglio':0,'asparagi':2,'basilico fresco':0,'bresaola':3,
+  'brie':1.5,'brie erborinato':1.5,'bufala':3,'burrata':3,'capperi':0.5,
+  'carciofi':1.5,'cipolla':1,'cipolla di tropea':1,'confettura di fichi':0,
+  'crema al tartufo':2,'crema di zucca':2,'friarielli':1.5,'funghi':1,
+  'funghi misti':1,'gorgonzola':1.5,'grana':1.5,'mais':1,'melanzane':1.5,
+  'melanzane fritte':1.5,'mozzarella':1.5,'nduja':2,'noci':1,'olive':1.5,
+  'pancetta dolce':2.5,'patate al forno':1.5,'patate fritte':1.5,'peperoni':1,
+  'pesto':1,'philadelphia':1.5,'pomodori secchi':2,'pomodorini':1.5,
+  'pomodoro':0.5,'porchetta trevigiana':3,'porcini':2.5,'prosciutto cotto':1,
+  'prosciutto crudo':3,'radicchio':2,'ricotta':1.5,'rucola':1,'rucola cotta':1,
+  'salamino piccante':1.5,'salsa al tartufo':2,'salsa bbq':1,'salsiccia':2,
+  'scamorza':1.5,'speck alto adige':3,'spinaci':1,'stracchino':2,'tonno':2,
+  'verdure miste grigliate':2.5,'wurstel di suino':1,'zucca':2,'zucchine':1
+};
+
+const FORMATI = [
+  {label:'Battuta',note:'(battuta)',prezzo:2},
+  {label:'Battuta piccola',note:'(battuta piccola)',prezzo:0},
+  {label:'Doppia pasta',note:'(doppia pasta)',prezzo:1},
+  {label:'Baby',note:'(baby)',prezzo:-0.5},
+  {label:'Tagliare a spicchi',note:'(spicchi)',prezzo:0},
+  {label:'Ben cotta',note:'(ben cotta)',prezzo:0},
+  {label:'Poco cotta',note:'(poco cotta)',prezzo:0},
+];
+
+// ═══════════════════
+// STATO
+// ═══════════════════
 let adminToken = sessionStorage.getItem('adminToken') || '';
 let pizzeOrdine = [];
-// Auto-login se token in sessione
+let pizzaSelezionata = null;
+let qtyCorrente = 1;
+let bypassSlot = true;
+let formatoSelezionato = {};
+let senzaSelezionato = {};
+let aggiunteSelezionate = {};
+
 if(adminToken){
   document.getElementById('login-screen').style.display='none';
   document.getElementById('dashboard').style.display='block';
   initDashboard();
 }
 
+// ═══════════════════
+// LOGIN
+// ═══════════════════
 async function doLogin(){
   const pwd = document.getElementById('pwd-input').value;
   if(!pwd) return;
   try {
-    const r = await fetch('/.netlify/functions/admin-data?action=login', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({password: pwd})
+    const r = await fetch('/.netlify/functions/admin-data?action=login',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({password:pwd})
     });
     const d = await r.json();
     if(d.ok && d.token){
@@ -185,7 +403,7 @@ async function doLogin(){
       setTimeout(()=>document.getElementById('login-err').style.display='none',2000);
     }
   } catch(e){
-    document.getElementById('login-err').textContent='Errore di connessione';
+    document.getElementById('login-err').textContent='Errore connessione';
     document.getElementById('login-err').style.display='block';
   }
 }
@@ -198,13 +416,17 @@ function doLogout(){
   document.getElementById('pwd-input').value='';
 }
 
+// ═══════════════════
+// INIT
+// ═══════════════════
 function initDashboard(){
-  document.getElementById('data-oggi').textContent = new Date().toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'});
-  const sel=document.getElementById('ord-orario');
+  document.getElementById('data-oggi').textContent = new Date().toLocaleDateString('it-IT',{weekday:'short',day:'numeric',month:'short'});
+  const sel = document.getElementById('ord-orario');
   ORARI.forEach(o=>{const opt=document.createElement('option');opt.value=o;opt.textContent=o;sel.appendChild(opt);});
-  const selP=document.getElementById('pizza-select');
-  Object.keys(PIZZE_MENU).sort().forEach(nome=>{const opt=document.createElement('option');opt.value=nome;opt.textContent=nome.charAt(0).toUpperCase()+nome.slice(1)+' — '+PIZZE_MENU[nome].toFixed(2).replace('.',',')+'€';selP.appendChild(opt);});
-  caricaSlot(); caricaClienti();
+  buildCheckboxFormati();
+  buildCheckboxAggiunte();
+  caricaSlot();
+  caricaClienti();
 }
 
 function showTab(name){
@@ -216,55 +438,202 @@ function showTab(name){
   if(name==='clienti') caricaClienti();
 }
 
-// API call con token admin
-async function adminFetch(path, options={}){
-  return fetch('/.netlify/functions/admin-data'+path, {
-    ...options,
-    headers:{'Content-Type':'application/json','X-Admin-Token':adminToken,...(options.headers||{})}
+// ═══════════════════
+// RICERCA PIZZA
+// ═══════════════════
+function cercaPizza(q){
+  const res = document.getElementById('pizza-results');
+  if(!q){res.style.display='none';return;}
+  const matches = Object.entries(PIZZE_MENU).filter(([n])=>n.includes(q.toLowerCase()));
+  if(!matches.length){res.style.display='none';return;}
+  res.style.display='block';
+  res.innerHTML = matches.slice(0,8).map(([nome,prezzo])=>
+    `<div class="pizza-result-item" onclick="selezionaPizza('${nome}',${prezzo})">
+      <span>${nome.charAt(0).toUpperCase()+nome.slice(1)}</span>
+      <span class="prezzo">${prezzo.toFixed(2).replace('.',',')}€</span>
+    </div>`
+  ).join('');
+}
+
+function mostraRisultati(){
+  const q = document.getElementById('pizza-search').value;
+  if(q) cercaPizza(q);
+}
+
+function selezionaPizza(nome, prezzo){
+  pizzaSelezionata = {nome, prezzo};
+  document.getElementById('pizza-search').value = nome.charAt(0).toUpperCase()+nome.slice(1);
+  document.getElementById('pizza-results').style.display='none';
+  document.getElementById('pizza-selected').style.display='flex';
+  document.getElementById('pizza-sel-nome').textContent = nome.charAt(0).toUpperCase()+nome.slice(1);
+  document.getElementById('pizza-sel-prezzo').textContent = prezzo.toFixed(2).replace('.',',')+'€';
+  // Aggiorna checkbox senza
+  buildCheckboxSenza(nome);
+  // Reset selezioni
+  formatoSelezionato={};aggiunteSelezionate={};senzaSelezionato={};
+  document.querySelectorAll('.cb-item').forEach(el=>el.classList.remove('checked'));
+}
+
+// ═══════════════════
+// CHECKBOX
+// ═══════════════════
+function buildCheckboxFormati(){
+  const cont = document.getElementById('cb-formato');
+  cont.innerHTML = FORMATI.map((f,i)=>`
+    <div class="cb-item" id="fmt-${i}" onclick="toggleFormato(${i})">
+      <div class="cb-check" id="fmt-check-${i}">✓</div>
+      <span class="cb-label">${f.label}</span>
+      <span class="cb-price">${f.prezzo>0?'+'+f.prezzo+'€':f.prezzo<0?f.prezzo+'€':''}</span>
+    </div>`).join('');
+}
+
+function toggleFormato(i){
+  const el = document.getElementById('fmt-'+i);
+  const f = FORMATI[i];
+  if(formatoSelezionato[i]){
+    delete formatoSelezionato[i];
+    el.classList.remove('checked');
+  } else {
+    formatoSelezionato[i] = f;
+    el.classList.add('checked');
+  }
+}
+
+function buildCheckboxSenza(nomePizza){
+  const cont = document.getElementById('cb-senza-lista');
+  const ings = PIZZE_ING[nomePizza] || [];
+  if(!ings.length){cont.innerHTML='<span style="color:var(--muted);font-size:0.75rem;">Ingredienti non disponibili</span>';return;}
+  cont.innerHTML = `<div class="checkbox-grid">${ings.map(ing=>`
+    <div class="cb-item" id="senza-${ing.replace(/\s/g,'-')}" onclick="toggleSenza('${ing}')">
+      <div class="cb-check" id="senza-check-${ing.replace(/\s/g,'-')}">✓</div>
+      <span class="cb-label">${ing}</span>
+    </div>`).join('')}</div>`;
+}
+
+function toggleSenza(ing){
+  const key = ing.replace(/\s/g,'-');
+  const el = document.getElementById('senza-'+key);
+  if(senzaSelezionato[ing]){delete senzaSelezionato[ing];el.classList.remove('checked');}
+  else{senzaSelezionato[ing]=true;el.classList.add('checked');}
+}
+
+function buildCheckboxAggiunte(){
+  const cont = document.getElementById('cb-aggiunte');
+  cont.innerHTML = Object.entries(INGREDIENTI).sort(([a],[b])=>a.localeCompare(b)).map(([ing,prezzo])=>`
+    <div class="cb-item" id="agg-${ing.replace(/\s/g,'-')}" onclick="toggleAggiunta('${ing}',${prezzo})">
+      <div class="cb-check">✓</div>
+      <span class="cb-label">${ing}</span>
+      <span class="cb-price">${prezzo>0?'+'+prezzo+'€':''}</span>
+    </div>`).join('');
+}
+
+function toggleAggiunta(ing,prezzo){
+  const key = ing.replace(/\s/g,'-');
+  const el = document.getElementById('agg-'+key);
+  if(aggiunteSelezionate[ing]){delete aggiunteSelezionate[ing];el.classList.remove('checked');}
+  else{aggiunteSelezionate[ing]={prezzo};el.classList.add('checked');}
+}
+
+function filtraIngredienti(q){
+  document.querySelectorAll('#cb-aggiunte .cb-item').forEach(el=>{
+    const label = el.querySelector('.cb-label').textContent.toLowerCase();
+    el.classList.toggle('hidden', q.length>0 && !label.includes(q.toLowerCase()));
   });
 }
 
-// ORDINE
-function aggiungiPizza(){
-  const nome=document.getElementById('pizza-select').value;
-  const qty=parseInt(document.getElementById('pizza-qty').value)||1;
-  const variaz=document.getElementById('pizza-var').value;
-  if(!nome) return;
-  let prezzo=PIZZE_MENU[nome]||8;
-  if(variaz.includes('battuta')) prezzo+=2;
-  if(variaz.includes('doppia')) prezzo+=1;
-  if(variaz.includes('baby')) prezzo-=0.5;
-  pizzeOrdine.push({qty,nome:nome.charAt(0).toUpperCase()+nome.slice(1)+variaz,prezzo});
+// ═══════════════════
+// QTY
+// ═══════════════════
+function cambiaQty(delta){
+  qtyCorrente = Math.max(1, Math.min(20, qtyCorrente+delta));
+  document.getElementById('qty-display').textContent = qtyCorrente;
+}
+
+function toggleBypass(){
+  bypassSlot = !bypassSlot;
+  document.getElementById('bypass-toggle').classList.toggle('on', bypassSlot);
+}
+
+// ═══════════════════
+// AGGIUNGI PIZZA
+// ═══════════════════
+function aggiungiPizzaAdmin(){
+  if(!pizzaSelezionata){showAlert('ordine','Seleziona prima una pizza!','error');return;}
+
+  let prezzo = pizzaSelezionata.prezzo;
+  let nomeDisplay = pizzaSelezionata.nome.charAt(0).toUpperCase()+pizzaSelezionata.nome.slice(1);
+  let note = [];
+
+  // Formati
+  Object.values(formatoSelezionato).forEach(f=>{
+    prezzo += f.prezzo;
+    nomeDisplay += ' '+f.note;
+  });
+
+  // Senza
+  const senza = Object.keys(senzaSelezionato);
+  if(senza.length) note.push('senza '+senza.join(', '));
+
+  // Aggiunte
+  const aggiunte = Object.entries(aggiunteSelezionate);
+  aggiunte.forEach(([ing,{prezzo:p}])=>{
+    prezzo += p;
+    note.push('con '+ing);
+  });
+
+  if(note.length) nomeDisplay += ' ('+note.join(' — ')+')';
+
+  pizzeOrdine.push({qty:qtyCorrente, nome:nomeDisplay, prezzo});
   renderPizze();
+
+  // Reset
+  pizzaSelezionata=null;
+  qtyCorrente=1;
+  formatoSelezionato={};senzaSelezionato={};aggiunteSelezionate={};
+  document.getElementById('pizza-search').value='';
+  document.getElementById('pizza-selected').style.display='none';
+  document.getElementById('qty-display').textContent='1';
+  document.querySelectorAll('.cb-item').forEach(el=>el.classList.remove('checked'));
+  document.getElementById('cb-senza-lista').innerHTML='<span style="color:var(--muted);font-size:0.75rem;">Seleziona prima una pizza</span>';
 }
 
 function renderPizze(){
   const el=document.getElementById('pizze-list');
   if(!pizzeOrdine.length){el.innerHTML='<div style="color:var(--muted);font-size:0.8rem;">Nessuna pizza aggiunta</div>';document.getElementById('totale-display').textContent='0,00€';return;}
-  el.innerHTML=pizzeOrdine.map((p,i)=>`<div class="pizza-item"><span>${p.qty}x ${p.nome}</span><span style="color:var(--accent2)">${(p.prezzo*p.qty).toFixed(2).replace('.',',')}€</span><button onclick="rimuoviPizza(${i})">✕</button></div>`).join('');
+  el.innerHTML=pizzeOrdine.map((p,i)=>`
+    <div class="pizza-item">
+      <span class="pizza-item-nome">${p.qty}x ${p.nome}</span>
+      <span style="color:var(--accent2);white-space:nowrap">${(p.prezzo*p.qty).toFixed(2).replace('.',',')}€</span>
+      <button onclick="rimuoviPizza(${i})">✕</button>
+    </div>`).join('');
   const tot=pizzeOrdine.reduce((s,p)=>s+p.prezzo*p.qty,0);
   document.getElementById('totale-display').textContent=tot.toFixed(2).replace('.',',')+'€';
 }
 
 function rimuoviPizza(i){pizzeOrdine.splice(i,1);renderPizze();}
 
+// ═══════════════════
+// INVIA ORDINE
+// ═══════════════════
 async function inviaOrdineAdmin(){
   const nome=document.getElementById('ord-nome').value.trim();
   const tel=document.getElementById('ord-tel').value.trim();
   const orario=document.getElementById('ord-orario').value;
   const note=document.getElementById('ord-note').value.trim();
-  const bypass=document.getElementById('bypass-slot').checked;
   if(!nome||!orario||!pizzeOrdine.length){showAlert('ordine','Compila nome, orario e aggiungi almeno una pizza!','error');return;}
   const tot=pizzeOrdine.reduce((s,p)=>s+p.prezzo*p.qty,0);
   try {
     const r=await fetch('/.netlify/functions/ordine',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({nome:nome+' [BANCO]',telefono:tel||'banco',orario,pizze:pizzeOrdine,totale:tot.toFixed(2).replace('.',','),note:note+(bypass?' — ORDINE BANCO':''),frittini:[],bibite:[],noteVariazioni:[]})
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        nome:nome+' [BANCO]',telefono:tel||'banco',orario,
+        pizze:pizzeOrdine,totale:tot.toFixed(2).replace('.',','),
+        note:note+(bypassSlot?' — ORDINE BANCO':''),
+        frittini:[],bibite:[],noteVariazioni:[]
+      })
     });
     const d=await r.json();
     if(d.ok){
-      // Aggiorna slot
       const oggi=new Date().toLocaleDateString('sv-SE',{timeZone:'Europe/Rome'});
       const nPizze=pizzeOrdine.reduce((s,p)=>s+p.qty,0);
       await fetch('/.netlify/functions/slot',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({data:oggi,orario,pizze:nPizze})});
@@ -278,7 +647,18 @@ async function inviaOrdineAdmin(){
   } catch(e){showAlert('ordine','Errore: '+e.message,'error');}
 }
 
+// ═══════════════════
+// ADMIN FETCH
+// ═══════════════════
+async function adminFetch(path, options={}){
+  return fetch('/.netlify/functions/admin-data'+path,{
+    ...options,headers:{'Content-Type':'application/json','X-Admin-Token':adminToken,...(options.headers||{})}
+  });
+}
+
+// ═══════════════════
 // SLOT
+// ═══════════════════
 async function caricaSlot(){
   document.getElementById('slot-grid').innerHTML='<div class="loading">Caricamento...</div>';
   try {
@@ -288,47 +668,54 @@ async function caricaSlot(){
     (rows||[]).forEach(s=>{slotsData[s.orario.substring(0,5)]=s;});
     const oggi=new Date().toLocaleDateString('sv-SE',{timeZone:'Europe/Rome'});
     document.getElementById('slot-grid').innerHTML=ORARI.map(orario=>{
-      const s=slotsData[orario]||{pizze_count:0,max_pizze:12,slot_esclusivo:false};
+      const s=slotsData[orario]||{pizze_count:0,max_pizze:12};
       const count=s.pizze_count||0;const max=s.max_pizze||12;
       const pct=Math.min(100,count/max*100);
       const stato=count>=max?'pieno':count>=max/2?'carico':'libero';
       const colore=stato==='pieno'?'var(--red)':stato==='carico'?'var(--yellow)':'var(--green)';
-      return `<div class="slot-card ${stato}"><div class="slot-time">${orario}</div><div class="slot-count">${count}/${max} pizze · ${stato.toUpperCase()}</div><div class="slot-bar"><div class="slot-bar-fill" style="width:${pct}%;background:${colore}"></div></div><div class="slot-actions"><button class="slot-btn btn-success" onclick="forzaSlot('${orario}','${oggi}')">⚡ FORZA</button><button class="slot-btn btn-warning" onclick="modificaMaxSlot('${orario}','${oggi}',${max})">✏️ MAX</button><button class="slot-btn btn-danger" onclick="azzeraSlot('${orario}','${oggi}')">🗑</button></div></div>`;
+      return `<div class="slot-card ${stato}">
+        <div class="slot-time">${orario}</div>
+        <div class="slot-count">${count}/${max} · ${stato}</div>
+        <div class="slot-bar"><div class="slot-bar-fill" style="width:${pct}%;background:${colore}"></div></div>
+        <div class="slot-actions">
+          <button class="slot-btn btn-success" onclick="forzaSlot('${orario}','${oggi}')">⚡</button>
+          <button class="slot-btn btn-warning" onclick="modificaMaxSlot('${orario}','${oggi}',${max})">✏️</button>
+          <button class="slot-btn btn-danger" onclick="azzeraSlot('${orario}','${oggi}')">🗑</button>
+        </div>
+      </div>`;
     }).join('');
   } catch(e){document.getElementById('slot-grid').innerHTML='<div class="loading" style="color:var(--red)">Errore</div>';}
 }
 
 async function forzaSlot(orario,oggi){
-  const n=parseInt(prompt('Aggiungi pizze extra allo slot '+orario+':','6'));
+  const n=parseInt(prompt('Aggiungi pizze allo slot '+orario+':','6'));
   if(!n||isNaN(n)) return;
   await fetch('/.netlify/functions/slot',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({data:oggi,orario,pizze:n})});
-  showAlert('slot','✅ Slot forzato: +'+n+' pizze a '+orario,'success');
-  caricaSlot();
+  showAlert('slot','✅ +'+n+' pizze a '+orario,'success');caricaSlot();
 }
 
-async function modificaMaxSlot(orario,oggi,maxAttuale){
-  const n=parseInt(prompt('Modifica max pizze per slot '+orario+':',maxAttuale));
+async function modificaMaxSlot(orario,oggi,max){
+  const n=parseInt(prompt('Max pizze slot '+orario+':',max));
   if(!n||isNaN(n)) return;
   await adminFetch('?action=slot-max',{method:'POST',body:JSON.stringify({orario,data:oggi,max_pizze:n})});
-  showAlert('slot','✅ Max slot '+orario+' aggiornato a '+n,'success');
-  caricaSlot();
+  showAlert('slot','✅ Max slot '+orario+' = '+n,'success');caricaSlot();
 }
 
 async function azzeraSlot(orario,oggi){
   if(!confirm('Azzera slot '+orario+'?')) return;
   await adminFetch('?action=slot',{method:'DELETE',body:JSON.stringify({orario,data:oggi})});
-  showAlert('slot','✅ Slot '+orario+' azzerato','success');
-  caricaSlot();
+  showAlert('slot','✅ Slot '+orario+' azzerato','success');caricaSlot();
 }
 
 async function azzeraGiornata(){
-  if(!confirm('Sei sicuro? Cancella TUTTI gli slot di oggi!')) return;
+  if(!confirm('Cancella TUTTI gli slot di oggi?')) return;
   await adminFetch('?action=slot-all',{method:'DELETE',body:'{}'});
-  showAlert('slot','✅ Tutti gli slot azzerati','success');
-  caricaSlot();
+  showAlert('slot','✅ Tutti gli slot azzerati','success');caricaSlot();
 }
 
+// ═══════════════════
 // CLIENTI
+// ═══════════════════
 async function caricaClienti(){
   const cont=document.getElementById('clienti-container');
   cont.innerHTML='<div class="loading">Caricamento...</div>';
@@ -336,16 +723,30 @@ async function caricaClienti(){
     const r=await adminFetch('?action=clienti');
     const rows=await r.json();
     if(!rows||!rows.length){cont.innerHTML='<div class="loading">Nessun cliente</div>';return;}
-    cont.innerHTML=`<table class="clienti-table"><thead><tr><th>NOME</th><th>TELEFONO</th><th>ORDINI</th><th>ULTIMA VISITA</th><th>PIZZA PREFERITA</th></tr></thead><tbody>${rows.map(c=>`<tr><td>${c.nome||'—'}${c.ordini_count>=5?' <span class="badge badge-gold">VIP</span>':c.ordini_count>=3?' <span class="badge badge-silver">LOYAL</span>':''}</td><td>${c.telefono||'—'}</td><td style="color:var(--accent2)">${c.ordini_count||0}</td><td style="color:var(--muted)">${c.ultima_visita||'—'}</td><td>${c.pizza_preferita||'—'}</td></tr>`).join('')}</tbody></table>`;
+    cont.innerHTML=rows.map(c=>`
+      <div class="cliente-card">
+        <div class="cliente-nome">${c.nome||'—'}${c.ordini_count>=5?'<span class="badge badge-gold">VIP</span>':c.ordini_count>=3?'<span class="badge badge-silver">LOYAL</span>':''}</div>
+        <div class="cliente-info">📱 ${c.telefono||'—'} · 🍕 ${c.ordini_count||0} ordini · 📅 ${c.ultima_visita||'—'}</div>
+        ${c.pizza_preferita?`<div class="cliente-info" style="margin-top:3px;">⭐ ${c.pizza_preferita}</div>`:''}
+      </div>`).join('');
   } catch(e){cont.innerHTML='<div class="loading" style="color:var(--red)">Errore</div>';}
 }
 
+// ═══════════════════
+// UTILS
+// ═══════════════════
 function showAlert(section,msg,type){
   const el=document.getElementById('alert-'+section);
   if(!el) return;
   el.textContent=msg;el.className='alert '+type;el.style.display='block';
   setTimeout(()=>el.style.display='none',4000);
 }
+
+// Chiudi risultati cliccando fuori
+document.addEventListener('click',e=>{
+  if(!e.target.closest('#pizza-search')&&!e.target.closest('#pizza-results'))
+    document.getElementById('pizza-results').style.display='none';
+});
 </script>
 </body>
 </html>
