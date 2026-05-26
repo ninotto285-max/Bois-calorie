@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BoisPizza — Admin</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&display=swap');
+
+  :root {
+    --bg: #0f0f0f;
+    --surface: #1a1a1a;
+    --border: #2a2a2a;
+    --accent: #ff4d00;
+    --accent2: #ffb800;
+    --text: #f0f0f0;
+    --muted: #888;
+    --green: #00e676;
+    --red: #ff1744;
+    --yellow: #ffd740;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    min-height: 100vh;
+  }
+
+  /* LOGIN */
+  #login-screen {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    background: var(--bg);
+  }
+
+  .login-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 48px;
+    width: 360px;
+    text-align: center;
+  }
+
+  .login-box h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: 2rem;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+
+  .login-box p { color: var(--muted); font-size: 0.8rem; margin-bottom: 32px; }
+
+  .login-box input {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 12px 16px;
+    font-family: 'DM Mono', monospace;
+    font-size: 1rem;
+    margin-bottom: 16px;
+    outline: none;
+  }
+
+  .login-box input:focus { border-color: var(--accent); }
+
+  .btn-login {
+    width: 100%;
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 12px;
+    font-family: 'Syne', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 1px;
+  }
+
+  .btn-login:hover { background: #ff6620; }
+
+  .login-error { color: var(--red); font-size: 0.8rem; margin-top: 12px; display: none; }
+
+  /* DASHBOARD */
+  #dashboard { display: none; }
+
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  header h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.3rem;
+    color: var(--accent);
+  }
+
+  header span { color: var(--muted); font-size: 0.75rem; }
+
+  .logout-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 6px 12px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    cursor: pointer;
+  }
+
+  .logout-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* TABS */
+  .tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    padding: 0 24px;
+  }
+
+  .tab {
+    padding: 14px 20px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    color: var(--muted);
+    border-bottom: 2px solid transparent;
+    letter-spacing: 0.5px;
+  }
+
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab:hover:not(.active) { color: var(--text); }
+
+  .tab-content { display: none; padding: 24px; }
+  .tab-content.active { display: block; }
+
+  /* SEZIONE ORDINE MANUALE */
+  .section-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.1rem;
+    margin-bottom: 20px;
+    color: var(--accent2);
+  }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  .form-group label { font-size: 0.72rem; color: var(--muted); letter-spacing: 0.5px; }
+
+  .form-input {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 12px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.85rem;
+    outline: none;
+    width: 100%;
+  }
+
+  .form-input:focus { border-color: var(--accent); }
+
+  select.form-input option { background: var(--surface); }
+
+  /* PIZZE AGGIUNTE */
+  .pizze-list {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 12px;
+    margin-bottom: 16px;
+    min-height: 60px;
+  }
+
+  .pizza-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.82rem;
+  }
+
+  .pizza-item:last-child { border-bottom: none; }
+
+  .pizza-item button {
+    background: none;
+    border: none;
+    color: var(--red);
+    cursor: pointer;
+    font-size: 0.9rem;
+  }
+
+  .add-pizza-row {
+    display: grid;
+    grid-template-columns: 2fr 80px 1fr auto;
+    gap: 8px;
+    margin-bottom: 16px;
+    align-items: end;
+  }
+
+  .btn {
+    padding: 10px 16px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 0.8rem;
+    cursor: pointer;
+    border: none;
+    letter-spacing: 0.5px;
+  }
+
+  .btn-primary { background: var(--accent); color: white; }
+  .btn-primary:hover { background: #ff6620; }
+  .btn-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+  .btn-secondary:hover { border-color: var(--accent); }
+  .btn-success { background: var(--green); color: #000; }
+  .btn-success:hover { opacity: 0.85; }
+  .btn-danger { background: var(--red); color: white; }
+  .btn-warning { background: var(--yellow); color: #000; }
+
+  .bypass-check {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+    font-size: 0.8rem;
+    color: var(--yellow);
+  }
+
+  .bypass-check input { cursor: pointer; }
+
+  .totale-box {
+    background: var(--surface);
+    border: 1px solid var(--accent);
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    font-size: 0.9rem;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .totale-box span { color: var(--accent2); font-family: 'Syne', sans-serif; font-size: 1.1rem; }
+
+  /* SLOT MANAGER */
+  .slot-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .slot-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 16px;
+    position: relative;
+  }
+
+  .slot-card.pieno { border-color: var(--red); }
+  .slot-card.carico { border-color: var(--yellow); }
+  .slot-card.libero { border-color: var(--green); }
+  .slot-card.bloccato { border-color: var(--muted); opacity: 0.5; }
+
+  .slot-time {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.2rem;
+    margin-bottom: 4px;
+  }
+
+  .slot-count { font-size: 0.75rem; color: var(--muted); margin-bottom: 12px; }
+
+  .slot-bar {
+    height: 4px;
+    background: var(--border);
+    margin-bottom: 12px;
+    overflow: hidden;
+  }
+
+  .slot-bar-fill {
+    height: 100%;
+    transition: width 0.3s;
+  }
+
+  .slot-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+
+  .slot-btn {
+    font-size: 0.68rem;
+    padding: 4px 8px;
+    cursor: pointer;
+    border: none;
+    font-family: 'DM Mono', monospace;
+  }
+
+  /* CLIENTI */
+  .clienti-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+  }
+
+  .clienti-table th {
+    text-align: left;
+    padding: 10px 12px;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    font-weight: 400;
+    letter-spacing: 0.5px;
+  }
+
+  .clienti-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .clienti-table tr:hover td { background: var(--surface); }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    font-size: 0.7rem;
+    font-family: 'Syne', sans-serif;
+  }
+
+  .badge-gold { background: var(--accent2); color: #000; }
+  .badge-silver { background: var(--muted); color: #000; }
+
+  /* ALERT */
+  .alert {
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    font-size: 0.82rem;
+    display: none;
+  }
+
+  .alert.success { background: rgba(0,230,118,0.1); border: 1px solid var(--green); color: var(--green); }
+  .alert.error { background: rgba(255,23,68,0.1); border: 1px solid var(--red); color: var(--red); }
+  .alert.warning { background: rgba(255,215,64,0.1); border: 1px solid var(--yellow); color: var(--yellow); }
+
+  .loading { color: var(--muted); font-size: 0.8rem; padding: 20px 0; }
+
+  .refresh-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 6px 12px;
+    font-size: 0.75rem;
+    cursor: pointer;
+    font-family: 'DM Mono', monospace;
+    margin-bottom: 16px;
+  }
+
+  .refresh-btn:hover { border-color: var(--accent2); color: var(--accent2); }
+
+  @media (max-width: 600px) {
+    .form-grid { grid-template-columns: 1fr; }
+    .add-pizza-row { grid-template-columns: 1fr 60px; }
+    .slot-grid { grid-template-columns: 1fr 1fr; }
+    .tabs { overflow-x: auto; }
+  }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <h1>🍕 Admin</h1>
+    <p>BoisPizza — Pannello di controllo</p>
+    <input type="password" id="pwd-input" placeholder="Password" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="btn-login" onclick="doLogin()">ENTRA</button>
+    <div class="login-error" id="login-err">Password errata</div>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard">
+  <header>
+    <h1>🍕 BoisPizza Admin</h1>
+    <div style="display:flex;align-items:center;gap:16px;">
+      <span id="data-oggi"></span>
+      <button class="logout-btn" onclick="doLogout()">ESCI</button>
+    </div>
+  </header>
+
+  <div class="tabs">
+    <div class="tab active" onclick="showTab('ordine')">📋 ORDINE MANUALE</div>
+    <div class="tab" onclick="showTab('slot')">🕐 SLOT</div>
+    <div class="tab" onclick="showTab('clienti')">👥 CLIENTI</div>
+  </div>
+
+  <!-- TAB ORDINE MANUALE -->
+  <div id="tab-ordine" class="tab-content active">
+    <div class="section-title">Nuovo ordine manuale</div>
+
+    <div id="alert-ordine" class="alert"></div>
+
+    <div class="form-grid">
+      <div class="form-group">
+        <label>NOME CLIENTE</label>
+        <input type="text" class="form-input" id="ord-nome" placeholder="Mario Rossi">
+      </div>
+      <div class="form-group">
+        <label>TELEFONO</label>
+        <input type="text" class="form-input" id="ord-tel" placeholder="3401234567">
+      </div>
+      <div class="form-group">
+        <label>ORARIO RITIRO</label>
+        <select class="form-input" id="ord-orario">
+          <option value="">— scegli —</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>NOTE</label>
+        <input type="text" class="form-input" id="ord-note" placeholder="Es. tagliare a spicchi">
+      </div>
+    </div>
+
+    <div class="section-title" style="font-size:0.9rem;margin-bottom:12px;">PIZZE</div>
+
+    <div class="add-pizza-row">
+      <div>
+        <label style="font-size:0.72rem;color:var(--muted);display:block;margin-bottom:4px;">PIZZA</label>
+        <select class="form-input" id="pizza-select"></select>
+      </div>
+      <div>
+        <label style="font-size:0.72rem;color:var(--muted);display:block;margin-bottom:4px;">QTÀ</label>
+        <input type="number" class="form-input" id="pizza-qty" value="1" min="1" max="20">
+      </div>
+      <div>
+        <label style="font-size:0.72rem;color:var(--muted);display:block;margin-bottom:4px;">VARIAZIONE</label>
+        <select class="form-input" id="pizza-var">
+          <option value="">Normale</option>
+          <option value=" (battuta)">Battuta +2€</option>
+          <option value=" (doppia pasta)">Doppia pasta +1€</option>
+          <option value=" (baby)">Baby -0.50€</option>
+        </select>
+      </div>
+      <div style="padding-top:22px;">
+        <button class="btn btn-secondary" onclick="aggiungiPizza()">+ ADD</button>
+      </div>
+    </div>
+
+    <div class="pizze-list" id="pizze-list">
+      <div style="color:var(--muted);font-size:0.8rem;">Nessuna pizza aggiunta</div>
+    </div>
+
+    <div class="totale-box">
+      <span>TOTALE STIMATO</span>
+      <span id="totale-display">0,00€</span>
+    </div>
+
+    <div class="bypass-check">
+      <input type="checkbox" id="bypass-slot" checked>
+      <label for="bypass-slot">⚡ BYPASS SLOT — ignora disponibilità (ordine da banco)</label>
+    </div>
+
+    <button class="btn btn-success" style="width:100%;padding:14px;" onclick="inviaOrdineAdmin()">
+      📤 INVIA COMANDA SU TELEGRAM
+    </button>
+  </div>
+
+  <!-- TAB SLOT -->
+  <div id="tab-slot" class="tab-content">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <div class="section-title" style="margin:0;">Slot oggi</div>
+      <button class="refresh-btn" onclick="caricaSlot()">↻ AGGIORNA</button>
+    </div>
+
+    <div id="alert-slot" class="alert"></div>
+    <div id="slot-grid" class="slot-grid">
+      <div class="loading">Caricamento...</div>
+    </div>
+
+    <div class="section-title" style="margin-top:24px;">Azzera giornata</div>
+    <p style="font-size:0.78rem;color:var(--muted);margin-bottom:12px;">Cancella tutti gli slot di oggi (attenzione: operazione irreversibile)</p>
+    <button class="btn btn-danger" onclick="azzeraGiornata()">🗑 AZZERA TUTTI GLI SLOT DI OGGI</button>
+  </div>
+
+  <!-- TAB CLIENTI -->
+  <div id="tab-clienti" class="tab-content">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <div class="section-title" style="margin:0;">Clienti registrati</div>
+      <button class="refresh-btn" onclick="caricaClienti()">↻ AGGIORNA</button>
+    </div>
+    <div id="clienti-container">
+      <div class="loading">Caricamento...</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════
+const ADMIN_PWD = 'boispizza2024';
+const API_BASE = '/.netlify/functions';
+const SUPABASE_URL = 'https://nndriusznthrpdamgtst.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5uZHJpdXN6bnRocnBkYW1ndHN0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1MzY2NDQsImV4cCI6MjA5NTExMjY0NH0.Nw1fK7XvtAlBa-sH4BrLfAlNqd9eP_rYb3v2RAvTlpg';
+
+const ORARI = ['18:30','18:45','19:00','19:15','19:30','19:45','20:00','20:15','20:30','20:45','21:00','21:15','21:30'];
+
+const PIZZE_MENU = {
+  'marinara':5,'margherita':5,'diavola':8,'salsiccia':8,'viennese':7.5,
+  'pugliese':7,'prosciutto e funghi':8,'capricciosa':9,'tonno e cipolla':9,
+  'bufala':9,'bufalina':9,'quattro stagioni':9,'romana':7,'siciliana':9,
+  'patatosa':9,'parma':10,'speck':10,'montello':10,'valtellina':10,
+  'verdure':9,'estate':9,'norma':9,'parmigiana':9,'mike':13,
+  'ciccia e friarielli':11,'formaggi':12,'paolo':11,'sfiziosa':12,
+  'ava':12,'pps':12,'silvia':12,'wilma':9,'wanda':9,'leone':11,
+  'giggino':11,'titti':11,'boscaiola':11,'tartufata':11,'ufo':12,
+  'pazza':13,'repubblica':12,'capricciosa sbagliata':12,'amatriciana':10,
+  'onta':10,'cri':13,'bois':14,'pimpa':13,
+  'calzone classico':9,'calzone piccante':10,'calzone vegeta':9,
+  'calzone poro mauretto':13,'calzone ade':12
+};
+
+let pizzeOrdine = [];
+let slotsData = {};
+
+// ═══════════════════════════════════
+// LOGIN
+// ═══════════════════════════════════
+function doLogin(){
+  const pwd = document.getElementById('pwd-input').value;
+  if(pwd === ADMIN_PWD){
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'block';
+    initDashboard();
+  } else {
+    document.getElementById('login-err').style.display = 'block';
+    setTimeout(()=>document.getElementById('login-err').style.display='none', 2000);
+  }
+}
+
+function doLogout(){
+  document.getElementById('dashboard').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('pwd-input').value = '';
+}
+
+// ═══════════════════════════════════
+// INIT
+// ═══════════════════════════════════
+function initDashboard(){
+  // Data oggi
+  const oggi = new Date().toLocaleDateString('it-IT', {weekday:'long', day:'numeric', month:'long'});
+  document.getElementById('data-oggi').textContent = oggi;
+
+  // Popola select orari
+  const sel = document.getElementById('ord-orario');
+  ORARI.forEach(o => {
+    const opt = document.createElement('option');
+    opt.value = o; opt.textContent = o;
+    sel.appendChild(opt);
+  });
+
+  // Popola select pizze
+  const selP = document.getElementById('pizza-select');
+  Object.keys(PIZZE_MENU).sort().forEach(nome => {
+    const opt = document.createElement('option');
+    opt.value = nome;
+    opt.textContent = nome.charAt(0).toUpperCase()+nome.slice(1)+' — '+PIZZE_MENU[nome].toFixed(2).replace('.',',')+'€';
+    selP.appendChild(opt);
+  });
+
+  caricaSlot();
+  caricaClienti();
+}
+
+// ═══════════════════════════════════
+// TABS
+// ═══════════════════════════════════
+function showTab(name){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+  document.querySelector(`[onclick="showTab('${name}')"]`).classList.add('active');
+  document.getElementById('tab-'+name).classList.add('active');
+  if(name==='slot') caricaSlot();
+  if(name==='clienti') caricaClienti();
+}
+
+// ═══════════════════════════════════
+// ORDINE MANUALE
+// ═══════════════════════════════════
+function aggiungiPizza(){
+  const nome = document.getElementById('pizza-select').value;
+  const qty = parseInt(document.getElementById('pizza-qty').value)||1;
+  const variaz = document.getElementById('pizza-var').value;
+  if(!nome) return;
+
+  let prezzo = PIZZE_MENU[nome] || 8;
+  if(variaz.includes('battuta')) prezzo += 2;
+  if(variaz.includes('doppia')) prezzo += 1;
+  if(variaz.includes('baby')) prezzo -= 0.5;
+
+  const nomeDisplay = nome.charAt(0).toUpperCase()+nome.slice(1)+variaz;
+  pizzeOrdine.push({ qty, nome: nomeDisplay, prezzo });
+  renderPizze();
+}
+
+function renderPizze(){
+  const el = document.getElementById('pizze-list');
+  if(pizzeOrdine.length === 0){
+    el.innerHTML = '<div style="color:var(--muted);font-size:0.8rem;">Nessuna pizza aggiunta</div>';
+    document.getElementById('totale-display').textContent = '0,00€';
+    return;
+  }
+  el.innerHTML = pizzeOrdine.map((p,i) => `
+    <div class="pizza-item">
+      <span>${p.qty}x ${p.nome}</span>
+      <span style="color:var(--accent2)">${(p.prezzo*p.qty).toFixed(2).replace('.',',')}€</span>
+      <button onclick="rimuoviPizza(${i})">✕</button>
+    </div>
+  `).join('');
+  const tot = pizzeOrdine.reduce((s,p)=>s+p.prezzo*p.qty,0);
+  document.getElementById('totale-display').textContent = tot.toFixed(2).replace('.',',')+'€';
+}
+
+function rimuoviPizza(i){ pizzeOrdine.splice(i,1); renderPizze(); }
+
+async function inviaOrdineAdmin(){
+  const nome = document.getElementById('ord-nome').value.trim();
+  const tel = document.getElementById('ord-tel').value.trim();
+  const orario = document.getElementById('ord-orario').value;
+  const note = document.getElementById('ord-note').value.trim();
+  const bypass = document.getElementById('bypass-slot').checked;
+
+  if(!nome || !orario || pizzeOrdine.length === 0){
+    showAlert('ordine', 'Compila nome, orario e aggiungi almeno una pizza!', 'error');
+    return;
+  }
+
+  const tot = pizzeOrdine.reduce((s,p)=>s+p.prezzo*p.qty,0);
+
+  // Check slot se non bypass
+  if(!bypass){
+    const oggi = new Date().toLocaleDateString('sv-SE',{timeZone:'Europe/Rome'});
+    const nPizze = pizzeOrdine.reduce((s,p)=>s+p.qty,0);
+    try {
+      const r = await fetch(`${API_BASE}/slot?data=${oggi}&orario=${orario}&pizze=${nPizze}`);
+      const slot = await r.json();
+      if(!slot.disponibile){
+        const vicini = slot.slotsVicini?.map(s=>s.orario).join(', ') || 'nessuno';
+        showAlert('ordine', `Slot ${orario} pieno! Disponibili: ${vicini}`, 'warning');
+        return;
+      }
+    } catch(e){}
+  }
+
+  try {
+    const r = await fetch(`${API_BASE}/ordine`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        nome: nome + ' [BANCO]',
+        telefono: tel || 'banco',
+        orario,
+        pizze: pizzeOrdine,
+        totale: tot.toFixed(2).replace('.',','),
+        note: note + (bypass ? ' — ORDINE BANCO (bypass slot)' : ''),
+        frittini: [],
+        bibite: [],
+        noteVariazioni: []
+      })
+    });
+    const d = await r.json();
+    if(d.ok){
+      // Prenota slot (anche se bypass, aggiorna il contatore)
+      const oggi2 = new Date().toLocaleDateString('sv-SE',{timeZone:'Europe/Rome'});
+      const nPizze2 = pizzeOrdine.reduce((s,p)=>s+p.qty,0);
+      await fetch(`${API_BASE}/slot`, {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({data:oggi2, orario, pizze:nPizze2})
+      });
+      showAlert('ordine', '✅ Comanda inviata su Telegram!', 'success');
+      pizzeOrdine = [];
+      renderPizze();
+      document.getElementById('ord-nome').value = '';
+      document.getElementById('ord-tel').value = '';
+      document.getElementById('ord-note').value = '';
+      caricaSlot();
+    } else {
+      showAlert('ordine', 'Errore invio: '+JSON.stringify(d), 'error');
+    }
+  } catch(e){
+    showAlert('ordine', 'Errore: '+e.message, 'error');
+  }
+}
+
+// ═══════════════════════════════════
+// SLOT
+// ═══════════════════════════════════
+async function caricaSlot(){
+  const grid = document.getElementById('slot-grid');
+  grid.innerHTML = '<div class="loading">Caricamento slot...</div>';
+  const oggi = new Date().toLocaleDateString('sv-SE',{timeZone:'Europe/Rome'});
+
+  try {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/slot_ordini?data=eq.${oggi}&select=orario,pizze_count,slot_esclusivo,max_pizze`, {
+      headers: {'apikey': SUPABASE_ANON, 'Authorization': 'Bearer '+SUPABASE_ANON}
+    });
+    const rows = await r.json();
+    slotsData = {};
+    (rows||[]).forEach(s => {
+      const orario = s.orario.substring(0,5);
+      slotsData[orario] = s;
+    });
+    renderSlot(oggi);
+  } catch(e){
+    grid.innerHTML = '<div class="loading" style="color:var(--red)">Errore caricamento slot</div>';
+  }
+}
+
+function renderSlot(oggi){
+  const grid = document.getElementById('slot-grid');
+  grid.innerHTML = ORARI.map(orario => {
+    const s = slotsData[orario] || {pizze_count:0, max_pizze:12, slot_esclusivo:false};
+    const count = s.pizze_count || 0;
+    const max = s.max_pizze || 12;
+    const pct = Math.min(100, count/max*100);
+    const stato = s.slot_esclusivo ? 'bloccato' : count >= max ? 'pieno' : count >= max/2 ? 'carico' : 'libero';
+    const colore = stato==='pieno'||stato==='bloccato' ? 'var(--red)' : stato==='carico' ? 'var(--yellow)' : 'var(--green)';
+
+    return `<div class="slot-card ${stato}">
+      <div class="slot-time">${orario}</div>
+      <div class="slot-count">${count}/${max} pizze · ${stato.toUpperCase()}</div>
+      <div class="slot-bar"><div class="slot-bar-fill" style="width:${pct}%;background:${colore}"></div></div>
+      <div class="slot-actions">
+        <button class="slot-btn btn-success" onclick="forzaSlot('${orario}','${oggi}')">⚡ FORZA</button>
+        <button class="slot-btn btn-warning" onclick="modificaMaxSlot('${orario}','${oggi}',${max})">✏️ MAX</button>
+        <button class="slot-btn btn-danger" onclick="azzeraSlot('${orario}','${oggi}')">🗑 AZZERA</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function forzaSlot(orario, oggi){
+  const nStr = prompt(`Aggiungi pizze extra allo slot ${orario}:\n(per forzare un ordine di banco)`, '6');
+  if(!nStr) return;
+  const n = parseInt(nStr);
+  if(isNaN(n)||n<1) return;
+
+  try {
+    const r = await fetch(`${API_BASE}/slot`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({data:oggi, orario, pizze:n})
+    });
+    const d = await r.json();
+    showAlert('slot', '✅ Slot forzato: +'+n+' pizze a '+orario, 'success');
+    caricaSlot();
+  } catch(e){ showAlert('slot', 'Errore: '+e.message, 'error'); }
+}
+
+async function modificaMaxSlot(orario, oggi, maxAttuale){
+  const nStr = prompt(`Modifica max pizze per slot ${orario}:`, maxAttuale);
+  if(!nStr) return;
+  const n = parseInt(nStr);
+  if(isNaN(n)||n<1) return;
+
+  try {
+    const orDb = orario+':00';
+    await fetch(`${SUPABASE_URL}/rest/v1/slot_ordini?data=eq.${oggi}&orario=eq.${orDb}`, {
+      method:'PATCH',
+      headers:{
+        'apikey':SUPABASE_ANON,
+        'Authorization':'Bearer '+SUPABASE_ANON,
+        'Content-Type':'application/json',
+        'Prefer':'return=minimal'
+      },
+      body: JSON.stringify({max_pizze:n})
+    });
+    showAlert('slot', '✅ Max slot '+orario+' aggiornato a '+n, 'success');
+    caricaSlot();
+  } catch(e){ showAlert('slot', 'Errore: '+e.message, 'error'); }
+}
+
+async function azzeraSlot(orario, oggi){
+  if(!confirm('Azzera slot '+orario+'?')) return;
+  try {
+    const orDb = orario+':00';
+    await fetch(`${SUPABASE_URL}/rest/v1/slot_ordini?data=eq.${oggi}&orario=eq.${orDb}`, {
+      method:'DELETE',
+      headers:{
+        'apikey':SUPABASE_ANON,
+        'Authorization':'Bearer '+SUPABASE_ANON
+      }
+    });
+    showAlert('slot', '✅ Slot '+orario+' azzerato', 'success');
+    caricaSlot();
+  } catch(e){ showAlert('slot', 'Errore: '+e.message, 'error'); }
+}
+
+async function azzeraGiornata(){
+  if(!confirm('Sei sicuro? Cancella TUTTI gli slot di oggi!')) return;
+  const oggi = new Date().toLocaleDateString('sv-SE',{timeZone:'Europe/Rome'});
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/slot_ordini?data=eq.${oggi}`, {
+      method:'DELETE',
+      headers:{
+        'apikey':SUPABASE_ANON,
+        'Authorization':'Bearer '+SUPABASE_ANON
+      }
+    });
+    showAlert('slot', '✅ Tutti gli slot di oggi azzerati', 'success');
+    caricaSlot();
+  } catch(e){ showAlert('slot', 'Errore: '+e.message, 'error'); }
+}
+
+// ═══════════════════════════════════
+// CLIENTI
+// ═══════════════════════════════════
+async function caricaClienti(){
+  const cont = document.getElementById('clienti-container');
+  cont.innerHTML = '<div class="loading">Caricamento clienti...</div>';
+
+  try {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/clienti?select=*&order=ordini_count.desc`, {
+      headers:{'apikey':SUPABASE_ANON,'Authorization':'Bearer '+SUPABASE_ANON}
+    });
+    const rows = await r.json();
+    if(!rows||rows.length===0){
+      cont.innerHTML = '<div class="loading">Nessun cliente registrato</div>';
+      return;
+    }
+    cont.innerHTML = `<table class="clienti-table">
+      <thead><tr>
+        <th>NOME</th><th>TELEFONO</th><th>ORDINI</th><th>ULTIMA VISITA</th><th>PIZZA PREFERITA</th>
+      </tr></thead>
+      <tbody>${rows.map(c=>`
+        <tr>
+          <td>${c.nome||'—'}${c.ordini_count>=5?' <span class="badge badge-gold">VIP</span>':c.ordini_count>=3?' <span class="badge badge-silver">LOYAL</span>':''}</td>
+          <td>${c.telefono||'—'}</td>
+          <td style="color:var(--accent2)">${c.ordini_count||0}</td>
+          <td style="color:var(--muted)">${c.ultima_visita||'—'}</td>
+          <td>${c.pizza_preferita||'—'}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+  } catch(e){
+    cont.innerHTML = '<div class="loading" style="color:var(--red)">Errore caricamento clienti</div>';
+  }
+}
+
+// ═══════════════════════════════════
+// UTILS
+// ═══════════════════════════════════
+function showAlert(section, msg, type){
+  const el = document.getElementById('alert-'+section);
+  if(!el) return;
+  el.textContent = msg;
+  el.className = 'alert '+type;
+  el.style.display = 'block';
+  setTimeout(()=>el.style.display='none', 4000);
+}
+</script>
+</body>
+</html>
