@@ -240,7 +240,7 @@ async function inviaOrdine(){
       }
     }
     return d.ok;
-  } catch(e){ return false; }
+  } catch(e){ alert('ERRORE inviaOrdine: ' + e.message); return false; }
 }
 
 function mostraPulsanteConferma(){
