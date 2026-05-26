@@ -164,6 +164,7 @@ function fmtOrdine(){
   const totBib = (ordine.bibite||[]).reduce((s,b)=>s+b.prezzo*b.qty,0);
   const tot = totPizze + totFrit + totBib;
   msg += `\n💰 Totale stimato: **${fmtE(tot)}€**`;
+  msg += `\n\n_⚠️ Prezzo stimato. Le rimozioni ingredienti non modificano il prezzo — verrà verificato in pizzeria. Se sembra troppo alto non preoccuparti, lo sistemiamo noi!_`;
   if(ordine._noteVariazioni && ordine._noteVariazioni.length){
     msg += '\n\n📌 *Richieste speciali:*\n'+ordine._noteVariazioni.join('\n');
   }
@@ -265,10 +266,12 @@ async function confermaMandaOrdine(){
   removeTyping();
   if(ok){
     addBotMsg('🎉 **Ordine inviato!**\n\nAbbiamo mandato il tuo ordine a BoisPizza.\nTi aspettiamo alle **'+ordine.orario+'**, '+ordine.nome+'! 🐧🍕\n\nPer conferma o variazioni chiama il **0422 670631**.');
+    // NON resettiamo qui — aspettiamo la risposta al consenso privacy
+    // resetOrdine() viene chiamata nel blocco _aspettaConsensoPrivacy
   } else {
     addBotMsg('😅 Ops, problema nell\'invio. Chiama il **0422 670631** per ordinare direttamente!');
+    resetOrdine();
   }
-  resetOrdine();
 }
 
 function annullaOrdine(){
@@ -558,8 +561,15 @@ function gestisciOrdine(input){
         if(doppiaIngMatch) notaAggiunta = 'doppia '+doppiaIngMatch[1];
       }
       // Estrai "senza X"
-      const senzaMatch = riga.match(/\bsenza\s+([\w\s]+?)(?=\s*,|\s+e\s+[a-z]|\s+ma\s+|\s+però\s+|\s+con\s+|\s+battut|$)/i);
-      const ingredienteSenza = senzaMatch ? senzaMatch[1].trim() : null;
+      // Estrai tutti i "senza X" dalla riga
+      const _tuttiSenza = [];
+      const _senzaRe = /\bsenza\s+([\w\s]+?)(?=\s*(?:e\s+senza|senza|,|\s+e\s+(?:con|battut|doppi|baby)|\s+ma\s+|\s+però|$))/gi;
+      let _senzaM;
+      while((_senzaM = _senzaRe.exec(riga)) !== null){
+        const _s = _senzaM[1].trim().replace(/\s+e$|\s+ma$|\s+però$/, '');
+        if(_s) _tuttiSenza.push(_s);
+      }
+      const ingredienteSenza = _tuttiSenza.length > 0 ? _tuttiSenza.join(' e senza ') : null;
       // Estrai "doppia X" o "X extra"
       const extraMatch = riga.match(/([\w\s]+?)\s+(?:extra|in più)(?=\s*,|$)/i);
       const ingredienteExtra = extraMatch ? extraMatch[1].trim() : null;
@@ -689,9 +699,27 @@ function gestisciOrdine(input){
         // ── Variazioni prezzo ──
         let prezzoFinale = p.prezzo;
         const rigaLow = riga.toLowerCase();
-        if(isBattuta && !isBattutaPiccola) prezzoFinale += 2.00;  // battuta +2€
-        if(isDoppia) prezzoFinale += 1.00;                         // doppia pasta +1€
-        if(isBaby) prezzoFinale -= 0.50;                           // baby -0.50€
+        if(isBattuta && !isBattutaPiccola) prezzoFinale += 2.00;
+        if(isDoppia) prezzoFinale += 1.00;
+        if(isBaby) prezzoFinale -= 0.50;
+        // Rimozioni → prezzo invariato (check in pizzeria)
+        // Aggiunte ingredienti → somma prezzi
+        if(notaAggiunta){
+          // Estrai tutti gli ingredienti dall'aggiunta ("scamorza e nduja e funghi")
+          const _ingrAgg = notaAggiunta.split(/\s+e\s+|,\s*/);
+          _ingrAgg.forEach(ingStr => {
+            const ingNorm = norm(ingStr.trim());
+            // Cerca nel DB ingredienti
+            if(typeof ING !== 'undefined'){
+              for(const [k,v] of Object.entries(ING)){
+                if(norm(k).includes(ingNorm)||ingNorm.includes(norm(k))){
+                  prezzoFinale += v.prezzo||0;
+                  break;
+                }
+              }
+            }
+          });
+        }
         
         // Asterisco per richieste no-price (ben cotta, tagliata, poco cotta, spicchi ecc.)
         const richiesteNoteVariazioni = [];
@@ -1179,14 +1207,17 @@ async function bpSend(){
     addUserMsg(t);
     const tn = t.toLowerCase().trim();
     if(['si','sì','ok','yes','certo','dai','salva'].some(k=>tn===k||tn.includes(k))){
-      ordine._aspettaConsensoPrivacy = false;
+      const _nomeOrdine = ordine.nome;
+      const _telOrdine = ordine.telefono;
+      const _pizzaOrdine = ordine.pizze && ordine.pizze.length > 0 ? ordine.pizze[0].nome.replace(/\s*\([^)]*\)/g,'').trim() : null;
+      resetOrdine(); // resetta dopo aver salvato i dati necessari
       fetch('/.netlify/functions/clienti', {
         method: 'POST',
         headers: {'Content-Type':'application/json'},
         body: JSON.stringify({
-          telefono: ordine.telefono,
-          nome: ordine.nome,
-          pizza_preferita: ordine.pizze && ordine.pizze.length > 0 ? ordine.pizze[0].nome.replace(/\s*\([^)]*\)/g,'').trim() : null
+          telefono: _telOrdine,
+          nome: _nomeOrdine,
+          pizza_preferita: _pizzaOrdine
         })
       }).then(()=>{
         setTimeout(()=>addBotMsg('✅ Profilo salvato! La prossima volta ti riconosco subito 🐧\nScrivi **"cancellami"** in qualsiasi momento per eliminare i tuoi dati.'),300);
@@ -1194,7 +1225,7 @@ async function bpSend(){
         setTimeout(()=>addBotMsg('⚠️ Non sono riuscito a salvare il profilo, riprova più tardi.'),300);
       });
     } else {
-      ordine._aspettaConsensoPrivacy = false;
+      resetOrdine();
       setTimeout(()=>addBotMsg('Ok, nessun problema! Ci vediamo al prossimo ordine 🐧'),300);
     }
     return;
