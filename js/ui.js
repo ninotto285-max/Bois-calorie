@@ -214,14 +214,17 @@ async function inviaOrdine(){
       })
     });
     const d = await r.json();
+    console.log('[inviaOrdine] risposta:', JSON.stringify(d));
+    alert('Risposta ordine: ' + JSON.stringify(d));
     if(d.ok){
       const nPizze = ordine.pizze.reduce((s,p)=>s+p.qty,0);
+      console.log('[inviaOrdine] prenotaSlot', ordine.orario, nPizze);
       await prenotaSlot(ordine.orario, nPizze);
       // Se cliente non noto → chiedi consenso salvataggio
       if(!ordine._clienteNoto){
         ordine._aspettaConsensoPrivacy = true;
         setTimeout(()=>{
-          addBotMsg('🐧 Vuoi salvare il tuo profilo per i prossimi ordini?\nLa prossima volta ti riconosco subito e non devi reinserire i dati!\n\n📋 [Privacy policy: i tuoi dati (nome e telefono) sono salvati solo per velocizzare i tuoi ordini futuri e non vengono condivisi con terzi.]\n\nScrivi **sì** per salvare o **no** per procedere.');
+          addBotMsg('🐧 Vuoi salvare il tuo profilo per i prossimi ordini?\nLa prossima volta ti riconosco subito e non devi reinserire i dati!\n\n📋 [Privacy policy: i tuoi dati (nome e telefono) sono salvati solo per velocizzare i tuoi ordini futuri e non vengono condivisi con terzi.]\n\nScrivi **sì** per salvare oppure **no** per non salvare.');
         }, 1500);
       } else {
         // Cliente noto → aggiorna contatore ordini
@@ -978,7 +981,10 @@ function gestisciOrdine(input){
     const tT = norm(correggiTypo(input).trim());
     const qty = ordine._frittiniQtyPending || 1;
     // Solo misti
-    const soloMisti = ['misti','misto','assortiti','assortito'].includes(tT);
+    // "tutti misti" o "tutti" → usa qty pending
+    const tTclean = tT.replace(/\btutt[io]\b/g,'').trim();
+    const soloMisti = ['misti','misto','assortiti','assortito',''].includes(tTclean) && 
+                      (tT.includes('mist') || tT.includes('assort') || tT === '' || tT.includes('tutt'));
     if(soloMisti){
       ordine.frittini.push({ qty, tipo:'Misti', prezzo:2.50 });
       delete ordine._frittiniQtyPending;
@@ -1235,3 +1241,36 @@ async function bpSend(){
   setTimeout(()=>addBotMsg(rispostaGenerica(norm(text))),300);
   bpLoading=false;
 }
+
+// ── MICROFONO (Web Speech API) ──
+function startMic(){
+  if(!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)){
+    addBotMsg('😅 Il tuo browser non supporta il microfono. Prova Chrome!');
+    return;
+  }
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const rec = new SR();
+  rec.lang = 'it-IT';
+  rec.interimResults = false;
+  rec.maxAlternatives = 1;
+
+  const btn = document.getElementById('bp-mic');
+  if(btn){ btn.textContent = '🔴'; btn.style.animation = 'pulse 1s infinite'; }
+
+  rec.onresult = (e) => {
+    const testo = e.results[0][0].transcript;
+    const input = document.getElementById('bp-input');
+    if(input){ input.value = testo; bpSend(); }
+  };
+
+  rec.onerror = () => {
+    if(btn){ btn.textContent = '🎤'; btn.style.animation = ''; }
+  };
+
+  rec.onend = () => {
+    if(btn){ btn.textContent = '🎤'; btn.style.animation = ''; }
+  };
+
+  rec.start();
+}
+window.startMic = startMic;
