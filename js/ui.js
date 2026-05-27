@@ -1348,7 +1348,7 @@ async function bpSend(){
           pizza_preferita: _pizzaOrdine
         })
       }).then(r=>r.json()).then(d=>{
-        alert('Clienti risposta: '+JSON.stringify(d)); setTimeout(()=>addBotMsg('✅ Profilo salvato! La prossima volta ti riconosco 🐧'),300);
+        setTimeout(()=>addBotMsg('✅ Profilo salvato! La prossima volta ti riconosco 🐧'),300);
       }).catch(()=>{
         setTimeout(()=>addBotMsg('⚠️ Non sono riuscito a salvare il profilo, riprova più tardi.'),300);
       });
