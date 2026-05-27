@@ -90,6 +90,7 @@ function parseOrario(t){
   const mezzora = {'mezzo':30,'mezza':30,'e mezzo':30,'e mezza':30};
   const quarti = {'un quarto':15,'e un quarto':15,'e quarto':15,'tre quarti':45,'e tre quarti':45};
 
+  t = t.replace(/\btre\s+quart[io]/g, 'TREQUARTI');
   // Converti parole ore in numeri: "sette" → 7, "diciannove" → 19
   for(const [w,n] of Object.entries(parole)){
     t = t.replace(new RegExp('\\b'+w+'\\b','g'), String(n));
@@ -99,8 +100,9 @@ function parseOrario(t){
   t = t.replace(/(\d+)\s+e\s+mezz[ao]/g, '$1:30');
   // Converti "X e un quarto/quarto" → "X:15"
   t = t.replace(/(\d+)\s+e\s+(?:un\s+)?quarto/g, '$1:15');
-  // Converti "X e tre quarti" → "X:45"
-  t = t.replace(/(\d+)\s+e\s+tre\s+quarti/g, '$1:45');
+  // Converti "X e tre quarti" → "X:45" (prima di convertire numeri parola)
+  t = t.replace(/(\d+)\s+e\s+TREQUARTI/g, '$1:45');
+  t = t.replace(/TREQUARTI/g, '45');
   // Converti "X e N" → "X:N" (es "7 e 10" → "7:10")
   t = t.replace(/(\d+)\s+e\s+(\d{1,2})(?!\d)/g, (m,h,mn)=>h+':'+(mn.length===1?'0'+mn:mn));
 
@@ -290,7 +292,7 @@ function gestisciOrdine(input){
     }
     // Se sembra un intento di ordinare, non un nome → ripeti la domanda
     const _tNome2 = norm(input.trim());
-    const _intentOrdine = ['voglio','vorrei','ordino','ordina','ordine','pizza','margherita','diavola','capricciosa','voglio ordinare','vorrei ordinare','fare un ordine','prenot'];
+    const _intentOrdine = ['voglio ordinare','vorrei ordinare','fare un ordine','prenot','ordino','ordina ','un ordine'];
     if(_intentOrdine.some(k=>_tNome2.includes(k))){
       return 'Come ti chiami? Scrivi nome e cognome 😊';
     }
@@ -334,6 +336,9 @@ function gestisciOrdine(input){
   if(ordineStep === 'orario' || ordineStep === 'orario_checking'){
     const orarioTrovato = parseOrario(t);
     if(!orarioTrovato) return `Non ho capito l'orario 😅 Scegli tra: ${ORARI_DISPONIBILI.join(' · ')}\n(Puoi scrivere anche "alle 8", "7 e mezza", "per le 20" ecc.)`;
+    // Se l'orario richiesto è diverso da quello trovato → avvisa
+    const _orarioRichiesto = t.match(/(\d{1,2})[.:](\d{2})/)?.[0]?.replace('.',':');
+    const _cambiatoSlot = _orarioRichiesto && _orarioRichiesto !== orarioTrovato;
     ordine.orario = orarioTrovato;
     // Blocca orari già passati
     const _adessoRoma = new Date().toLocaleTimeString('it-IT', {timeZone:'Europe/Rome', hour:'2-digit', minute:'2-digit'});
@@ -370,7 +375,7 @@ function gestisciOrdine(input){
       } else {
         ordine.orario = orarioTrovato;
         ordineStep = 'pizze';
-        addBotMsg('Orario **'+orarioTrovato+'** ✅\n\nOra dimmi le pizze! Scrivi tipo:\n"2 margherite e 1 diavola"\noppure aggiungile una per volta 🍕');
+        addBotMsg((_cambiatoSlot?'Il primo orario disponibile è **'+orarioTrovato+'** 🕐\n(apriamo dalle 18:30)\n\n':'')+'Orario **'+orarioTrovato+'** ✅\n\nOra dimmi le pizze! Scrivi tipo:\n"2 margherite e 1 diavola"\noppure aggiungile una per volta 🍕');
       }
     }).catch(()=>{
       // Se API non risponde → procedi comunque
@@ -515,6 +520,35 @@ function gestisciOrdine(input){
       // Genera "però nb battute, nn normali" → sarà gestito dal parser
       return ', '+nb+' battute, '+nn+' normali';
     });
+    // Estrai istruzioni "tutte X" → nota per tutte le pizze
+    let _tutteCottura = null;
+    let _tutteCon = null;
+    // Gestisci "tutte X" — raccoglie tutti i formati
+    let _tutteFormato = null;
+    const _tutteM = _inp.match(/\btutte?\s+(.{3,50}?)(?=\s*$|\s+(?:e\s+)?(?:con\s+[a-z]+|senza|più))/i) ||
+                    _inp.match(/\btutte?\s+(.+)$/i);
+    if(_tutteM){
+      const _tv = _tutteM[1].toLowerCase();
+      if(_tv.includes('ben cott')) _tutteCottura = 'ben cotta';
+      else if(_tv.includes('poco cott')) _tutteCottura = 'poco cotta';
+      if(_tv.includes('origano')) _tutteCon = 'origano';
+      // Formati multipli possibili: battuta + doppia pasta insieme
+      const _nomeFormato = [];
+      let _prezzoFormato = 0;
+      if(_tv.includes('battut piccol')||(_tv.includes('battut')&&_tv.includes('piccol'))){ _nomeFormato.push('battuta piccola'); _prezzoFormato+=2; }
+      else if(_tv.includes('battut')){ _nomeFormato.push('battuta'); _prezzoFormato+=2; }
+      if(_tv.includes('doppi')&&_tv.includes('past')){ _nomeFormato.push('doppia pasta'); _prezzoFormato+=1; }
+      if(_tv.includes('baby')){ _nomeFormato.push('baby'); _prezzoFormato-=0.5; }
+      if(_nomeFormato.length) _tutteFormato = {label: _nomeFormato.join(' '), prezzo: _prezzoFormato};
+      _inp = _inp.replace(_tutteM[0], '').trim();
+    }
+    // Estrai "più X e Y" o "con X" alla fine → aggiunta all'ultima pizza
+    let _aggiuntaFinale = null;
+    const _piuMatch = _inp.match(/(?:^|\s)(?:più|con)\s+([a-zà-ùA-Z][a-zà-ùA-Z\s,]+?)\s*$/i);
+    if(_piuMatch && !/\d/.test(_piuMatch[1]) && !_piuMatch[1].match(/\b(tutte|basta|no|sì|si)\b/)){
+      _aggiuntaFinale = _piuMatch[1].trim();
+      _inp = _inp.slice(0, _inp.length - _piuMatch[0].length).trim();
+    }
     const righe = _inp.split(/,|\n|(?<=\S)\s+e\s+(?=\d)|(?<=\S)\s+(?=\d+\s+[a-z4-9])|(?<=\S)\s+e\s+(?=una?\s)|(?<=\S)\s+e\s+(?=battut)|(?<=\S)\s+e\s+(?=con\s)|(?<=\S)\s+e\s+(?=senza\s)|(?<=\S)\s+una\s+(?=[a-zA-Z])|(?<=\S)\s+un\s+(?=[a-zA-Z])/).filter(r=>r.trim());
     let trovate = [];
     for(let riga of righe){
@@ -803,6 +837,34 @@ function gestisciOrdine(input){
     }
     if(trovate.length > 0){
       ordine.pizze.push(...trovate);
+      // Applica "tutte ben cotte" / "tutte con origano" a tutte le pizze trovate
+      if((_tutteCottura || _tutteFormato) && trovate.length > 0){
+        trovate.forEach(p=>{
+          if(_tutteFormato){ p.nome += ' ('+_tutteFormato.label+')'; p.prezzo += _tutteFormato.prezzo; }
+          if(_tutteCottura && _tutteCottura !== (_tutteFormato&&_tutteFormato.label)) p.nome += ' ('+_tutteCottura+')';
+        });
+      }
+      if(_tutteCon && trovate.length > 0){
+        let _pExtra = 0;
+        if(typeof ING !== 'undefined' && ING[_tutteCon]) _pExtra = ING[_tutteCon].prezzo||0;
+        trovate.forEach(p=>{ p.nome += ' (con '+_tutteCon+')'; p.prezzo += _pExtra; });
+      }
+      // Applica aggiunta finale all'ultima pizza trovata
+      if(_aggiuntaFinale && trovate.length > 0){
+        const _ultPizza = trovate[trovate.length - 1];
+        let _prezzoExtra = 0;
+        if(typeof ING !== 'undefined'){
+          const _parts = _aggiuntaFinale.split(/\s+e\s+|,\s*/);
+          _parts.forEach(p=>{
+            const pn = norm(p.trim());
+            for(const [k,v] of Object.entries(ING)){
+              if(norm(k).includes(pn)||pn.includes(norm(k))){ _prezzoExtra+=v.prezzo||0; break; }
+            }
+          });
+        }
+        _ultPizza.prezzo += _prezzoExtra;
+        _ultPizza.nome += ' (con '+_aggiuntaFinale+')';
+      }
       const lista = trovate.map(p=>`${p.qty}x ${p.nome}`).join(', ');
       ordineStep = 'altra';
       return `Aggiunto: ${lista} ✅\n\nVuoi aggiungere altre pizze? Oppure scrivi **"basta"** per procedere.`;
@@ -1196,7 +1258,73 @@ function mostraCuriosita(){
 
 function quickSend(text){
   if(!panelOpen) togglePanel();
-  setTimeout(()=>{ document.getElementById('bp-input').value=text; bpSend(); },350);
+  setTimeout(()=>{ bpSendText(text); }, panelOpen ? 50 : 400);
+}
+
+async function bpSendText(text){
+  if(!text) return;
+  addUserMsg(text);
+  bpLoading = true;
+  
+  if(ordine && ordine._aspettaConsensoPrivacy){
+    const tn = text.toLowerCase().trim();
+    if(['si','sì','ok','yes','certo','dai','salva'].some(k=>tn===k||tn.includes(k))){
+      const _nomeOrdine = ordine.nome;
+      const _telOrdine = ordine.telefono;
+      const _pizzaOrdine = ordine.pizze && ordine.pizze.length > 0 ? ordine.pizze[0].nome.replace(/\s*\([^)]*\)/g,'').trim() : null;
+      resetOrdine();
+      fetch('/.netlify/functions/clienti', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({telefono:_telOrdine, nome:_nomeOrdine, pizza_preferita:_pizzaOrdine})
+      }).then(r=>r.json()).then(d=>{
+        if(d.ok) addBotMsg('✅ Profilo salvato! Ci vediamo al prossimo ordine 🐧');
+        else addBotMsg('😅 Errore nel salvataggio, ma l\'ordine è andato a buon fine!');
+      }).catch(()=>addBotMsg('✅ Profilo salvato! Ci vediamo al prossimo ordine 🐧'));
+    } else {
+      resetOrdine();
+      setTimeout(()=>addBotMsg('Ok, nessun problema! Ci vediamo al prossimo ordine 🐧'),300);
+    }
+    bpLoading = false; return;
+  }
+
+  if(ordineAttivo){
+    const r = gestisciOrdine(text);
+    if(r === 'MOSTRA_PULSANTE') mostraPulsanteConferma();
+    else if(r) setTimeout(()=>addBotMsg(r),300);
+    else {
+      const fallback = {
+        'nome':'Come ti chiami? Scrivi nome e cognome 😊',
+        'telefono':'E il tuo numero di telefono? 📱',
+        'orario':'A che ora vieni? (es. 19:30, sette e mezza, alle 8)',
+        'pizze':'Dimmi le pizze! Es: "2 margherite e 1 diavola" 🍕',
+        'altra':'Vuoi aggiungere altre pizze? Oppure scrivi "basta"',
+        'note':'Hai note particolari? Scrivi pure o "no".',
+        'spicchi':'🔪 Tagliare a spicchi? sì o no',
+        'frittini':'🍟 Vuoi frittini? Scrivi tipo oppure "no"',
+        'frittini_qty':'Quanti frittini? (5pz a 2,50€)',
+        'frittini_tipo':'Come li vuoi? Misti, Olive, Nuggets, Crocchettine, Anellini',
+        'bibita':'Quale bibita? Oppure "no".',
+        'conferma':'Scrivi "sì" per confermare o "no" per annullare.',
+      };
+      if(fallback[ordineStep]) setTimeout(()=>addBotMsg(fallback[ordineStep]),300);
+    }
+    bpLoading = false; return;
+  }
+
+  const locale = rispostaLocale(text);
+  if(locale === 'ORDER'){
+    resetOrdine(); ordineAttivo = true; ordineStep = 'nome';
+    const orarioGia = parseOrario(text);
+    if(orarioGia){ ordine.orario = orarioGia; setTimeout(()=>addBotMsg('Perfetto! 🍕 Raccogliamo il tuo ordine.\n\nHo visto che vuoi venire alle **'+orarioGia+'**.\n\nCome ti chiami? Scrivi nome e cognome 😊'),300); }
+    else setTimeout(()=>addBotMsg('Perfetto! 🍕 Raccogliamo il tuo ordine.\n\nCome ti chiami? Scrivi nome e cognome 😊'),300);
+  } else if(locale && locale !== 'COSA_SAI_FARE'){
+    setTimeout(()=>addBotMsg(locale),300);
+  } else if(locale === 'COSA_SAI_FARE'){
+    setTimeout(()=>addBotMsg(rispostaCosaSoFare()),300);
+  } else {
+    setTimeout(()=>addBotMsg(rispostaGenerica(norm(text))),300);
+  }
+  bpLoading = false;
 }
 
 async function bpSend(){
@@ -1219,8 +1347,8 @@ async function bpSend(){
           nome: _nomeOrdine,
           pizza_preferita: _pizzaOrdine
         })
-      }).then(()=>{
-        setTimeout(()=>addBotMsg('✅ Profilo salvato! La prossima volta ti riconosco subito 🐧\nScrivi **"cancellami"** in qualsiasi momento per eliminare i tuoi dati.'),300);
+      }).then(r=>r.json()).then(d=>{
+        alert('Clienti risposta: '+JSON.stringify(d)); setTimeout(()=>addBotMsg('✅ Profilo salvato! La prossima volta ti riconosco 🐧'),300);
       }).catch(()=>{
         setTimeout(()=>addBotMsg('⚠️ Non sono riuscito a salvare il profilo, riprova più tardi.'),300);
       });
