@@ -51,9 +51,10 @@ export async function onRequest(context) {
       const oggi = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Rome' });
       const existing = await sbFetch(SUPABASE_URL, SUPABASE_SERVICE, `/clienti?telefono=eq.${encodeURIComponent(telefono)}&select=ordini_count`);
       if (existing && existing.length > 0) {
-        const _isNuovoOrdine = nome && !premio_riscattato;
+        const _isNuovoOrdine = nome && !premio_riscattato && !punti_da_aggiungere && punti === undefined;
         const _updateData = {};
-        if(nome) { _updateData.nome = nome; _updateData.ultima_visita = oggi; }
+        if(nome && _isNuovoOrdine) { _updateData.nome = nome; _updateData.ultima_visita = oggi; }
+        else if(nome) { _updateData.nome = nome; }
         if(_isNuovoOrdine) _updateData.ordini_count = (existing[0].ordini_count || 0) + 1;
         if(pizza_preferita) _updateData.pizza_preferita = pizza_preferita;
         if(ultimo_ordine) _updateData.ultimo_ordine = ultimo_ordine;
