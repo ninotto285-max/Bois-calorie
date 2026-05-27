@@ -248,7 +248,6 @@ async function inviaOrdine(){
       })
     });
     const d = await r.json();
-    alert('Ordine: ' + JSON.stringify(d));
     if(d.ok){
       const nPizze = ordine.pizze.reduce((s,p)=>s+p.qty,0);
       await prenotaSlot(ordine.orario, nPizze);
@@ -335,6 +334,47 @@ function annullaOrdine(){
 
 function gestisciOrdine(input){
   const t = norm(input);
+
+  // ── Step ordine rapido ──
+  if(ordineStep === 'ordine_rapido'){
+    const tR = norm(input.trim());
+    if(['si','sì','ok','yes','certo','dai','conferma','stesso'].some(k=>tR===k||tR.startsWith(k))){
+      const uo = ordine._ultimoOrdineCliente;
+      if(uo){ ordine.pizze=uo.pizze.map(p=>({...p})); ordine.frittini=(uo.frittini||[]).map(f=>({...f})); ordine.bibite=(uo.bibite||[]).map(b=>({...b})); }
+      if(ordine._allergie) ordine.note='⚠️ Allergie: '+ordine._allergie;
+      const _puntiR=ordine._clienteData?(ordine._clienteData.punti||0):0;
+      const _premioR=PREMI.filter(p=>_puntiR>=p.punti);
+      if(_premioR.length>0){
+        ordineStep='premi';
+        return '🏆 Hai **'+_puntiR.toLocaleString('it')+' punti** — puoi riscattare un premio!\n\n'+_premioR.map((p,i)=>`${i+1}. ${p.emoji} ${p.nome} — **${p.punti.toLocaleString('it')} punti**`).join('\n')+'\n\nScrivi il numero o **no** per continuare ad accumulare.';
+      }
+      ordineStep='orario';
+      return 'Perfetto! 🚀 Stesso ordine!\n\nA che ora vieni? '+ORARI_DISPONIBILI.join(' · ');
+    } else if(['no','cambia','nuovo'].some(k=>tR===k||tR.startsWith(k))){
+      ordine.pizze=[];ordine.frittini=[];ordine.bibite=[];
+      ordineStep='pizze';
+      return 'Ok! Dimmi le pizze 🍕';
+    }
+    return 'Scrivi **sì** per confermare o **no** per un ordine nuovo.';
+  }
+
+  // ── Step premi ──
+  if(ordineStep === 'premi'){
+    const tP = norm(input.trim());
+    const _pc=ordine._clienteData?(ordine._clienteData.punti||0):0;
+    const _pd=PREMI.filter(p=>_pc>=p.punti);
+    const nP=parseInt(tP);
+    const ps=_pd.find((p,i)=>nP===i+1)||_pd.find(p=>tP.includes(norm(p.nome))||tP.includes(p.id));
+    if(['no','dopo','accumula','continua','non'].some(k=>tP===k||tP.startsWith(k))){
+      ordineStep='orario'; return 'Ok! 🐧\n\nA che ora vieni? '+ORARI_DISPONIBILI.join(' · ');
+    }
+    if(ps){
+      ordine._premioRiscattato=ps; ordine._puntiDaScalare=ps.punti; ordineStep='orario';
+      if(ps.id==='ananas') return '🍍 UN MILIONE di punti!! Sei leggendario 🐧😅\n\nA che ora vieni? '+ORARI_DISPONIBILI.join(' · ');
+      return ps.emoji+' **'+ps.nome+'** riscattato! 🎉 (-'+ps.punti.toLocaleString('it')+' pt)\n\nA che ora vieni? '+ORARI_DISPONIBILI.join(' · ');
+    }
+    return 'Scrivi il **numero** del premio o **no** per continuare.';
+  }
 
   if(ordineStep === 'nome'){
     if(!input.trim() || norm(input.trim()).length < 2){
@@ -868,12 +908,21 @@ function gestisciOrdine(input){
           // Estrai tutti gli ingredienti dall'aggiunta ("scamorza e nduja e funghi")
           const _ingrAgg = notaAggiunta.split(/\s+e\s+|,\s*/);
           _ingrAgg.forEach(ingStr => {
-            const ingNorm = norm(ingStr.trim());
+            const ingTrim = ingStr.trim();
+            const ingNorm = norm(ingTrim);
+            // Check "abbondante" / "doppia" / "extra" = x2
+            const isAbbondante = /\b(abbondan\w*|doppi[ao]|extra|much)\b/i.test(ingTrim);
+            const moltiplicatore = isAbbondante ? 2 : 1;
+            const ingNormClean = ingNorm.replace(/\b(abbondan\w*|doppi[ao]|extra)\b/g,'').trim();
             // Cerca nel DB ingredienti
             if(typeof ING !== 'undefined'){
               for(const [k,v] of Object.entries(ING)){
-                if(norm(k).includes(ingNorm)||ingNorm.includes(norm(k))){
-                  prezzoFinale += v.prezzo||0;
+                if(norm(k).includes(ingNormClean)||ingNormClean.includes(norm(k))){
+                  prezzoFinale += (v.prezzo||0) * moltiplicatore;
+                  if(isAbbondante && !notaAggiunta.includes('doppi')) {
+                    // Aggiorna nome per mostrare "doppia X"
+                    notaAggiunta = notaAggiunta.replace(ingStr, 'doppia '+k);
+                  }
                   break;
                 }
               }
