@@ -387,7 +387,7 @@ async function doLogin(){
   const pwd = document.getElementById('pwd-input').value;
   if(!pwd) return;
   try {
-    const r = await fetch('/.netlify/functions/admin-data?action=login',{
+    const r = await fetch('/admin-data?action=login',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({password:pwd})
     });
@@ -623,7 +623,7 @@ async function inviaOrdineAdmin(){
   if(!nome||!orario||!pizzeOrdine.length){showAlert('ordine','Compila nome, orario e aggiungi almeno una pizza!','error');return;}
   const tot=pizzeOrdine.reduce((s,p)=>s+p.prezzo*p.qty,0);
   try {
-    const r=await fetch('/.netlify/functions/ordine',{
+    const r=await fetch('/ordine',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
         nome:nome+' [BANCO]',telefono:tel||'banco',orario,
@@ -636,7 +636,7 @@ async function inviaOrdineAdmin(){
     if(d.ok){
       const oggi=new Date().toLocaleDateString('sv-SE',{timeZone:'Europe/Rome'});
       const nPizze=pizzeOrdine.reduce((s,p)=>s+p.qty,0);
-      await fetch('/.netlify/functions/slot',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({data:oggi,orario,pizze:nPizze})});
+      await fetch('/slot',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({data:oggi,orario,pizze:nPizze})});
       showAlert('ordine','✅ Comanda inviata su Telegram!','success');
       pizzeOrdine=[];renderPizze();
       document.getElementById('ord-nome').value='';
@@ -651,7 +651,7 @@ async function inviaOrdineAdmin(){
 // ADMIN FETCH
 // ═══════════════════
 async function adminFetch(path, options={}){
-  return fetch('/.netlify/functions/admin-data'+path,{
+  return fetch('/admin-data'+path,{
     ...options,headers:{'Content-Type':'application/json','X-Admin-Token':adminToken,...(options.headers||{})}
   });
 }
@@ -690,7 +690,7 @@ async function caricaSlot(){
 async function forzaSlot(orario,oggi){
   const n=parseInt(prompt('Aggiungi pizze allo slot '+orario+':','6'));
   if(!n||isNaN(n)) return;
-  await fetch('/.netlify/functions/slot',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({data:oggi,orario,pizze:n})});
+  await fetch('/slot',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({data:oggi,orario,pizze:n})});
   showAlert('slot','✅ +'+n+' pizze a '+orario,'success');caricaSlot();
 }
 
