@@ -181,7 +181,7 @@ function fmtOrdine(){
 async function checkSlot(orario, nPizze) {
   try {
     const oggi = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Rome' });
-    const r = await fetch(`/.netlify/functions/slot?data=${oggi}&orario=${orario}&pizze=${nPizze}`);
+    const r = await fetch(`/slot?data=${oggi}&orario=${orario}&pizze=${nPizze}`);
     return await r.json();
   } catch(e) { return { disponibile: true }; } // fallback: lascia passare
 }
@@ -189,7 +189,7 @@ async function checkSlot(orario, nPizze) {
 async function prenotaSlot(orario, nPizze) {
   try {
     const oggi = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Rome' });
-    const r = await fetch('/.netlify/functions/slot', {
+    const r = await fetch('/slot', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ data: oggi, orario, pizze: nPizze })
@@ -204,7 +204,7 @@ async function inviaOrdine(){
   const totBib2 = (ordine.bibite||[]).reduce((s,b)=>s+b.prezzo*b.qty,0);
   const tot = totPizze2 + totFrit2 + totBib2;
   try {
-    const r = await fetch('/.netlify/functions/ordine', {
+    const r = await fetch('/ordine', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({
@@ -232,7 +232,7 @@ async function inviaOrdine(){
         }, 1500);
       } else {
         // Cliente noto → aggiorna contatore ordini
-        fetch('/.netlify/functions/clienti', {
+        fetch('/clienti', {
           method: 'POST',
           headers: {'Content-Type':'application/json'},
           body: JSON.stringify({
@@ -309,7 +309,7 @@ function gestisciOrdine(input){
     // Cerca cliente con timeout 3 secondi
     const _ctrl = new AbortController();
     const _timeout = setTimeout(()=>_ctrl.abort(), 3000);
-    fetch('/.netlify/functions/clienti?telefono='+encodeURIComponent(ordine.telefono), {signal:_ctrl.signal})
+    fetch('/clienti?telefono='+encodeURIComponent(ordine.telefono), {signal:_ctrl.signal})
       .then(r=>r.json())
       .then(d=>{
         clearTimeout(_timeout);
@@ -1273,7 +1273,7 @@ async function bpSendText(text){
       const _telOrdine = ordine.telefono;
       const _pizzaOrdine = ordine.pizze && ordine.pizze.length > 0 ? ordine.pizze[0].nome.replace(/\s*\([^)]*\)/g,'').trim() : null;
       resetOrdine();
-      fetch('/.netlify/functions/clienti', {
+      fetch('/clienti', {
         method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({telefono:_telOrdine, nome:_nomeOrdine, pizza_preferita:_pizzaOrdine})
       }).then(r=>r.json()).then(d=>{
@@ -1339,7 +1339,7 @@ async function bpSend(){
       const _telOrdine = ordine.telefono;
       const _pizzaOrdine = ordine.pizze && ordine.pizze.length > 0 ? ordine.pizze[0].nome.replace(/\s*\([^)]*\)/g,'').trim() : null;
       resetOrdine(); // resetta dopo aver salvato i dati necessari
-      fetch('/.netlify/functions/clienti', {
+      fetch('/clienti', {
         method: 'POST',
         headers: {'Content-Type':'application/json'},
         body: JSON.stringify({
