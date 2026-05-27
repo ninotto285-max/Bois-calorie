@@ -46,19 +46,25 @@ export async function onRequest(context) {
     }
 
     if (request.method === 'POST') {
-      const { telefono, nome, pizza_preferita } = await request.json();
+      const { telefono, nome, pizza_preferita, ultimo_ordine, vuole_spicchi, instagram_follower, whatsapp_marketing } = await request.json();
       if (!telefono || !nome) return json({ error: 'dati mancanti' }, 400);
       const oggi = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Rome' });
       const existing = await sbFetch(SUPABASE_URL, SUPABASE_SERVICE, `/clienti?telefono=eq.${encodeURIComponent(telefono)}&select=ordini_count`);
       if (existing && existing.length > 0) {
+        const _updateData = { nome, ordini_count: (existing[0].ordini_count || 0) + 1, ultima_visita: oggi };
+        if(pizza_preferita) _updateData.pizza_preferita = pizza_preferita;
+        if(ultimo_ordine) _updateData.ultimo_ordine = ultimo_ordine;
+        if(vuole_spicchi !== undefined) _updateData.vuole_spicchi = vuole_spicchi;
+        if(instagram_follower !== undefined) _updateData.instagram_follower = instagram_follower;
+        if(whatsapp_marketing !== undefined) _updateData.whatsapp_marketing = whatsapp_marketing;
         await sbFetch(SUPABASE_URL, SUPABASE_SERVICE, `/clienti?telefono=eq.${encodeURIComponent(telefono)}`, {
           method: 'PATCH',
-          body: JSON.stringify({ nome, ordini_count: (existing[0].ordini_count || 0) + 1, ultima_visita: oggi, ...(pizza_preferita ? { pizza_preferita } : {}) }),
+          body: JSON.stringify(_updateData),
         });
       } else {
         await sbFetch(SUPABASE_URL, SUPABASE_SERVICE, '/clienti', {
           method: 'POST',
-          body: JSON.stringify({ telefono, nome, ordini_count: 1, ultima_visita: oggi, pizza_preferita: pizza_preferita || null }),
+          body: JSON.stringify({ telefono, nome, ordini_count: 1, ultima_visita: oggi, pizza_preferita: pizza_preferita || null, ultimo_ordine: ultimo_ordine || null, vuole_spicchi: vuole_spicchi || false, badge: 'nuovo' }),
         });
       }
       return json({ ok: true });
