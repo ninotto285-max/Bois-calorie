@@ -158,6 +158,7 @@
     <div class="tab active" onclick="showTab('ordine')">📋 ORDINE</div>
     <div class="tab" onclick="showTab('slot')">🕐 SLOT</div>
     <div class="tab" onclick="showTab('clienti')">👥 CLIENTI</div>
+    <div class="tab" onclick="showTab('cucina')">🧑‍🍳 CUCINA</div>
   </div>
 
   <!-- TAB ORDINE -->
@@ -252,6 +253,32 @@
     <div id="alert-slot" class="alert"></div>
     <div id="slot-grid" class="slot-grid"><div class="loading">Caricamento...</div></div>
     <button class="btn btn-danger" style="margin-top:8px;" onclick="azzeraGiornata()">🗑 AZZERA TUTTI GLI SLOT DI OGGI</button>
+  </div>
+
+  <!-- TAB CUCINA -->
+  <div id="tab-cucina" class="tab-content">
+    <div class="section-title">Ingredienti esauriti stasera</div>
+    <p style="font-size:0.78rem;color:var(--muted);margin-bottom:14px;">
+      Segna cosa è finito — il chatbot avviserà i clienti. Si resetta automaticamente a mezzanotte.
+    </p>
+    <div id="alert-cucina" class="alert"></div>
+    
+    <!-- Ricerca ingrediente -->
+    <div class="search-box" style="margin-bottom:14px;">
+      <input type="text" id="ing-esaurito-search" placeholder="Cerca ingrediente..." 
+        oninput="filtraIngredientiCucina(this.value)" autocomplete="off">
+    </div>
+    
+    <div id="ingredienti-cucina-list" class="checkbox-grid" style="margin-bottom:16px;"></div>
+    
+    <div style="margin-top:16px;">
+      <div class="section-title" style="font-size:0.85rem;">Attualmente esauriti:</div>
+      <div id="esauriti-list" style="min-height:40px;"></div>
+    </div>
+    
+    <button class="btn btn-danger" style="margin-top:16px;" onclick="resetEsauriti()">
+      🔄 RESET — tutto disponibile
+    </button>
   </div>
 
   <!-- TAB CLIENTI -->
@@ -436,6 +463,92 @@ function showTab(name){
   document.getElementById('tab-'+name).classList.add('active');
   if(name==='slot') caricaSlot();
   if(name==='clienti') caricaClienti();
+  if(name==='cucina') initCucina();
+}
+
+// ═══════════════════
+// CUCINA — INGREDIENTI ESAURITI
+// ═══════════════════
+const INGREDIENTI_CUCINA = [
+  'acciughe','aglio','asparagi','bresaola','brie','brie erborinato','bufala','burrata',
+  'capperi','carciofi','cipolla','cipolla di tropea','crema al tartufo','friarielli',
+  'funghi','funghi misti','gorgonzola','grana','mais','melanzane','melanzane fritte',
+  'mozzarella','nduja','noci','olive','pancetta dolce','patate al forno','patate fritte',
+  'peperoni','pesto','philadelphia','pomodori secchi','pomodorini','pomodoro',
+  'porchetta trevigiana','porcini','prosciutto cotto','prosciutto crudo','radicchio',
+  'ricotta','rucola','salamino piccante','salsa al tartufo','salsa bbq','salsiccia',
+  'scamorza','speck alto adige','spinaci','stracchino','tonno','verdure miste grigliate',
+  'wurstel di suino','zucca','zucchine'
+];
+
+let esauritiOggi = JSON.parse(localStorage.getItem('esauriti_'+new Date().toLocaleDateString('sv-SE')) || '[]');
+
+function initCucina(){
+  buildIngredientList();
+  renderEsauriti();
+}
+
+function buildIngredientList(){
+  const cont = document.getElementById('ingredienti-cucina-list');
+  cont.innerHTML = INGREDIENTI_CUCINA.map(ing=>`
+    <div class="cb-item ${esauritiOggi.includes(ing)?'checked':''}" 
+         id="cucina-${ing.replace(/\s/g,'-')}" 
+         onclick="toggleEsaurito('${ing}')">
+      <div class="cb-check">✓</div>
+      <span class="cb-label">${ing}</span>
+    </div>`).join('');
+}
+
+function filtraIngredientiCucina(q){
+  document.querySelectorAll('#ingredienti-cucina-list .cb-item').forEach(el=>{
+    const label = el.querySelector('.cb-label').textContent.toLowerCase();
+    el.classList.toggle('hidden', q.length>0 && !label.includes(q.toLowerCase()));
+  });
+}
+
+function toggleEsaurito(ing){
+  const el = document.getElementById('cucina-'+ing.replace(/\s/g,'-'));
+  if(esauritiOggi.includes(ing)){
+    esauritiOggi = esauritiOggi.filter(e=>e!==ing);
+    el.classList.remove('checked');
+  } else {
+    esauritiOggi.push(ing);
+    el.classList.add('checked');
+  }
+  salvaEsauriti();
+  renderEsauriti();
+}
+
+function salvaEsauriti(){
+  const oggi = new Date().toLocaleDateString('sv-SE');
+  localStorage.setItem('esauriti_'+oggi, JSON.stringify(esauritiOggi));
+  // Salva anche per il chatbot via API
+  fetch('/admin-data?action=esauriti', {
+    method:'POST',
+    headers:{'Content-Type':'application/json','X-Admin-Token':adminToken},
+    body:JSON.stringify({esauriti:esauritiOggi})
+  }).catch(()=>{});
+}
+
+function renderEsauriti(){
+  const el = document.getElementById('esauriti-list');
+  if(!esauritiOggi.length){
+    el.innerHTML='<span style="color:var(--muted);font-size:0.8rem;">Nessun ingrediente esaurito 🎉</span>';
+    return;
+  }
+  el.innerHTML = esauritiOggi.map(ing=>`
+    <span style="display:inline-block;background:rgba(255,23,68,0.15);border:1px solid var(--red);color:var(--red);padding:4px 10px;font-size:0.78rem;margin:3px;">
+      ❌ ${ing}
+    </span>`).join('');
+}
+
+function resetEsauriti(){
+  if(!confirm('Resettare tutto?')) return;
+  esauritiOggi = [];
+  salvaEsauriti();
+  buildIngredientList();
+  renderEsauriti();
+  showAlert('cucina','✅ Tutti gli ingredienti disponibili','success');
 }
 
 // ═══════════════════
@@ -723,11 +836,23 @@ async function caricaClienti(){
     const r=await adminFetch('?action=clienti');
     const rows=await r.json();
     if(!rows||!rows.length){cont.innerHTML='<div class="loading">Nessun cliente</div>';return;}
+    const badgeMap = {superfan:'🌟',vip:'👑',loyal:'⭐',regular:'🍕',nuovo:'🐧'};
     cont.innerHTML=rows.map(c=>`
-      <div class="cliente-card">
-        <div class="cliente-nome">${c.nome||'—'}${c.ordini_count>=5?'<span class="badge badge-gold">VIP</span>':c.ordini_count>=3?'<span class="badge badge-silver">LOYAL</span>':''}</div>
-        <div class="cliente-info">📱 ${c.telefono||'—'} · 🍕 ${c.ordini_count||0} ordini · 📅 ${c.ultima_visita||'—'}</div>
-        ${c.pizza_preferita?`<div class="cliente-info" style="margin-top:3px;">⭐ ${c.pizza_preferita}</div>`:''}
+      <div class="cliente-card" style="position:relative;">
+        <button onclick="cancellaCliente('${c.telefono||''}')" style="position:absolute;top:10px;right:10px;background:none;border:none;color:var(--red);cursor:pointer;font-size:1rem;">🗑</button>
+        <div class="cliente-nome">
+          ${badgeMap[c.badge]||'🐧'} ${c.nome||'—'}
+          ${c.ordini_count>=20?'<span class="badge badge-gold">SUPERFAN</span>':c.ordini_count>=10?'<span class="badge badge-gold">VIP</span>':c.ordini_count>=5?'<span class="badge badge-silver">LOYAL</span>':c.ordini_count>=2?'<span class="badge badge-silver">REGULAR</span>':''}
+          ${c.instagram_follower?'📸':''}${c.whatsapp_marketing?'📱':''}
+        </div>
+        <div class="cliente-info">
+          ${c.whatsapp_marketing 
+            ? '📱✅ '+c.telefono 
+            : '📞 '+(c.telefono ? c.telefono.slice(0,3)+'****'+c.telefono.slice(-3) : '—')
+          } · 🍕 ${c.ordini_count||0} ordini · 📅 ${c.ultima_visita||'—'}
+        </div>
+        ${c.pizza_preferita?`<div class="cliente-info" style="margin-top:3px;">⭐ Preferita: ${c.pizza_preferita}</div>`:''}
+        ${c.allergie?`<div class="cliente-info" style="margin-top:3px;color:var(--red);">⚠️ Allergie: ${c.allergie}</div>`:''}
       </div>`).join('');
   } catch(e){cont.innerHTML='<div class="loading" style="color:var(--red)">Errore</div>';}
 }
@@ -735,6 +860,15 @@ async function caricaClienti(){
 // ═══════════════════
 // UTILS
 // ═══════════════════
+async function cancellaCliente(telefono){
+  if(!confirm('Cancellare il cliente '+telefono+'?')) return;
+  try {
+    const r = await adminFetch('?action=cancella-cliente', {method:'DELETE', body:JSON.stringify({telefono})});
+    const d = await r.json();
+    if(d.ok){ caricaClienti(); }
+  } catch(e){ alert('Errore: '+e.message); }
+}
+
 function showAlert(section,msg,type){
   const el=document.getElementById('alert-'+section);
   if(!el) return;
