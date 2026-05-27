@@ -185,12 +185,16 @@ function fmtOrdine(){
   // Buono compleanno
   if(ordine._buonoCompleanno){
     msg += `\n\n🎂 *BUONO COMPLEANNO: -5€* 🎁`;
+    tot = Math.max(0, tot - 5);
   }
   // Premio riscattato
   if(ordine._premioRiscattato){
     const pr = ordine._premioRiscattato;
     msg += `\n\n🎁 *PREMIO RISCATTATO:* ${pr.emoji} ${pr.nome}`;
-    if(pr.tipo === 'sconto') msg += ` (-${pr.valore}€)`;
+    if(pr.tipo === 'sconto'){
+      tot = Math.max(0, tot - pr.valore);
+      msg += ` (-${pr.valore}€)`;
+    }
     msg += ` (-${pr.punti.toLocaleString('it')} punti)`;
   }
   msg += `\n💰 Totale stimato: **${fmtE(tot)}€**`;
@@ -451,6 +455,9 @@ function gestisciOrdine(input){
               setTimeout(()=>addBotMsg('🎂 **Tanti auguri '+c.nome+'!** 🎉\n\nHai un **buono sconto di 5€** attivo per il tuo compleanno!\nViene applicato automaticamente all\'ordine di stasera 🎁'), 800);
             }
           }
+          
+          // Controlla premi anche per flusso normale (senza ordine rapido)
+          ordine._premioDisponibile = _premioDisp.length > 0 ? _premioDisp : null;
           
           // Ordine rapido — se ha un ultimo ordine salvato
           if(c.ultimo_ordine && c.ultimo_ordine.pizze && c.ultimo_ordine.pizze.length > 0){
