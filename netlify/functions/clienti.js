@@ -36,7 +36,7 @@ export const handler = async (event) => {
       const telefono = params.telefono || new URLSearchParams(event.rawQuery || '').get('telefono');
       if (!telefono) return { statusCode: 400, headers, body: JSON.stringify({ error: 'dati mancanti' }) };
 
-      const rows = await sbFetch(`/clienti?telefono=eq.${encodeURIComponent(telefono)}&select=*`, SUPABASE_ANON);
+      const rows = await sbFetch(`/clienti?telefono=eq.${encodeURIComponent(telefono)}&select=*`, SUPABASE_SERVICE);
       if (rows && rows.length > 0) return { statusCode: 200, headers, body: JSON.stringify({ trovato: true, cliente: rows[0] }) };
       return { statusCode: 200, headers, body: JSON.stringify({ trovato: false }) };
     }
@@ -46,7 +46,7 @@ export const handler = async (event) => {
       if (!telefono || !nome) return { statusCode: 400, headers, body: JSON.stringify({ error: 'dati mancanti' }) };
 
       const oggi = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Rome' });
-      const existing = await sbFetch(`/clienti?telefono=eq.${encodeURIComponent(telefono)}&select=ordini_count`, SUPABASE_ANON);
+      const existing = await sbFetch(`/clienti?telefono=eq.${encodeURIComponent(telefono)}&select=ordini_count`, SUPABASE_SERVICE);
 
       if (existing && existing.length > 0) {
         await sbFetch(`/clienti?telefono=eq.${encodeURIComponent(telefono)}`, SUPABASE_SERVICE, {
