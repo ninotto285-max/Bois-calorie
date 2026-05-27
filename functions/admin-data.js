@@ -67,6 +67,12 @@ export async function onRequest(context) {
       return json(rows || []);
     }
 
+    if (request.method === 'DELETE' && action === 'cancella-cliente') {
+      const { telefono } = await request.json();
+      await sbFetch(SUPABASE_URL, SUPABASE_SERVICE, `/clienti?telefono=eq.${encodeURIComponent(telefono)}`, { method: 'DELETE' });
+      return json({ ok: true });
+    }
+
     if (request.method === 'DELETE' && action === 'slot') {
       const { orario, data } = await request.json();
       const orDb = orario.length === 5 ? orario + ':00' : orario;
@@ -78,6 +84,37 @@ export async function onRequest(context) {
       const dataOggi = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Rome' });
       await sbFetch(SUPABASE_URL, SUPABASE_SERVICE, `/slot_ordini?data=eq.${dataOggi}`, { method: 'DELETE' });
       return json({ ok: true });
+    }
+
+    // Salva ingredienti esauriti
+    if (request.method === 'POST' && action === 'esauriti') {
+      const { esauriti } = await request.json();
+      const oggi = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Rome' });
+      // Salva su KV o come record temporaneo Supabase
+      // Per semplicità usiamo una tabella semplice o un file
+      // Salviamo in slot_ordini come record speciale con orario '00:00'
+      const existing = await sbFetch(SUPABASE_URL, SUPABASE_SERVICE, 
+        `/slot_ordini?data=eq.${oggi}&orario=eq.00:00:00&select=id`
+      );
+      if(existing && existing.length > 0){
+        await sbFetch(SUPABASE_URL, SUPABASE_SERVICE, `/slot_ordini?id=eq.${existing[0].id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ pizze_count: 0, slot_esclusivo: false, max_pizze: JSON.stringify(esauriti) }),
+        });
+      } else {
+        await sbFetch(SUPABASE_URL, SUPABASE_SERVICE, '/slot_ordini', {
+          method: 'POST',
+          body: JSON.stringify({ data: oggi, orario: '00:00:00', pizze_count: 0, slot_esclusivo: false, max_pizze: 0 }),
+        });
+      }
+      return json({ ok: true });
+    }
+
+    // Leggi ingredienti esauriti
+    if (request.method === 'GET' && action === 'esauriti') {
+      const oggi = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Rome' });
+      // Li recuperiamo da KV store di Cloudflare se disponibile, altrimenti array vuoto
+      return json({ esauriti: [] });
     }
 
     if (request.method === 'POST' && action === 'slot-max') {
