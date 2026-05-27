@@ -241,6 +241,18 @@
       <span class="bypass-label">⚡ BYPASS SLOT — ordine da banco</span>
     </div>
 
+    <div style="background:var(--surface);border:1px solid var(--border);padding:12px;margin-bottom:14px;">
+      <div style="font-size:0.72rem;color:var(--muted);margin-bottom:10px;">SALVA CLIENTE</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+        <input type="checkbox" id="salva-cliente-check" checked style="cursor:pointer;">
+        <label for="salva-cliente-check" style="font-size:0.8rem;cursor:pointer;">Salva cliente nel sistema</label>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <input type="checkbox" id="consenso-marketing-check" style="cursor:pointer;">
+        <label for="consenso-marketing-check" style="font-size:0.78rem;color:var(--muted);cursor:pointer;">Accetta di essere contattato per finalità promozionali</label>
+      </div>
+    </div>
+
     <button class="btn btn-success" onclick="inviaOrdineAdmin()">📤 INVIA COMANDA SU TELEGRAM</button>
   </div>
 
@@ -287,6 +299,16 @@
       <div class="section-title" style="margin:0;">Clienti registrati</div>
       <button class="refresh-btn" onclick="caricaClienti()">↻</button>
     </div>
+    <div style="margin-bottom:10px;">
+      <select id="filtro-clienti" class="form-input" onchange="caricaClienti()" style="width:auto;display:inline-block;margin-right:8px;">
+        <option value="tutti">Tutti</option>
+        <option value="punti">Con punti</option>
+        <option value="inattivi">Inattivi</option>
+        <option value="instagram">Instagram</option>
+        <option value="whatsapp">WhatsApp</option>
+      </select>
+    </div>
+    <div id="stats-clienti"></div>
     <div id="clienti-container"><div class="loading">Caricamento...</div></div>
   </div>
 </div>
@@ -750,7 +772,30 @@ async function inviaOrdineAdmin(){
       const oggi=new Date().toLocaleDateString('sv-SE',{timeZone:'Europe/Rome'});
       const nPizze=pizzeOrdine.reduce((s,p)=>s+p.qty,0);
       await fetch('/slot',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({data:oggi,orario,pizze:nPizze})});
-      showAlert('ordine','✅ Comanda inviata su Telegram!','success');
+      
+      // Salva cliente se checkbox spuntata
+      const salvaCl = document.getElementById('salva-cliente-check')?.checked;
+      const consensoMkt = document.getElementById('consenso-marketing-check')?.checked;
+      if(salvaCl && tel){
+        // Chiedi prezzo reale per i punti
+        const prezzoRealeStr = prompt('Prezzo reale pagato dal cliente (per calcolare i punti):\n(lascia vuoto per non assegnare punti ora)', tot.toFixed(2).replace('.',','));
+        const prezzoReale = prezzoRealeStr ? parseFloat(prezzoRealeStr.replace(',','.')) : null;
+        const puntiDaAggiungere = prezzoReale ? Math.round(prezzoReale * 10) : 0;
+        
+        await fetch('/clienti', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({
+            telefono: tel, nome: nome,
+            whatsapp_marketing: consensoMkt || false,
+            ...(puntiDaAggiungere > 0 ? {punti_da_aggiungere: puntiDaAggiungere} : {})
+          })
+        });
+        if(puntiDaAggiungere > 0) showAlert('ordine', '✅ Comanda inviata! +'+puntiDaAggiungere+' punti assegnati a '+nome, 'success');
+        else showAlert('ordine','✅ Comanda inviata su Telegram!','success');
+      } else {
+        showAlert('ordine','✅ Comanda inviata su Telegram!','success');
+      }
+      
       pizzeOrdine=[];renderPizze();
       document.getElementById('ord-nome').value='';
       document.getElementById('ord-tel').value='';
@@ -837,11 +882,71 @@ async function caricaClienti(){
     const rows=await r.json();
     if(!rows||!rows.length){cont.innerHTML='<div class="loading">Nessun cliente</div>';return;}
     const badgeMap = {superfan:'🌟',vip:'👑',loyal:'⭐',regular:'🍕',nuovo:'🐧'};
-    cont.innerHTML=rows.map(c=>`
-      <div class="cliente-card" style="position:relative;">
-        <button onclick="cancellaCliente('${c.telefono||''}')" style="position:absolute;top:10px;right:10px;background:none;border:none;color:var(--red);cursor:pointer;font-size:1rem;">🗑</button>
+    
+    // Calcola segmenti
+    const oggi2 = new Date();
+    function getSegmento(c){
+      if(!c.ultima_visita) return 'nuovo';
+      const giorniUltima = Math.round((oggi2-new Date(c.ultima_visita))/(1000*60*60*24));
+      const freq = c.frequenza_giorni || 30;
+      if(giorniUltima > freq*2.5) return 'inattivo';
+      if(giorniUltima > freq*1.5) return 'a_rischio';
+      return 'attivo';
+    }
+    
+    // Filtro attivo
+    const _filtro = document.getElementById('filtro-clienti')?.value || 'tutti';
+    const _rowsFiltrati = rows.filter(c=>{
+      if(_filtro==='tutti') return true;
+      if(_filtro==='punti') return (c.punti||0)>0;
+      if(_filtro==='inattivi') return getSegmento(c)==='inattivo';
+      if(_filtro==='instagram') return c.instagram_follower;
+      if(_filtro==='whatsapp') return c.whatsapp_marketing;
+      return true;
+    });
+
+    // Stats
+    const totPunti = rows.reduce((s,c)=>s+(c.punti||0),0);
+    const totOrdini = rows.reduce((s,c)=>s+(c.ordini_count||0),0);
+    document.getElementById('stats-clienti').innerHTML = 
+      `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px;">
+        <div style="background:var(--surface);border:1px solid var(--border);padding:10px;text-align:center;">
+          <div style="font-size:1.2rem;font-family:Syne,sans-serif;color:var(--accent2)">${rows.length}</div>
+          <div style="font-size:0.7rem;color:var(--muted)">CLIENTI</div>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);padding:10px;text-align:center;">
+          <div style="font-size:1.2rem;font-family:Syne,sans-serif;color:var(--accent2)">${totOrdini}</div>
+          <div style="font-size:0.7rem;color:var(--muted)">ORDINI TOTALI</div>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);padding:10px;text-align:center;">
+          <div style="font-size:1.2rem;font-family:Syne,sans-serif;color:var(--accent2)">${totPunti.toLocaleString('it')}</div>
+          <div style="font-size:0.7rem;color:var(--muted)">PUNTI IN CIRC.</div>
+        </div>
+      </div>`;
+
+    cont.innerHTML=_rowsFiltrati.map(c=>{
+      const seg = getSegmento(c);
+      const segIcon = seg==='inattivo'?'😴':seg==='a_rischio'?'⚠️':'';
+      const punti = c.punti||0;
+      const premioDisp = [
+        {punti:500,nome:'Bibita'},
+        {punti:550,nome:'Birra bott.'},
+        {punti:800,nome:'Buono 5€'},
+        {punti:1600,nome:'Buono 10€'},
+        {punti:10000,nome:'Trento DOC'},
+      ].filter(p=>punti>=p.punti);
+      
+      return `<div class="cliente-card" style="position:relative;">
+        <div style="position:absolute;top:10px;right:10px;display:flex;gap:6px;">
+          <button onclick="assegnaOScalaPunti('${c.telefono||''}','${c.nome||''}')" 
+            style="background:var(--accent2);border:none;color:#000;padding:3px 8px;font-size:0.7rem;cursor:pointer;font-family:DM Mono,monospace;">
+            🏆 PT
+          </button>
+          <button onclick="cancellaCliente('${c.telefono||''}')" 
+            style="background:none;border:none;color:var(--red);cursor:pointer;font-size:1rem;">🗑</button>
+        </div>
         <div class="cliente-nome">
-          ${badgeMap[c.badge]||'🐧'} ${c.nome||'—'}
+          ${badgeMap[c.badge]||'🐧'} ${c.nome||'—'} ${segIcon}
           ${c.ordini_count>=20?'<span class="badge badge-gold">SUPERFAN</span>':c.ordini_count>=10?'<span class="badge badge-gold">VIP</span>':c.ordini_count>=5?'<span class="badge badge-silver">LOYAL</span>':c.ordini_count>=2?'<span class="badge badge-silver">REGULAR</span>':''}
           ${c.instagram_follower?'📸':''}${c.whatsapp_marketing?'📱':''}
         </div>
@@ -849,17 +954,43 @@ async function caricaClienti(){
           ${c.whatsapp_marketing 
             ? '📱✅ '+c.telefono 
             : '📞 '+(c.telefono ? c.telefono.slice(0,3)+'****'+c.telefono.slice(-3) : '—')
-          } · 🍕 ${c.ordini_count||0} ordini · 📅 ${c.ultima_visita||'—'}
+          } · 🍕 ${c.ordini_count||0} ord · 📅 ${c.ultima_visita||'—'}
+          ${c.frequenza_giorni?` · ogni ~${c.frequenza_giorni}gg`:''}
         </div>
-        ${c.pizza_preferita?`<div class="cliente-info" style="margin-top:3px;">⭐ Preferita: ${c.pizza_preferita}</div>`:''}
-        ${c.allergie?`<div class="cliente-info" style="margin-top:3px;color:var(--red);">⚠️ Allergie: ${c.allergie}</div>`:''}
-      </div>`).join('');
+        <div class="cliente-info" style="margin-top:4px;">
+          🏆 <strong style="color:var(--accent2)">${punti.toLocaleString('it')} punti</strong>
+          ${premioDisp.length>0?` · <span style="color:var(--green)">Premio disponibile: ${premioDisp[premioDisp.length-1].nome}</span>`:''}
+        </div>
+        ${c.pizza_preferita?`<div class="cliente-info" style="margin-top:3px;">⭐ ${c.pizza_preferita}</div>`:''}
+        ${c.allergie?`<div class="cliente-info" style="margin-top:3px;color:var(--red);">⚠️ ${c.allergie}</div>`:''}
+      </div>`;
+    }).join('');
   } catch(e){cont.innerHTML='<div class="loading" style="color:var(--red)">Errore</div>';}
 }
 
 // ═══════════════════
 // UTILS
 // ═══════════════════
+async function assegnaOScalaPunti(telefono, nome){
+  const azione = prompt(`Punti per ${nome}:\n+100 per aggiungere 100 punti\n-500 per scalare 500 punti\n\nInserisci numero (es. +150 o -500):`, '+');
+  if(!azione) return;
+  const n = parseInt(azione);
+  if(isNaN(n)) return;
+  
+  try {
+    const body = n > 0 
+      ? {telefono, nome, punti_da_aggiungere: n}
+      : {telefono, nome, punti: Math.max(0, (await (await adminFetch(`?action=cliente&telefono=${encodeURIComponent(telefono)}`)).json()).punti + n)};
+    
+    const r = await fetch('/clienti', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(body)
+    });
+    const d = await r.json();
+    if(d.ok){ showAlert('clienti', (n>0?'✅ +':'✅ ')+n+' punti a '+nome, 'success'); caricaClienti(); }
+  } catch(e){ showAlert('clienti','Errore: '+e.message,'error'); }
+}
+
 async function cancellaCliente(telefono){
   if(!confirm('Cancellare il cliente '+telefono+'?')) return;
   try {
