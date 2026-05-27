@@ -159,6 +159,7 @@
     <div class="tab" onclick="showTab('slot')">🕐 SLOT</div>
     <div class="tab" onclick="showTab('clienti')">👥 CLIENTI</div>
     <div class="tab" onclick="showTab('cucina')">🧑‍🍳 CUCINA</div>
+    <div class="tab" onclick="showTab('log')" id="tab-log-btn">🪲 LOG</div>
   </div>
 
   <!-- TAB ORDINE -->
@@ -171,14 +172,18 @@
       <input type="text" class="form-input" id="ord-nome" placeholder="Mario Rossi" autocomplete="off">
     </div>
     <div class="form-group">
-      <label>TELEFONO</label>
+      <label>NOME CLIENTE</label>
       <div style="display:flex;gap:8px;">
-        <input type="tel" class="form-input" id="ord-tel" placeholder="3401234567" style="flex:1;" oninput="resetClienteCaricato()">
+        <input type="text" class="form-input" id="ord-nome" placeholder="Mario Rossi" style="flex:1;" autocomplete="off" oninput="resetClienteCaricato()">
         <button onclick="cercaClienteAdmin()" 
           style="background:var(--accent2);border:none;color:#000;padding:10px 14px;font-family:Syne,sans-serif;font-weight:700;font-size:0.8rem;cursor:pointer;white-space:nowrap;">
           🔍 CERCA
         </button>
       </div>
+    </div>
+    <div class="form-group">
+      <label>TELEFONO (opzionale)</label>
+      <input type="tel" class="form-input" id="ord-tel" placeholder="3401234567" oninput="resetClienteCaricato()">
     </div>
     <!-- Card cliente trovato -->
     <div id="cliente-trovato-card" style="display:none;background:rgba(255,184,0,0.08);border:1px solid var(--accent2);padding:12px;margin-bottom:14px;font-size:0.82rem;">
@@ -258,6 +263,10 @@
       <div style="color:var(--muted);font-size:0.8rem;">Nessuna pizza aggiunta</div>
     </div>
 
+    <div id="sconto-attivo" style="display:none;background:rgba(0,230,118,0.1);border:1px solid var(--green);padding:10px 14px;margin-bottom:8px;font-size:0.82rem;display:none;justify-content:space-between;align-items:center;">
+      <span id="sconto-label">🎁 Premio attivo</span>
+      <button onclick="rimuoviSconto()" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:0.9rem;">✕</button>
+    </div>
     <div class="totale-box">
       <span class="label">TOTALE STIMATO</span>
       <span class="valore" id="totale-display">0,00€</span>
@@ -337,6 +346,60 @@
     </div>
     <div id="stats-clienti"></div>
     <div id="clienti-container"><div class="loading">Caricamento...</div></div>
+  </div>
+</div>
+
+  <!-- TAB LOG -->
+  <div id="tab-log" class="tab-content">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+      <div class="section-title" style="margin:0;">Log eventi</div>
+      <button onclick="clearLog()" class="refresh-btn">🗑 PULISCI</button>
+    </div>
+    <div id="log-container" style="background:#000;border:1px solid var(--border);padding:12px;font-family:'DM Mono',monospace;font-size:0.75rem;min-height:200px;max-height:60vh;overflow-y:auto;line-height:1.6;">
+      <span style="color:var(--muted);">// Log vuoto — le operazioni appariranno qui</span>
+    </div>
+  </div>
+
+<!-- MODAL MODIFICA CLIENTE -->
+<div id="modal-modifica" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);z-index:1000;overflow-y:auto;padding:20px;">
+  <div style="background:var(--surface);border:1px solid var(--border);max-width:420px;margin:0 auto;padding:24px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <h2 style="font-family:Syne,sans-serif;color:var(--accent2);font-size:1rem;">✏️ MODIFICA CLIENTE</h2>
+      <button onclick="chiudiModifica()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.2rem;">✕</button>
+    </div>
+    <input type="hidden" id="mod-tel-orig">
+    <div class="form-group">
+      <label>NOME E COGNOME</label>
+      <input type="text" class="form-input" id="mod-nome" placeholder="Mario Rossi">
+    </div>
+    <div class="form-group">
+      <label>TELEFONO</label>
+      <input type="tel" class="form-input" id="mod-tel" placeholder="3401234567">
+    </div>
+    <div class="form-group">
+      <label>COMPLEANNO (es. 15 marzo)</label>
+      <input type="text" class="form-input" id="mod-compleanno" placeholder="15 marzo">
+    </div>
+    <div class="form-group">
+      <label>ALLERGIE</label>
+      <input type="text" class="form-input" id="mod-allergie" placeholder="Es. latticini, glutine">
+    </div>
+    <div class="form-group">
+      <label>NOTE ADMIN</label>
+      <input type="text" class="form-input" id="mod-note" placeholder="Note interne">
+    </div>
+    <div style="display:flex;gap:8px;margin-top:8px;">
+      <div style="display:flex;align-items:center;gap:6px;flex:1;">
+        <input type="checkbox" id="mod-instagram">
+        <label for="mod-instagram" style="font-size:0.78rem;">📸 Instagram</label>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;flex:1;">
+        <input type="checkbox" id="mod-whatsapp">
+        <label for="mod-whatsapp" style="font-size:0.78rem;">📱 WhatsApp mkt</label>
+      </div>
+    </div>
+    <div id="alert-modifica" class="alert" style="margin-top:14px;"></div>
+    <button class="btn btn-success" style="margin-top:14px;" onclick="salvaModificaCliente()">💾 SALVA MODIFICHE</button>
   </div>
 </div>
 
@@ -504,6 +567,55 @@ function initDashboard(){
   caricaSlot();
   caricaClienti();
 }
+
+// ═══════════════════
+// SISTEMA LOG
+// ═══════════════════
+const _logs = [];
+
+function log(msg, type='info'){
+  const time = new Date().toLocaleTimeString('it-IT');
+  const colors = {info:'#aaa', success:'#00e676', error:'#ff1744', warning:'#ffd740', mic:'#64b5f6'};
+  const entry = {time, msg, type};
+  _logs.unshift(entry);
+  if(_logs.length > 200) _logs.pop();
+  
+  const cont = document.getElementById('log-container');
+  if(cont){
+    const line = document.createElement('div');
+    line.innerHTML = `<span style="color:#555">[${time}]</span> <span style="color:${colors[type]||'#aaa'}">${msg}</span>`;
+    cont.insertBefore(line, cont.firstChild);
+    // Aggiorna badge tab se errore
+    if(type==='error'){
+      const btn = document.getElementById('tab-log-btn');
+      if(btn) btn.textContent = '🔴 LOG';
+    }
+  }
+}
+
+function clearLog(){
+  const cont = document.getElementById('log-container');
+  if(cont) cont.innerHTML = '<span style="color:var(--muted);">// Log pulito</span>';
+  const btn = document.getElementById('tab-log-btn');
+  if(btn) btn.textContent = '🪲 LOG';
+}
+
+// Intercetta fetch per loggare le chiamate API
+const _origFetch = window.fetch;
+window.fetch = async function(url, opts){
+  const method = (opts?.method||'GET').toUpperCase();
+  const shortUrl = String(url).replace('https://','').substring(0,50);
+  try {
+    const res = await _origFetch(url, opts);
+    const status = res.status;
+    if(status >= 400) log(`${method} ${shortUrl} → ❌ ${status}`, 'error');
+    else log(`${method} ${shortUrl} → ✅ ${status}`, 'success');
+    return res;
+  } catch(e){
+    log(`${method} ${shortUrl} → 💥 ${e.message}`, 'error');
+    throw e;
+  }
+};
 
 function showTab(name){
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
@@ -772,8 +884,9 @@ function renderPizze(){
       <span style="color:var(--accent2);white-space:nowrap">${(p.prezzo*p.qty).toFixed(2).replace('.',',')}€</span>
       <button onclick="rimuoviPizza(${i})">✕</button>
     </div>`).join('');
-  const tot=pizzeOrdine.reduce((s,p)=>s+p.prezzo*p.qty,0);
-  document.getElementById('totale-display').textContent=tot.toFixed(2).replace('.',',')+'€';
+  const totBase=pizzeOrdine.reduce((s,p)=>s+p.prezzo*p.qty,0);
+  const tot=Math.max(0, totBase - (_scontoEuro||0));
+  document.getElementById('totale-display').textContent=tot.toFixed(2).replace('.',',')+'€'+(_scontoEuro?` (sconto -${_scontoEuro.toFixed(2).replace('.',',')}€)`:'');
 }
 
 function rimuoviPizza(i){pizzeOrdine.splice(i,1);renderPizze();}
@@ -803,6 +916,20 @@ async function inviaOrdineAdmin(){
       const oggi=new Date().toLocaleDateString('sv-SE',{timeZone:'Europe/Rome'});
       const nPizze=pizzeOrdine.reduce((s,p)=>s+p.qty,0);
       await fetch('/slot',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({data:oggi,orario,pizze:nPizze})});
+      
+      // Scala punti se premio riscattato
+      if(_scontoAttivo && _clienteCaricato){
+        await fetch('/clienti',{
+          method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({
+            telefono:_clienteCaricato.telefono,
+            nome:_clienteCaricato.nome,
+            punti: Math.max(0,(_clienteCaricato.punti||0)-_scontoAttivo.punti)
+          })
+        });
+        _clienteCaricato.punti = Math.max(0,(_clienteCaricato.punti||0)-_scontoAttivo.punti);
+        rimuoviSconto();
+      }
       
       // Salva cliente se checkbox spuntata
       const salvaCl = document.getElementById('salva-cliente-check')?.checked;
@@ -989,6 +1116,10 @@ async function caricaClienti(){
       
       return `<div class="cliente-card" style="position:relative;">
         <div style="position:absolute;top:10px;right:10px;display:flex;gap:6px;">
+          <button onclick="modificaCliente(${JSON.stringify(c).replace(/"/g,'&quot;')})" 
+            style="background:var(--surface);border:1px solid var(--border);color:var(--text);padding:3px 8px;font-size:0.7rem;cursor:pointer;font-family:DM Mono,monospace;">
+            ✏️
+          </button>
           <button onclick="assegnaOScalaPunti('${c.telefono||''}','${c.nome||''}',${c.punti||0})" 
             style="background:var(--accent2);border:none;color:#000;padding:3px 8px;font-size:0.7rem;cursor:pointer;font-family:DM Mono,monospace;">
             🏆 PT
@@ -1024,6 +1155,154 @@ async function caricaClienti(){
 // ═══════════════════
 let _clienteCaricato = null;
 
+let _scontoAttivo = null; // {id, nome, punti, valore}
+
+function riscattaPremioAdmin(id, nome, punti){
+  if(!_clienteCaricato){ showAlert('ordine','Cerca prima il cliente','error'); return; }
+  if(!confirm('Riscattare "'+nome+'" per '+_clienteCaricato.nome+'?\n(-'+punti+' punti)')) return;
+  
+  _scontoAttivo = {id, nome, punti};
+  
+  // Aggiorna UI sconto
+  const sdiv = document.getElementById('sconto-attivo');
+  const slabel = document.getElementById('sconto-label');
+  slabel.textContent = '🎁 '+nome+' — -'+punti+' punti';
+  sdiv.style.display='flex';
+  
+  // Ricalcola totale con eventuale sconto monetario
+  const PREMI_VALS = {buono_5:5, buono_10:10};
+  if(PREMI_VALS[id]){
+    _scontoEuro = PREMI_VALS[id];
+    slabel.textContent = '🎁 '+nome+' (-'+_scontoEuro+'€ — '+punti+' punti)';
+  }
+  renderPizze(); // aggiorna totale
+  showAlert('ordine','✅ Premio selezionato: '+nome,'success');
+}
+
+let _scontoEuro = 0;
+
+function rimuoviSconto(){
+  _scontoAttivo = null;
+  _scontoEuro = 0;
+  document.getElementById('sconto-attivo').style.display='none';
+  renderPizze();
+}
+
+function selezionaCliente(c){
+  _clienteCaricato = c;
+  document.getElementById('ord-nome').value = c.nome || '';
+  document.getElementById('ord-tel').value = c.telefono || '';
+  // Ricarica la card con il cliente selezionato
+  cercaClienteAdmin();
+}
+
+async function usaBuonoCompleanno(){
+  if(!_clienteCaricato) return;
+  const c = _clienteCaricato;
+  if(!confirm('Applicare buono compleanno -5€ a '+c.nome+'?')) return;
+  try {
+    const r = await fetch('/clienti', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        telefono: c.telefono, nome: c.nome,
+        buono_compleanno_usato: new Date().getFullYear()
+      })
+    });
+    const d = await r.json();
+    if(d.ok){
+      document.getElementById('banner-compleanno').style.display='none';
+      showAlert('ordine','✅ Buono compleanno -5€ applicato a '+c.nome,'success');
+    }
+  } catch(e){ showAlert('ordine','Errore: '+e.message,'error'); }
+}
+
+function modificaCliente(c){
+  document.getElementById('mod-tel-orig').value = c.telefono||'';
+  document.getElementById('mod-nome').value = c.nome||'';
+  document.getElementById('mod-tel').value = c.telefono||'';
+  document.getElementById('mod-allergie').value = c.allergie||'';
+  document.getElementById('mod-note').value = c.note_admin||'';
+  document.getElementById('mod-instagram').checked = c.instagram_follower||false;
+  document.getElementById('mod-whatsapp').checked = c.whatsapp_marketing||false;
+  
+  // Compleanno
+  if(c.compleanno){
+    const mesi = ['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre'];
+    const d = new Date(c.compleanno);
+    document.getElementById('mod-compleanno').value = d.getDate()+' '+mesi[d.getMonth()];
+  } else {
+    document.getElementById('mod-compleanno').value = '';
+  }
+  
+  document.getElementById('modal-modifica').style.display='block';
+}
+
+function chiudiModifica(){
+  document.getElementById('modal-modifica').style.display='none';
+}
+
+async function salvaModificaCliente(){
+  const telOrig = document.getElementById('mod-tel-orig').value;
+  const nome = document.getElementById('mod-nome').value.trim();
+  const tel = document.getElementById('mod-tel').value.trim();
+  const allergie = document.getElementById('mod-allergie').value.trim();
+  const noteAdmin = document.getElementById('mod-note').value.trim();
+  const instagram = document.getElementById('mod-instagram').checked;
+  const whatsapp = document.getElementById('mod-whatsapp').checked;
+  const compInput = document.getElementById('mod-compleanno').value.trim();
+  
+  if(!nome){ 
+    const alertEl = document.getElementById('alert-modifica');
+    alertEl.textContent='Nome obbligatorio'; alertEl.className='alert error'; alertEl.style.display='block';
+    return; 
+  }
+  
+  // Parsa compleanno
+  let compleanno = null;
+  if(compInput){
+    const mesiMap = {gennaio:'01',febbraio:'02',marzo:'03',aprile:'04',maggio:'05',giugno:'06',luglio:'07',agosto:'08',settembre:'09',ottobre:'10',novembre:'11',dicembre:'12'};
+    for(const [nm,num] of Object.entries(mesiMap)){
+      if(compInput.toLowerCase().includes(nm)){
+        const g = compInput.replace(nm,'').replace(/[^0-9]/g,'').trim();
+        if(g) compleanno = '1900-'+num+'-'+String(parseInt(g)).padStart(2,'0');
+      }
+    }
+    if(!compleanno){
+      const m = compInput.match(/(\d{1,2})[\/-](\d{1,2})/);
+      if(m) compleanno = '1900-'+String(parseInt(m[2])).padStart(2,'0')+'-'+String(parseInt(m[1])).padStart(2,'0');
+    }
+  }
+  
+  try {
+    // Se il telefono è cambiato, usa admin-data per aggiornare
+    const body = {
+      telefono: telOrig, // usa il telefono originale per trovare il record
+      nome, allergie: allergie||null,
+      note_admin: noteAdmin||null,
+      instagram_follower: instagram,
+      whatsapp_marketing: whatsapp,
+      ...(compleanno ? {compleanno} : {}),
+      ...(tel !== telOrig ? {nuovo_telefono: tel} : {})
+    };
+    
+    const r = await adminFetch('?action=modifica-cliente', {
+      method:'POST', body:JSON.stringify(body)
+    });
+    const d = await r.json();
+    if(d.ok){
+      chiudiModifica();
+      caricaClienti();
+      showAlert('clienti','✅ Cliente aggiornato','success');
+    } else {
+      const alertEl = document.getElementById('alert-modifica');
+      alertEl.textContent='Errore: '+JSON.stringify(d); alertEl.className='alert error'; alertEl.style.display='block';
+    }
+  } catch(e){
+    const alertEl = document.getElementById('alert-modifica');
+    alertEl.textContent='Errore: '+e.message; alertEl.className='alert error'; alertEl.style.display='block';
+  }
+}
+
 function resetClienteCaricato(){
   _clienteCaricato = null;
   document.getElementById('cliente-trovato-card').style.display='none';
@@ -1031,12 +1310,35 @@ function resetClienteCaricato(){
 }
 
 async function cercaClienteAdmin(){
+  const nome = document.getElementById('ord-nome').value.trim();
   const tel = document.getElementById('ord-tel').value.trim();
-  if(!tel){ showAlert('ordine','Inserisci il numero di telefono','error'); return; }
+  if(!nome && !tel){ showAlert('ordine','Inserisci nome o telefono','error'); return; }
   
   try {
-    const r = await fetch('/clienti?telefono='+encodeURIComponent(tel));
+    // Cerca per telefono se disponibile, altrimenti per nome
+    let url = tel ? '/clienti?telefono='+encodeURIComponent(tel) : '/clienti?nome='+encodeURIComponent(nome);
+    const r = await fetch(url);
     const d = await r.json();
+    
+    // Gestione lista clienti (ricerca per nome può restituire più risultati)
+    if(d.clienti && d.clienti.length > 1){
+      // Più clienti con lo stesso nome — mostra lista con ultime 3 cifre
+      const card = document.getElementById('cliente-trovato-card');
+      const info = document.getElementById('cliente-trovato-info');
+      info.innerHTML = '<div style="margin-bottom:8px;color:var(--muted);font-size:0.75rem;">Trovati '+d.clienti.length+' clienti — seleziona:</div>'+
+        d.clienti.map(c=>`
+          <div onclick="selezionaCliente(${JSON.stringify(c).replace(/"/g,'&quot;')})" 
+            style="padding:8px;cursor:pointer;border:1px solid var(--border);margin-bottom:4px;font-size:0.82rem;">
+            <strong>${c.nome}</strong> 
+            <span style="color:var(--muted)">...${(c.telefono||'').slice(-3)}</span>
+            <span style="color:var(--accent2);float:right">🏆 ${c.punti||0} pt</span>
+          </div>`).join('');
+      card.style.display='block';
+      return;
+    }
+    
+    // Cliente singolo
+    if(d.clienti && d.clienti.length === 1) d.trovato = true, d.cliente = d.clienti[0];
     const card = document.getElementById('cliente-trovato-card');
     const info = document.getElementById('cliente-trovato-info');
     const banner = document.getElementById('banner-compleanno');
@@ -1070,7 +1372,19 @@ async function cercaClienteAdmin(){
         </div>
         ${c.pizza_preferita?`<div style="color:var(--muted);font-size:0.75rem;margin-top:4px;">⭐ Preferita: ${c.pizza_preferita}</div>`:''}
         ${c.allergie?`<div style="color:var(--red);font-size:0.75rem;margin-top:4px;">⚠️ Allergie: ${c.allergie}</div>`:''}
-        ${premioDisp.length>0?`<div style="color:var(--green);font-size:0.75rem;margin-top:4px;">🎁 Premio disponibile: ${premioDisp[premioDisp.length-1].nome}</div>`:''}
+        ${premioDisp.length>0?`
+          <div style="margin-top:8px;border-top:1px solid var(--border);padding-top:8px;">
+            <div style="font-size:0.7rem;color:var(--muted);margin-bottom:6px;">🎁 PREMI DISPONIBILI:</div>
+            ${premioDisp.map(p=>`
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                <span style="font-size:0.78rem;">${p.emoji} ${p.nome} (${p.punti} pt)</span>
+                <button onclick="riscattaPremioAdmin('${p.id}','${p.nome}',${p.punti})" 
+                  style="background:var(--green);border:none;color:#000;padding:3px 8px;font-size:0.7rem;cursor:pointer;font-family:DM Mono,monospace;">
+                  USA
+                </button>
+              </div>`).join('')}
+          </div>
+        `:''}
       `;
       card.style.display='block';
       
@@ -1081,6 +1395,7 @@ async function cercaClienteAdmin(){
         const dataComp = new Date(oggi.getFullYear(), comp.getMonth(), comp.getDate());
         const diff = Math.round((oggi-dataComp)/(1000*60*60*24));
         if(Math.abs(diff)<=7 && (c.buono_compleanno_usato||0)<oggi.getFullYear()){
+          banner.innerHTML = '🎂 <strong>COMPLEANNO QUESTA SETTIMANA!</strong> — Applica sconto -5€ &nbsp;&nbsp;<button onclick="usaBuonoCompleanno()" style="background:var(--accent);border:none;color:white;padding:4px 10px;font-size:0.75rem;cursor:pointer;">USA BUONO</button>';
           banner.style.display='block';
         }
       }
@@ -1144,12 +1459,20 @@ function startMicAdmin(){
 
   rec.onresult = (e) => {
     const testo = e.results[0][0].transcript;
+    const conf = Math.round(e.results[0][0].confidence*100);
     if(btn) btn.textContent = '🎤';
     if(status) status.style.display = 'none';
+    log(`🎤 Riconosciuto (${conf}%): "${testo}"`, 'mic');
     parsaComandaVocale(testo);
   };
 
-  rec.onerror = rec.onend = () => {
+  rec.onerror = (e) => {
+    if(btn) btn.textContent = '🎤';
+    if(status) status.style.display = 'none';
+    log(`🎤 Errore microfono: ${e.error}`, 'error');
+  };
+  
+  rec.onend = () => {
     if(btn) btn.textContent = '🎤';
     if(status) status.style.display = 'none';
   };
@@ -1158,75 +1481,75 @@ function startMicAdmin(){
 }
 
 function parsaComandaVocale(testo){
-  // Parser semplice per comanda vocale
-  // Es: "due diavole una margherita una salsiccia battuta con bufala abbondante"
-  const t = testo.toLowerCase()
-    .replace(/\bdue\b/g,'2').replace(/\btre\b/g,'3').replace(/\bquattro\b/g,'4')
-    .replace(/\bcinque\b/g,'5').replace(/\bsei\b/g,'6').replace(/\bsette\b/g,'7')
-    .replace(/\botto\b/g,'8').replace(/\bnove\b/g,'9').replace(/\bdieci\b/g,'10')
-    .replace(/\buna\b/g,'1').replace(/\buno\b/g,'1');
-
-  // Mostra testo riconosciuto
-  showAlert('ordine', '🎤 Riconosciuto: "'+testo+'" — analisi in corso...', 'warning');
-
-  // Cerca pizze nel testo
-  const pizzeRiconosciute = [];
-  const parti = t.split(/(?=\d+\s+[a-z])/);
+  showAlert('ordine', '🎤 "'+testo+'"', 'warning');
   
-  for(const parte of parti){
-    const matchQty = parte.match(/^(\d+)\s+(.+)/);
-    if(!matchQty) continue;
-    const qty = parseInt(matchQty[1]);
-    const resto = matchQty[2];
-    
-    // Cerca nome pizza nel DB
-    for(const [nomePizza, prezzo] of Object.entries(PIZZE_MENU)){
-      if(resto.includes(nomePizza)){
-        let prezzoFinale = prezzo;
-        let nomeDisplay = nomePizza.charAt(0).toUpperCase()+nomePizza.slice(1);
-        let note = [];
-        
-        // Cerca formato
-        if(resto.includes('battut')) { prezzoFinale+=2; nomeDisplay+=' (battuta)'; }
-        if(resto.includes('doppia pasta')||resto.includes('doppio pasta')) { prezzoFinale+=1; nomeDisplay+=' (doppia pasta)'; }
-        if(resto.includes('baby')) { prezzoFinale-=0.5; nomeDisplay+=' (baby)'; }
-        
-        // Cerca aggiunte dopo "con"
-        const conMatch = resto.match(/con\s+(.+?)(?:senza|$)/);
-        if(conMatch){
-          const aggiunte = conMatch[1].split(/\s+e\s+|,\s*/);
-          for(const agg of aggiunte){
-            const aggNorm = agg.trim().replace(/\babbondan\w*/,'').trim();
-            if(!aggNorm) continue;
-            // Cerca nell'INGREDIENTI
-            for(const [ingNome, ingPrezzo] of Object.entries(INGREDIENTI)){
-              if(aggNorm.includes(ingNome.split(' ')[0])){
-                const qty_agg = agg.includes('abbondan') || agg.includes('doppi') ? 2 : 1;
-                prezzoFinale += ingPrezzo * qty_agg;
-                note.push('con '+(qty_agg>1?'doppia ':'')+ingNome);
-                break;
-              }
+  // Normalizza numeri
+  let t = testo.toLowerCase()
+    .replace(/\buno\b|\buna\b/g,'1')
+    .replace(/\bdue\b/g,'2').replace(/\btre\b/g,'3')
+    .replace(/\bquattro\b/g,'4').replace(/\bcinque\b/g,'5')
+    .replace(/\bsei\b/g,'6').replace(/\bsette\b/g,'7')
+    .replace(/\botto\b/g,'8').replace(/\bnove\b/g,'9')
+    .replace(/\bdieci\b/g,'10');
+  
+  // Normalizza "e" tra pizze: "2 diavole e una margherita" → "2 diavole 1 margherita"  
+  // Aggiungi 1 davanti a pizze senza numero
+  const nomePizze = Object.keys(PIZZE_MENU).sort((a,b)=>b.length-a.length);
+  
+  // Trova tutte le pizza menzionate con qty
+  const pizzeRiconosciute = [];
+  
+  // Cerca pattern: [numero opzionale] + [nome pizza] + [modificatori opzionali]
+  for(const nomePizza of nomePizze){
+    // Regex: cerca il nome pizza nel testo con eventuale numero prima
+    const re = new RegExp('(?:(\\d+)\\s+)?(?:'+nomePizza.replace(/\s+/g,'\\s+')+'s?\\b)([^0-9]*?)(?=\\d|$|(?:'+nomePizze.slice(0,5).join('|')+'))', 'gi');
+    let m;
+    let testoCopy = t;
+    while((m = re.exec(testoCopy)) !== null){
+      const qty = parseInt(m[1]) || 1;
+      const modificatori = (m[2]||'').trim();
+      let prezzo = PIZZE_MENU[nomePizza];
+      let nomeDisplay = nomePizza.charAt(0).toUpperCase()+nomePizza.slice(1);
+      const note = [];
+      
+      // Modificatori
+      if(modificatori.includes('battut')){ prezzo+=2; nomeDisplay+=' (battuta)'; }
+      if(modificatori.includes('doppia pasta')){ prezzo+=1; nomeDisplay+=' (doppia pasta)'; }
+      if(modificatori.includes('baby')){ prezzo-=0.5; nomeDisplay+=' (baby)'; }
+      
+      // Aggiunte "con X"
+      const conM = modificatori.match(/con\s+([^(]+)/);
+      if(conM){
+        conM[1].split(/\s+e\s+|,/).forEach(agg=>{
+          const aggTrim = agg.trim();
+          for(const [ing,prezzoIng] of Object.entries(INGREDIENTI)){
+            if(aggTrim.includes(ing.split(' ')[0])){
+              const isAbb = aggTrim.includes('abbondan')||aggTrim.includes('doppi');
+              prezzo += prezzoIng*(isAbb?2:1);
+              note.push('con '+(isAbb?'doppia ':'')+ing);
+              break;
             }
           }
-        }
-        
-        // Cerca senza
-        const senzaMatches = resto.matchAll(/senza\s+(\w+)/g);
-        for(const sm of senzaMatches) note.push('senza '+sm[1]);
-        
-        if(note.length) nomeDisplay += ' ('+note.join(', ')+')';
-        pizzeRiconosciute.push({qty, nome:nomeDisplay, prezzo:prezzoFinale});
-        break;
+        });
       }
+      
+      if(note.length) nomeDisplay+=' ('+note.join(', ')+')';
+      pizzeRiconosciute.push({qty, nome:nomeDisplay, prezzo});
+      // Rimuovi dal testo per non trovarla di nuovo
+      t = t.replace(m[0],'');
     }
   }
   
   if(pizzeRiconosciute.length > 0){
     pizzeRiconosciute.forEach(p=>pizzeOrdine.push(p));
     renderPizze();
-    showAlert('ordine', '✅ Aggiunto: '+pizzeRiconosciute.map(p=>p.qty+'x '+p.nome).join(', '), 'success');
+    const msg = '✅ Parser: '+pizzeRiconosciute.map(p=>p.qty+'x '+p.nome).join(', ');
+    log(msg, 'success');
+    showAlert('ordine', msg, 'success');
   } else {
-    showAlert('ordine', '😅 Non ho riconosciuto pizze in: "'+testo+'" — aggiungi manualmente', 'error');
+    log('❌ Parser: nessuna pizza trovata in "'+testo+'"', 'error');
+    log('Pizze nel menu: '+Object.keys(PIZZE_MENU).slice(0,5).join(', ')+'...', 'info');
+    showAlert('ordine','😅 Non ho riconosciuto pizze — riprova o aggiungi manualmente','error');
   }
 }
 
