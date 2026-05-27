@@ -67,6 +67,27 @@ export async function onRequest(context) {
       return json(rows || []);
     }
 
+    // Modifica cliente
+    if (request.method === 'POST' && action === 'modifica-cliente') {
+      const { telefono, nome, allergie, note_admin, instagram_follower, whatsapp_marketing, compleanno, nuovo_telefono } = await request.json();
+      if (!telefono) return json({ error: 'telefono richiesto' }, 400);
+      
+      const updateData = { nome };
+      if (allergie !== undefined) updateData.allergie = allergie;
+      if (note_admin !== undefined) updateData.note_admin = note_admin;
+      if (instagram_follower !== undefined) updateData.instagram_follower = instagram_follower;
+      if (whatsapp_marketing !== undefined) updateData.whatsapp_marketing = whatsapp_marketing;
+      if (compleanno !== undefined) updateData.compleanno = compleanno;
+      if (nuovo_telefono && nuovo_telefono !== telefono) updateData.telefono = nuovo_telefono;
+      
+      await sbFetch(SUPABASE_URL, SUPABASE_SERVICE, `/clienti?telefono=eq.${encodeURIComponent(telefono)}`, {
+        method: 'PATCH',
+        body: JSON.stringify(updateData),
+        headers: { 'Prefer': 'return=minimal' }
+      });
+      return json({ ok: true });
+    }
+
     if (request.method === 'DELETE' && action === 'cancella-cliente') {
       const { telefono } = await request.json();
       await sbFetch(SUPABASE_URL, SUPABASE_SERVICE, `/clienti?telefono=eq.${encodeURIComponent(telefono)}`, { method: 'DELETE' });
