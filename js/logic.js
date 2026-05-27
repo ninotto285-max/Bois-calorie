@@ -122,7 +122,29 @@ function correggiTypo(s){
     .replace(/\bcrocche\b/gi,'crocchettine patate')
     .replace(/\banellin\w*/gi,'anellini di cipolla')
     .replace(/\banell\b/gi,'anellini di cipolla')
-    .replace(/\bmist\w*\b/gi,'misto');
+    .replace(/\bmist\w*\b/gi,'misto')
+    // Typo pizze comuni
+    .replace(/\bmarger[ia]t\w*/gi,'margherita')
+    .replace(/\bmargheritta\b/gi,'margherita')
+    .replace(/\bmargerit\w*/gi,'margherita')
+    .replace(/\bdiavoll\w*/gi,'diavola')
+    .replace(/\bdiaavol\w*/gi,'diavola')
+    .replace(/\bdiavol[ao]\b/gi,'diavola')
+    .replace(/\bcapriciosa\b/gi,'capricciosa')
+    .replace(/\bcapricciossa\b/gi,'capricciosa')
+    .replace(/\bboscaiol\w*/gi,'boscaiola')
+    .replace(/\bboscaol\w*/gi,'boscaiola')
+    .replace(/\bbosciol\w*/gi,'boscaiola')
+    .replace(/\btartutat\w*/gi,'tartufata')
+    .replace(/\bbuffal\w*/gi,'bufala')
+    .replace(/\bpatatosa\b/gi,'patatosa')
+    .replace(/\bpatatossa\b/gi,'patatosa')
+    .replace(/\bquatro stagioni\b/gi,'quattro stagioni')
+    .replace(/\bquattro stagion[ei]\b/gi,'quattro stagioni')
+    .replace(/\bpiz{1,3}a\b/gi,'pizza')
+    .replace(/\bcalzon[ei]\b/gi,'calzone')
+    .replace(/\bclazione\b/gi,'calzone')
+    .replace(/\bcalazone\b/gi,'calzone classico');
 }
 
 function rispostaLocale(input){
