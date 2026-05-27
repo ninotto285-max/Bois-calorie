@@ -46,17 +46,36 @@ export async function onRequest(context) {
     }
 
     if (request.method === 'POST') {
-      const { telefono, nome, pizza_preferita, ultimo_ordine, vuole_spicchi, instagram_follower, whatsapp_marketing } = await request.json();
+      const { telefono, nome, pizza_preferita, ultimo_ordine, vuole_spicchi, instagram_follower, whatsapp_marketing, punti, punti_da_aggiungere, premio_riscattato, compleanno, buono_compleanno_usato } = await request.json();
       if (!telefono || !nome) return json({ error: 'dati mancanti' }, 400);
       const oggi = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Rome' });
       const existing = await sbFetch(SUPABASE_URL, SUPABASE_SERVICE, `/clienti?telefono=eq.${encodeURIComponent(telefono)}&select=ordini_count`);
       if (existing && existing.length > 0) {
-        const _updateData = { nome, ordini_count: (existing[0].ordini_count || 0) + 1, ultima_visita: oggi };
+        const _isNuovoOrdine = nome && !premio_riscattato;
+        const _updateData = {};
+        if(nome) { _updateData.nome = nome; _updateData.ultima_visita = oggi; }
+        if(_isNuovoOrdine) _updateData.ordini_count = (existing[0].ordini_count || 0) + 1;
         if(pizza_preferita) _updateData.pizza_preferita = pizza_preferita;
         if(ultimo_ordine) _updateData.ultimo_ordine = ultimo_ordine;
         if(vuole_spicchi !== undefined) _updateData.vuole_spicchi = vuole_spicchi;
         if(instagram_follower !== undefined) _updateData.instagram_follower = instagram_follower;
         if(whatsapp_marketing !== undefined) _updateData.whatsapp_marketing = whatsapp_marketing;
+        if(compleanno !== undefined) _updateData.compleanno = compleanno;
+        if(buono_compleanno_usato !== undefined) _updateData.buono_compleanno_usato = buono_compleanno_usato;
+        // Aggiorna punti
+        if(punti !== undefined) _updateData.punti = punti; // set diretto (dopo riscatto)
+        if(punti_da_aggiungere) {
+          _updateData.punti = (existing[0].punti || 0) + punti_da_aggiungere;
+          _updateData.punti_totali_storici = (existing[0].punti_totali_storici || 0) + punti_da_aggiungere;
+        }
+        // Aggiorna badge
+        const _newCount = _updateData.ordini_count || existing[0].ordini_count || 0;
+        _updateData.badge = _newCount >= 20 ? 'superfan' : _newCount >= 10 ? 'vip' : _newCount >= 5 ? 'loyal' : _newCount >= 2 ? 'regular' : 'nuovo';
+        // Aggiorna frequenza
+        if(existing[0].prima_visita && _isNuovoOrdine){
+          const _giorni = Math.round((new Date(oggi)-new Date(existing[0].prima_visita))/(1000*60*60*24));
+          if(_newCount > 1) _updateData.frequenza_giorni = Math.round(_giorni/(_newCount-1));
+        }
         await sbFetch(SUPABASE_URL, SUPABASE_SERVICE, `/clienti?telefono=eq.${encodeURIComponent(telefono)}`, {
           method: 'PATCH',
           body: JSON.stringify(_updateData),
@@ -64,7 +83,7 @@ export async function onRequest(context) {
       } else {
         await sbFetch(SUPABASE_URL, SUPABASE_SERVICE, '/clienti', {
           method: 'POST',
-          body: JSON.stringify({ telefono, nome, ordini_count: 1, ultima_visita: oggi, pizza_preferita: pizza_preferita || null, ultimo_ordine: ultimo_ordine || null, vuole_spicchi: vuole_spicchi || false, badge: 'nuovo' }),
+          body: JSON.stringify({ telefono, nome, ordini_count: 1, ultima_visita: oggi, pizza_preferita: pizza_preferita || null, ultimo_ordine: ultimo_ordine || null, vuole_spicchi: vuole_spicchi || false, badge: 'nuovo', compleanno: compleanno || null, prima_visita: oggi }),
         });
       }
       return json({ ok: true });
