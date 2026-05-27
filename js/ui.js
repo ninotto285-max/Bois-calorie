@@ -9,6 +9,10 @@ function togglePanel(){
   const panel = document.getElementById('bois-panel');
   if(panel) panel.classList.toggle('open', panelOpen);
   if(panelOpen && !orderShown){
+    // Carica ingredienti esauriti
+    const _oggi = new Date().toLocaleDateString('sv-SE',{timeZone:'Europe/Rome'});
+    const _esauritiSalvati = localStorage.getItem('esauriti_'+_oggi);
+    window._esauritiOggi = _esauritiSalvati ? JSON.parse(_esauritiSalvati) : [];
     orderShown = true;
     setTimeout(()=>addBotMsg('Ciao! 🐧🍕 Sono il Pinguino di BoisPizza!\nDimmi che pizza ti va e ti dico calorie e prezzo — oppure premi **Ordina** per fare un ordine!'), 300);
   }
@@ -317,10 +321,45 @@ function gestisciOrdine(input){
           const c = d.cliente;
           ordine._clienteNoto = true;
           ordine._ordiniCount = c.ordini_count || 0;
-          const saluto = c.ordini_count > 1
-            ? `Bentornato **${c.nome}**! 🐧 È il tuo **${c.ordini_count+1}° ordine** con noi!`
-            : `Bentornato **${c.nome}**! 🐧`;
+          ordine._clienteData = c;
+          
+          // Salva allergie se presenti
+          if(c.allergie) ordine._allergie = c.allergie;
+          
+          const nOrdini = c.ordini_count || 0;
+          
+          // Messaggio benvenuto con badge
+          let saluto = '';
+          if(nOrdini === 0) saluto = `Bentornato **${c.nome}**! 🐧`;
+          else if(nOrdini < 5) saluto = `Bentornato **${c.nome}**! 🐧 È il tuo **${nOrdini+1}° ordine** con noi!`;
+          else if(nOrdini < 10) saluto = `Bentornato **${c.nome}**! 🐧⭐ Cliente **affezionato** — grazie di sceglierci sempre!`;
+          else if(nOrdini % 10 === 9) {
+            const frasi = [
+              `🎉 **${nOrdini+1}° ordine** con noi, ${c.nome}! Sei un legend 🐧`,
+              `Wow **${nOrdini+1} ordini** con BoisPizza! Sei parte della famiglia 🍕🐧`,
+              `**${nOrdini+1} volte** e non ci stanchi mai, ${c.nome}! 🐧❤️`
+            ];
+            saluto = frasi[Math.floor(nOrdini/10) % frasi.length];
+          } else saluto = `Bentornato **${c.nome}**! 🐧 Ordine n°**${nOrdini+1}**`;
+          
           addBotMsg(saluto);
+          
+          // Ordine rapido — se ha un ultimo ordine salvato
+          if(c.ultimo_ordine && c.ultimo_ordine.pizze && c.ultimo_ordine.pizze.length > 0){
+            const uo = c.ultimo_ordine;
+            const pizzeStr = uo.pizze.map(p=>`${p.qty}x ${p.nome}`).join(', ');
+            let extraStr = '';
+            if(uo.frittini && uo.frittini.length) extraStr += ' + ' + uo.frittini.map(f=>`${f.qty}x ${f.tipo}`).join(', ');
+            if(uo.bibite && uo.bibite.length) extraStr += ' + ' + uo.bibite.map(b=>`${b.qty}x ${b.label}`).join(', ');
+            
+            ordine._proponiOrdineRapido = true;
+            ordine._ultimoOrdineCliente = uo;
+            
+            setTimeout(()=>addBotMsg(
+              `🚀 **Ordine rapido!**\nL\'ultima volta hai preso: **${pizzeStr}${extraStr}**\n\nConfermi lo stesso? Scrivi **sì** per confermare o **no** per un ordine nuovo.`
+            ), 600);
+            ordineStep = 'ordine_rapido';
+          }
         }
       }).catch(()=>{ clearTimeout(_timeout); });
     if(ordine.orario){
@@ -700,7 +739,20 @@ function gestisciOrdine(input){
           const haMozz = p.ing.some(i=>norm(i).includes('mozzarella'));
           const tipoCheck = checkAggiuntaSpeciale(canonNota, haMozz);
           if(tipoCheck === 'sostituzione'){
-            if(trovate.length > 0){
+            // Check ingredienti esauriti
+    if(typeof window !== 'undefined' && window._esauritiOggi && window._esauritiOggi.length > 0 && trovate.length > 0){
+      trovate.forEach(p=>{
+        if(!p.nome) return;
+        const nomePizzaN = norm(p.nome.split('(')[0].trim());
+        const pizzeDB = typeof PIZZE !== 'undefined' ? PIZZE : {};
+        const ingredienti = pizzeDB[nomePizzaN] ? pizzeDB[nomePizzaN].ing || [] : [];
+        const esauritiInPizza = ingredienti.filter(i=>window._esauritiOggi.includes(i));
+        if(esauritiInPizza.length > 0){
+          p._avvisoEsauriti = esauritiInPizza;
+        }
+      });
+    }
+    if(trovate.length > 0){
               // Batch: aggiungi direttamente con nota
               nomeDisplay += ' (con '+notaAggiunta+' — chiedi cottura)';
             } else {
@@ -1273,13 +1325,35 @@ async function bpSendText(text){
       const _telOrdine = ordine.telefono;
       const _pizzaOrdine = ordine.pizze && ordine.pizze.length > 0 ? ordine.pizze[0].nome.replace(/\s*\([^)]*\)/g,'').trim() : null;
       resetOrdine();
+      // Salva ultimo ordine completo
+      const _ultimoOrdine = {
+        pizze: ordine.pizze.map(p=>({qty:p.qty,nome:p.nome,prezzo:p.prezzo})),
+        frittini: (ordine.frittini||[]).map(f=>({qty:f.qty,tipo:f.tipo,prezzo:f.prezzo})),
+        bibite: (ordine.bibite||[]).map(b=>({qty:b.qty,label:b.label,prezzo:b.prezzo})),
+        note: ordine.note||'',
+        spicchi: ordine.note && ordine.note.includes('spicchi')
+      };
+      const _nuovoCount = (_ordiniCountPre || 0) + 1;
       fetch('/clienti', {
         method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({telefono:_telOrdine, nome:_nomeOrdine, pizza_preferita:_pizzaOrdine})
+        body: JSON.stringify({
+          telefono:_telOrdine, nome:_nomeOrdine, pizza_preferita:_pizzaOrdine,
+          ultimo_ordine:_ultimoOrdine,
+          vuole_spicchi: _ultimoOrdine.spicchi
+        })
       }).then(r=>r.json()).then(d=>{
-        if(d.ok) addBotMsg('✅ Profilo salvato! Ci vediamo al prossimo ordine 🐧');
-        else addBotMsg('😅 Errore nel salvataggio, ma l\'ordine è andato a buon fine!');
-      }).catch(()=>addBotMsg('✅ Profilo salvato! Ci vediamo al prossimo ordine 🐧'));
+        if(d.ok){
+          addBotMsg('✅ Profilo salvato! Ci vediamo al prossimo ordine 🐧');
+          // Engagement progressivo
+          if(_nuovoCount === 2 && !(_clienteDataPre && _clienteDataPre.instagram_follower)){
+            setTimeout(()=>addBotMsg('📸 Ci segui su Instagram? **@boispizza_official**\n\nScrivi **sì** o **no** — ti mandiamo un saluto speciale! 🐧'), 1500);
+            ordine._aspettaInstagram = true;
+          } else if(_nuovoCount === 3 && !(_clienteDataPre && _clienteDataPre.whatsapp_marketing)){
+            setTimeout(()=>addBotMsg('📱 Vuoi ricevere le nostre **offerte speciali** su WhatsApp?\n\nScrivi **sì** o **no**.'), 1500);
+            ordine._aspettaWhatsapp = true;
+          }
+        } else addBotMsg('😅 Errore nel salvataggio, ma l\'ordine è andato a buon fine!');
+      }).catch(()=>addBotMsg('✅ Ci vediamo al prossimo ordine 🐧'));
     } else {
       resetOrdine();
       setTimeout(()=>addBotMsg('Ok, nessun problema! Ci vediamo al prossimo ordine 🐧'),300);
@@ -1362,6 +1436,40 @@ async function bpSend(){
   const input = document.getElementById('bp-input');
   const text = input.value.trim();
   if(!text) return;
+
+  // Gestione risposta Instagram
+  if(ordine && ordine._aspettaInstagram){
+    input.value = '';
+    addUserMsg(text);
+    const tn = text.toLowerCase().trim();
+    ordine._aspettaInstagram = false;
+    if(['si','sì','ok','yes','certo'].some(k=>tn===k||tn.startsWith(k))){
+      fetch('/clienti', {method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({telefono:ordine._telOrdine||'', nome:ordine._nomeOrdine||'', instagram_follower:true})
+      }).catch(()=>{});
+      setTimeout(()=>addBotMsg('Grazie! 🐧❤️ Ci vediamo su Instagram **@boispizza_official**'),300);
+    } else {
+      setTimeout(()=>addBotMsg('Nessun problema! Ci trovi sempre qui 🐧'),300);
+    }
+    bpLoading=false; return;
+  }
+
+  // Gestione risposta WhatsApp
+  if(ordine && ordine._aspettaWhatsapp){
+    input.value = '';
+    addUserMsg(text);
+    const tn = text.toLowerCase().trim();
+    ordine._aspettaWhatsapp = false;
+    if(['si','sì','ok','yes','certo'].some(k=>tn===k||tn.startsWith(k))){
+      fetch('/clienti', {method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({telefono:ordine._telOrdine||'', nome:ordine._nomeOrdine||'', whatsapp_marketing:true})
+      }).catch(()=>{});
+      setTimeout(()=>addBotMsg('Perfetto! 🐧 Ti manderemo le offerte speciali su WhatsApp. Grazie!'),300);
+    } else {
+      setTimeout(()=>addBotMsg('Ok, nessun problema! 🐧'),300);
+    }
+    bpLoading=false; return;
+  }
   input.value = '';
   addUserMsg(text);
   bpLoading = true;
