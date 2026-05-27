@@ -1,3 +1,16 @@
+
+// ── SISTEMA PUNTI ──
+const PREMI = [
+  {id:'bibita',      nome:'Bibita analcolica o birra lattina', punti:500,     emoji:'🥤', tipo:'omaggio'},
+  {id:'birra_bott',  nome:'Birra in bottiglia',                punti:550,     emoji:'🍺', tipo:'omaggio'},
+  {id:'buono_5',     nome:'Buono sconto 5€',                   punti:800,     emoji:'🎫', tipo:'sconto', valore:5},
+  {id:'buono_10',    nome:'Buono sconto 10€',                  punti:1600,    emoji:'🎟', tipo:'sconto', valore:10},
+  {id:'trento_doc',  nome:'Bottiglia Trento DOC',              punti:10000,   emoji:'🥂', tipo:'omaggio'},
+  {id:'ananas',      nome:'Pizza con l\'ananas',               punti:1000000, emoji:'🍍', tipo:'omaggio'},
+];
+const PUNTI_PER_EURO = 10;
+
+
 let ultimaPizzaMenzionata = null;
 // ── FUNZIONI UI BASE ──
 var panelOpen = panelOpen || false;
@@ -169,6 +182,17 @@ function fmtOrdine(){
   const totFrit = (ordine.frittini||[]).reduce((s,f)=>s+f.prezzo*f.qty,0);
   const totBib = (ordine.bibite||[]).reduce((s,b)=>s+b.prezzo*b.qty,0);
   const tot = totPizze + totFrit + totBib;
+  // Buono compleanno
+  if(ordine._buonoCompleanno){
+    msg += `\n\n🎂 *BUONO COMPLEANNO: -5€* 🎁`;
+  }
+  // Premio riscattato
+  if(ordine._premioRiscattato){
+    const pr = ordine._premioRiscattato;
+    msg += `\n\n🎁 *PREMIO RISCATTATO:* ${pr.emoji} ${pr.nome}`;
+    if(pr.tipo === 'sconto') msg += ` (-${pr.valore}€)`;
+    msg += ` (-${pr.punti.toLocaleString('it')} punti)`;
+  }
   msg += `\n💰 Totale stimato: **${fmtE(tot)}€**`;
   msg += `\n\n_⚠️ Prezzo stimato. Le rimozioni ingredienti non modificano il prezzo — verrà verificato in pizzeria. Se sembra troppo alto non preoccuparti, lo sistemiamo noi!_`;
   if(ordine._noteVariazioni && ordine._noteVariazioni.length){
@@ -228,6 +252,28 @@ async function inviaOrdine(){
     if(d.ok){
       const nPizze = ordine.pizze.reduce((s,p)=>s+p.qty,0);
       await prenotaSlot(ordine.orario, nPizze);
+      // Se premio riscattato → scala punti, NON accumulare
+      // Segna buono compleanno usato
+      if(ordine._buonoCompleanno && ordine._clienteData){
+        fetch('/clienti', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({
+            telefono: ordine.telefono, nome: ordine.nome,
+            buono_compleanno_usato: new Date().getFullYear()
+          })
+        }).catch(()=>{});
+      }
+      if(ordine._premioRiscattato && ordine._clienteData){
+        const _puntiNuovi = (ordine._clienteData.punti||0) - ordine._premioRiscattato.punti;
+        fetch('/clienti', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({
+            telefono: ordine.telefono, nome: ordine.nome,
+            punti: Math.max(0, _puntiNuovi),
+            premio_riscattato: ordine._premioRiscattato.id
+          })
+        }).catch(()=>{});
+      }
       // Se cliente non noto → chiedi consenso salvataggio
       if(!ordine._clienteNoto){
         ordine._aspettaConsensoPrivacy = true;
@@ -344,6 +390,28 @@ function gestisciOrdine(input){
           
           addBotMsg(saluto);
           
+          // Controlla se ha premi disponibili
+          const _puntiCliente = c.punti || 0;
+          const _premioDisp = PREMI.filter(p => _puntiCliente >= p.punti);
+          
+          // Check buono compleanno
+          if(c.compleanno){
+            const _oggi = new Date();
+            const _compData = new Date(c.compleanno);
+            const _giorno = _compData.getDate();
+            const _mese = _compData.getMonth();
+            const _oggiGiorno = _oggi.getDate();
+            const _oggiMese = _oggi.getMonth();
+            // Controlla se siamo nella settimana del compleanno (7 giorni prima e dopo)
+            const _dataComp = new Date(_oggi.getFullYear(), _mese, _giorno);
+            const _diffGiorni = Math.round((_oggi - _dataComp)/(1000*60*60*24));
+            const _annoUso = c.buono_compleanno_usato || 0;
+            if(Math.abs(_diffGiorni) <= 7 && _annoUso < _oggi.getFullYear()){
+              ordine._buonoCompleanno = true;
+              setTimeout(()=>addBotMsg('🎂 **Tanti auguri '+c.nome+'!** 🎉\n\nHai un **buono sconto di 5€** attivo per il tuo compleanno!\nViene applicato automaticamente all\'ordine di stasera 🎁'), 800);
+            }
+          }
+          
           // Ordine rapido — se ha un ultimo ordine salvato
           if(c.ultimo_ordine && c.ultimo_ordine.pizze && c.ultimo_ordine.pizze.length > 0){
             const uo = c.ultimo_ordine;
@@ -355,9 +423,15 @@ function gestisciOrdine(input){
             ordine._proponiOrdineRapido = true;
             ordine._ultimoOrdineCliente = uo;
             
-            setTimeout(()=>addBotMsg(
-              `🚀 **Ordine rapido!**\nL\'ultima volta hai preso: **${pizzeStr}${extraStr}**\n\nConfermi lo stesso? Scrivi **sì** per confermare o **no** per un ordine nuovo.`
-            ), 600);
+            let _msgRapido = `🚀 **Ordine rapido!**\nL\'ultima volta hai preso: **${pizzeStr}${extraStr}**\n\nConfermi lo stesso? Scrivi **sì** per confermare o **no** per un ordine nuovo.`;
+            
+            // Aggiungi info punti nel messaggio
+            if(_puntiCliente > 0){
+              _msgRapido += `\n\n🏆 Hai **${_puntiCliente.toLocaleString('it')} punti**`;
+              if(_premioDisp.length > 0) _msgRapido += ` — hai un premio disponibile!`;
+            }
+            
+            setTimeout(()=>addBotMsg(_msgRapido), 600);
             ordineStep = 'ordine_rapido';
           }
         }
@@ -1436,6 +1510,72 @@ async function bpSend(){
   const input = document.getElementById('bp-input');
   const text = input.value.trim();
   if(!text) return;
+
+  // Gestione risposta compleanno
+  if(ordine && ordine._aspettaCompleanno){
+    input.value = '';
+    addUserMsg(text);
+    ordine._aspettaCompleanno = false;
+    
+    // Parsa la data di compleanno
+    const _parseCompleanno = (s) => {
+      const mesi = {gennaio:1,febbraio:2,marzo:3,aprile:4,maggio:5,giugno:6,luglio:7,agosto:8,settembre:9,ottobre:10,novembre:11,dicembre:12};
+      s = s.toLowerCase().trim();
+      // Formato "15 marzo" o "marzo 15"
+      for(const [nome,num] of Object.entries(mesi)){
+        if(s.includes(nome)){
+          const giorno = s.replace(nome,'').replace(/[^0-9]/g,'').trim();
+          if(giorno) return `${String(num).padStart(2,'0')}-${String(parseInt(giorno)).padStart(2,'0')}`;
+        }
+      }
+      // Formato "15/3" o "3/7" o "15-3"
+      const m = s.match(/(\d{1,2})[\/-](\d{1,2})/);
+      if(m) return `${String(parseInt(m[2])).padStart(2,'0')}-${String(parseInt(m[1])).padStart(2,'0')}`;
+      return null;
+    };
+    
+    const _dataCompleanno = _parseCompleanno(text);
+    
+    // Ora procedi con il salvataggio profilo e invio ordine
+    const _nomeOrdine2 = ordine.nome;
+    const _telOrdine2 = ordine.telefono;
+    const _pizzaOrdine2 = ordine.pizze && ordine.pizze.length > 0 ? ordine.pizze[0].nome.replace(/\s*\([^)]*\)/g,'').trim() : null;
+    const _ordiniCountPre2 = ordine._ordiniCount || 0;
+    const _ultimoOrdine2 = {
+      pizze: ordine.pizze.map(p=>({qty:p.qty,nome:p.nome,prezzo:p.prezzo})),
+      frittini: (ordine.frittini||[]).map(f=>({qty:f.qty,tipo:f.tipo,prezzo:f.prezzo})),
+      bibite: (ordine.bibite||[]).map(b=>({qty:b.qty,label:b.label,prezzo:b.prezzo})),
+      spicchi: ordine.note && ordine.note.includes('spicchi')
+    };
+    
+    resetOrdine();
+    
+    const _bodyCliente = {
+      telefono: _telOrdine2, nome: _nomeOrdine2, pizza_preferita: _pizzaOrdine2,
+      ultimo_ordine: _ultimoOrdine2,
+    };
+    if(_dataCompleanno) _bodyCliente.compleanno = `1900-${_dataCompleanno}`;
+    
+    fetch('/clienti', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(_bodyCliente)
+    }).then(r=>r.json()).then(d=>{
+      if(_dataCompleanno){
+        addBotMsg('🎂 Perfetto! Segno il **'+text.trim()+'** — riceverai il tuo sconto compleanno!\n\n✅ Profilo salvato! Ci vediamo al prossimo ordine 🐧🍕');
+      } else {
+        addBotMsg('✅ Profilo salvato! Ci vediamo al prossimo ordine 🐧🍕\n(Data compleanno non riconosciuta — puoi aggiornarla la prossima volta)');
+      }
+      // Engagement progressivo
+      if(_ordiniCountPre2 === 1){
+        setTimeout(()=>addBotMsg('📸 Ci segui su Instagram? **@boispizza** — scrivici **sì** o **no**!'), 2000);
+        ordine._aspettaInstagram = true;
+        ordine._telOrdine = _telOrdine2;
+        ordine._nomeOrdine = _nomeOrdine2;
+      }
+    }).catch(()=>addBotMsg('✅ Ci vediamo al prossimo ordine 🐧🍕'));
+    
+    bpLoading=false; return;
+  }
 
   // Gestione risposta Instagram
   if(ordine && ordine._aspettaInstagram){
