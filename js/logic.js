@@ -144,7 +144,13 @@ function correggiTypo(s){
     .replace(/\bpiz{1,3}a\b/gi,'pizza')
     .replace(/\bcalzon[ei]\b/gi,'calzone')
     .replace(/\bclazione\b/gi,'calzone')
-    .replace(/\bcalazone\b/gi,'calzone classico');
+    .replace(/\bcalazone\b/gi,'calzone classico')
+    // Alias comuni parlato
+    .replace(/\bfriarielli\b/gi,'ciccia e friarielli')
+    .replace(/\bsalsiccia\s+e\s+friarielli\b/gi,'ciccia e friarielli')
+    .replace(/\bsalsiccia\s+friarielli\b/gi,'ciccia e friarielli')
+    .replace(/\bsalsiccia\s+e\s+patate\b/gi,'salsiccia con patate fritte')
+    .replace(/\bsalsiccia\s+patate\b/gi,'salsiccia con patate fritte');
 }
 
 function rispostaLocale(input){
