@@ -768,13 +768,23 @@ function gestisciOrdine(input){
       // Estrai "senza X"
       // Estrai tutti i "senza X" dalla riga
       const _tuttiSenza = [];
+      // "poca/poco mozzarella" → "poca mozzarella" come senza parziale
+      const _pocaRe = /\bpoc[ao]\s+([\w\s]+?)(?=\s*(?:e\s+|senza|,|$))/gi;
+      let _pocaM;
+      while((_pocaM = _pocaRe.exec(riga)) !== null){
+        const _ps = _pocaM[1].trim().replace(/\bsenza\b/gi,'').trim();
+        if(_ps && _ps.length > 1) _tuttiSenza.push('poca '+_ps);
+      }
       const _senzaRe = /\bsenza\s+([\w\s]+?)(?=\s*(?:e\s+senza|senza|,|\s+e\s+(?:con|battut|doppi|baby)|\s+ma\s+|\s+però|$))/gi;
       let _senzaM;
       while((_senzaM = _senzaRe.exec(riga)) !== null){
         const _s = _senzaM[1].trim().replace(/\s+e$|\s+ma$|\s+però$/, '');
         if(_s) _tuttiSenza.push(_s);
       }
-      const ingredienteSenza = _tuttiSenza.length > 0 ? _tuttiSenza.join(' e senza ') : null;
+      // Formatta: "poca X" resta tale, altri usano "senza"
+      const ingredienteSenza = _tuttiSenza.length > 0 
+        ? _tuttiSenza.map(s=>s.startsWith('poca ')?s:'senza '+s).join(', ') 
+        : null;
       // Estrai "doppia X" o "X extra"
       const extraMatch = riga.match(/([\w\s]+?)\s+(?:extra|in più)(?=\s*,|$)/i);
       const ingredienteExtra = extraMatch ? extraMatch[1].trim() : null;
@@ -861,9 +871,20 @@ function gestisciOrdine(input){
         if(isBaby) nomeDisplay += ' (baby)';
         if(isBattuta && !isBattutaPiccola) nomeDisplay += ' (battuta)';
         if(isDoppia) nomeDisplay += ' (doppia pasta)';
-        if(ingredienteSenza) nomeDisplay += ' (senza '+ingredienteSenza+')';
+        if(ingredienteSenza){
+          // "poca X" → "(poca X)" non "(senza poca X)"
+          const _senzaLabel = ingredienteSenza.split(', ').map(s=>s.startsWith('poca ')?s:'senza '+s).join(', ');
+          nomeDisplay += ' ('+_senzaLabel+')';
+        }
         if(ingredienteExtra && !['pasta','mozzarella','scamorza'].includes(norm(ingredienteExtra)) && !norm(ingredienteExtra).includes(nomePizza) && !(notaAggiunta && norm(notaAggiunta).includes(norm(ingredienteExtra)))){
           nomeDisplay += ' ('+ingredienteExtra+' extra)';
+        }
+        if(notaAggiunta && norm(notaAggiunta) !== norm(ingredienteExtra||'')){
+          // Non aggiungere ingredienti già presenti nel nome della pizza
+          const _nomeNorm = norm(nomeDisplay.split('(')[0]);
+          if(_nomeNorm.includes(norm(notaAggiunta)) || norm(notaAggiunta).includes(_nomeNorm)){
+            notaAggiunta = null;
+          }
         }
         if(notaAggiunta && norm(notaAggiunta) !== norm(ingredienteExtra||'')){
           // Controlla se l'aggiunta richiede domanda cottura/sostituzione
