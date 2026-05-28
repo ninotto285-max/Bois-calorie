@@ -150,7 +150,11 @@ function correggiTypo(s){
     .replace(/\bsalsiccia\s+e\s+friarielli\b/gi,'ciccia e friarielli')
     .replace(/\bsalsiccia\s+friarielli\b/gi,'ciccia e friarielli')
     .replace(/\bsalsiccia\s+e\s+patate\b/gi,'salsiccia con patate fritte')
-    .replace(/\bsalsiccia\s+patate\b/gi,'salsiccia con patate fritte');
+    .replace(/\bsalsiccia\s+patate\b/gi,'salsiccia con patate fritte')
+    // Proteggi "4 stag" e "4 formaggi" da interpretazione come numero
+    .replace(/\b4\s+stag\w*/gi,'quattro stagioni')
+    .replace(/\b4\s+formaggi\b/gi,'formaggi')
+    .replace(/\bquattro\s+formaggi\b/gi,'formaggi');
 }
 
 function rispostaLocale(input){
