@@ -29,7 +29,22 @@ export async function onRequest(context) {
 
     if (pizze && pizze.length > 0) {
       msg += `🍕 *PIZZE:*\n`;
-      for (const p of pizze) msg += `  • ${p.qty}x ${p.nome} — ${String(p.prezzo.toFixed(2)).replace('.',',')}€\n`;
+      for (const p of pizze) {
+        const nomeBase = p.nome.replace(/\s*\([^)]+\)/g,'').trim();
+        const dettagli = [...p.nome.matchAll(/\(([^)]+)\)/g)].map(m=>m[1]);
+        msg += `  • ${p.qty}x *${nomeBase}* — ${String((p.prezzo*p.qty).toFixed(2)).replace('.',',')}€\n`;
+        dettagli.forEach(d=>{
+          if(d.startsWith('con ') || (!d.startsWith('senza') && !d.startsWith('poca') && d.includes(' e '))){
+            d.replace(/^con\s+/,'').split(/,\s*|\s+e\s+(?=[a-z])/).forEach(a=>{
+              const aT = a.trim(); if(aT.length>1) msg += `     \+ ${aT}\n`;
+            });
+          } else if(d.startsWith('senza')||d.startsWith('poca')||d.includes('senza')){
+            msg += `     \- ${d}\n`;
+          } else {
+            msg += `     _(${d})_\n`;
+          }
+        });
+      }
     }
     if (frittini && frittini.length > 0) {
       msg += `\n🍟 *FRITTINI:*\n`;
