@@ -50,6 +50,18 @@ export async function onRequest(context) {
   }
 
   // Verifica token
+  // Leggi esauriti è pubblico (usato anche dal chatbot)
+  if (request.method === 'GET' && action === 'esauriti') {
+    const oggi = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Rome' });
+    try {
+      const rows = await sbFetch(SUPABASE_URL, SUPABASE_SERVICE,
+        `/esauriti?data=eq.${oggi}&select=ingredienti`
+      );
+      const esauriti = (rows && rows.length > 0) ? rows[0].ingredienti : [];
+      return json({ ok: true, esauriti });
+    } catch(e) { return json({ ok: true, esauriti: [] }); }
+  }
+
   const token = request.headers.get('x-admin-token');
   const oggi = new Date().toISOString().split('T')[0];
   const validToken = btoa(ADMIN_TOKEN + ':' + oggi);
@@ -107,36 +119,29 @@ export async function onRequest(context) {
       return json({ ok: true });
     }
 
-    // Salva ingredienti esauriti
+    // Salva ingredienti esauriti su Supabase
     if (request.method === 'POST' && action === 'esauriti') {
       const { esauriti } = await request.json();
       const oggi = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Rome' });
-      // Salva su KV o come record temporaneo Supabase
-      // Per semplicità usiamo una tabella semplice o un file
-      // Salviamo in slot_ordini come record speciale con orario '00:00'
-      const existing = await sbFetch(SUPABASE_URL, SUPABASE_SERVICE, 
-        `/slot_ordini?data=eq.${oggi}&orario=eq.00:00:00&select=id`
+      const existing = await sbFetch(SUPABASE_URL, SUPABASE_SERVICE,
+        `/esauriti?data=eq.${oggi}&select=id`
       );
-      if(existing && existing.length > 0){
-        await sbFetch(SUPABASE_URL, SUPABASE_SERVICE, `/slot_ordini?id=eq.${existing[0].id}`, {
+      if (existing && existing.length > 0) {
+        await sbFetch(SUPABASE_URL, SUPABASE_SERVICE, `/esauriti?id=eq.${existing[0].id}`, {
           method: 'PATCH',
-          body: JSON.stringify({ pizze_count: 0, slot_esclusivo: false, max_pizze: JSON.stringify(esauriti) }),
+          body: JSON.stringify({ ingredienti: esauriti, aggiornato_at: new Date().toISOString() }),
+          headers: { 'Prefer': 'return=minimal' }
         });
       } else {
-        await sbFetch(SUPABASE_URL, SUPABASE_SERVICE, '/slot_ordini', {
+        await sbFetch(SUPABASE_URL, SUPABASE_SERVICE, '/esauriti', {
           method: 'POST',
-          body: JSON.stringify({ data: oggi, orario: '00:00:00', pizze_count: 0, slot_esclusivo: false, max_pizze: 0 }),
+          body: JSON.stringify({ data: oggi, ingredienti: esauriti }),
         });
       }
       return json({ ok: true });
     }
 
-    // Leggi ingredienti esauriti
-    if (request.method === 'GET' && action === 'esauriti') {
-      const oggi = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Rome' });
-      // Li recuperiamo da KV store di Cloudflare se disponibile, altrimenti array vuoto
-      return json({ esauriti: [] });
-    }
+
 
     if (request.method === 'POST' && action === 'slot-max') {
       const { orario, data, max_pizze } = await request.json();
