@@ -191,9 +191,10 @@
     </div>
     <div class="form-group">
       <label>ORARIO RITIRO</label>
-      <select class="form-input" id="ord-orario">
-        <option value="">— scegli orario —</option>
-      </select>
+      <input type="hidden" id="ord-orario" value="">
+      <div id="orari-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:4px;">
+        <div style="color:var(--muted);font-size:0.75rem;grid-column:1/-1;">Caricamento slot...</div>
+      </div>
     </div>
     <div class="form-group">
       <label>NOTE</label>
@@ -693,6 +694,52 @@ function salvaModificaPizza(){
   showAlert('ordine','✅ Pizza aggiornata','success');
 }
 
+async function caricaSlotOrdine(){
+  const grid = document.getElementById('orari-grid');
+  if(!grid) return;
+  
+  // Carica slot da Supabase via admin-data
+  let slotsData = {};
+  try {
+    const r = await adminFetch('?action=slot');
+    const rows = await r.json();
+    (rows||[]).forEach(s=>{ slotsData[s.orario.substring(0,5)] = s; });
+  } catch(e){}
+  
+  const oggi = new Date().toLocaleDateString('sv-SE',{timeZone:'Europe/Rome'});
+  
+  grid.innerHTML = ORARI.map(orario=>{
+    const s = slotsData[orario] || {pizze_count:0, max_pizze:12};
+    const count = s.pizze_count || 0;
+    const max = s.max_pizze || 12;
+    const pct = count/max;
+    
+    let bg, color, border, emoji;
+    if(pct >= 1){ bg='rgba(255,23,68,0.15)'; color='var(--red)'; border='var(--red)'; emoji='🔴'; }
+    else if(pct >= 0.5){ bg='rgba(255,215,64,0.15)'; color='var(--yellow)'; border='var(--yellow)'; emoji='🟡'; }
+    else { bg='rgba(0,230,118,0.1)'; color='var(--green)'; border='var(--green)'; emoji='🟢'; }
+    
+    const disabled = pct >= 1 ? 'opacity:0.5;cursor:not-allowed;' : 'cursor:pointer;';
+    const onclick = pct >= 1 ? '' : `onclick="selezionaOrarioOrdine('${orario}',this)"`;
+    
+    return `<div ${onclick}
+      style="background:${bg};border:1px solid ${border};color:${color};
+             padding:8px 4px;text-align:center;font-size:0.78rem;
+             font-family:DM Mono,monospace;${disabled}"
+      data-orario="${orario}" class="orario-chip">
+      ${emoji} ${orario}
+      <div style="font-size:0.65rem;opacity:0.8;">${count}/${max}</div>
+    </div>`;
+  }).join('');
+}
+
+function selezionaOrarioOrdine(orario, el){
+  document.getElementById('ord-orario').value = orario;
+  // Evidenzia selezionato
+  document.querySelectorAll('.orario-chip').forEach(c=>c.style.outline='none');
+  el.style.outline = '2px solid var(--accent)';
+}
+
 function toggleManuale(){
   const cont = document.getElementById('manuale-container');
   const arrow = document.getElementById('manuale-arrow');
@@ -703,8 +750,8 @@ function toggleManuale(){
 
 function initDashboard(){
   document.getElementById('data-oggi').textContent = new Date().toLocaleDateString('it-IT',{weekday:'short',day:'numeric',month:'short'});
-  const sel = document.getElementById('ord-orario');
-  ORARI.forEach(o=>{const opt=document.createElement('option');opt.value=o;opt.textContent=o;sel.appendChild(opt);});
+  // La grid orari viene popolata da caricaSlotOrdine()
+  caricaSlotOrdine();
   buildCheckboxFormati();
   buildCheckboxAggiunte();
   caricaSlot();
@@ -768,6 +815,7 @@ function showTab(name){
   if(name==='slot') caricaSlot();
   if(name==='clienti') caricaClienti();
   if(name==='cucina') initCucina();
+  if(name==='ordine') caricaSlotOrdine();
 }
 
 // ═══════════════════
@@ -787,7 +835,13 @@ const INGREDIENTI_CUCINA = [
 
 let esauritiOggi = JSON.parse(localStorage.getItem('esauriti_'+new Date().toLocaleDateString('sv-SE')) || '[]');
 
-function initCucina(){
+async function initCucina(){
+  // Carica esauriti dal server
+  try {
+    const r = await adminFetch('?action=esauriti');
+    const d = await r.json();
+    if(d.esauriti) esauritiOggi = d.esauriti;
+  } catch(e){ /* usa localStorage come fallback */ }
   buildIngredientList();
   renderEsauriti();
 }
