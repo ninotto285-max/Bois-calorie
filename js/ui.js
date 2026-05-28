@@ -170,7 +170,27 @@ function fmtOrdine(){
   if(ordine.telefono) msg += `📱 Tel: **${ordine.telefono}**\n`;
   msg += `🕐 Orario: **${ordine.orario}**\n\n`;
   for(const p of ordine.pizze){
-    msg += `• ${p.qty}x **${p.nome}** — ${fmtE(p.prezzo * p.qty)}€\n`;
+    // Separa nome base da aggiunte/rimozioni
+    const _nomeBase = p.nome.replace(/\s*\([^)]+\)/g,'').trim();
+    const _dettagli = [...p.nome.matchAll(/\(([^)]+)\)/g)].map(m=>m[1]);
+    
+    msg += `• ${p.qty}x **${_nomeBase}** — ${fmtE(p.prezzo * p.qty)}€\n`;
+    
+    // Mostra dettagli formattati
+    _dettagli.forEach(d=>{
+      if(d.startsWith('con ') || d.includes(' e ')){
+        // Aggiunte — split per ", " o " e " (con spazi, non dentro nomi composti)
+        const aggiunte = d.replace(/^con\s+/,'').split(/,\s*|\s+e\s+(?=[a-z])/);
+        aggiunte.forEach(a=>{
+          const aT = a.trim();
+          if(aT && aT.length > 1) msg += `   \+ ${aT}\n`;
+        });
+      } else if(d.startsWith('senza ') || d.startsWith('poca ')){
+        msg += `   \- ${d}\n`;
+      } else if(d){
+        msg += `   _(${d})_\n`;
+      }
+    });
   }
   if(ordine.frittini && ordine.frittini.length){
     for(const f of ordine.frittini) msg += `• ${f.qty}x Fritino ${f.tipo} 5pz — ${fmtE(f.prezzo*f.qty)}€\n`;
@@ -704,7 +724,8 @@ function gestisciOrdine(input){
     }
     // Estrai "più X e Y" o "con X" alla fine → aggiunta all'ultima pizza
     let _aggiuntaFinale = null;
-    const _piuMatch = _inp.match(/(?:^|\s)(?:più|con)\s+([a-zà-ùA-Z][a-zà-ùA-Z\s,]+?)\s*$/i);
+    // _piuMatch: prende "più X" o "con X" SOLO se è breve (max 3 parole, niente modificatori)
+    const _piuMatch = _inp.match(/(?:^|\s)(?:più)\s+([a-zà-ùA-Z][a-zà-ùA-Z\s,]{2,30}?)\s*$/i);
     if(_piuMatch && !/\d/.test(_piuMatch[1]) && !_piuMatch[1].match(/\b(tutte|basta|no|sì|si)\b/)){
       _aggiuntaFinale = _piuMatch[1].trim();
       _inp = _inp.slice(0, _inp.length - _piuMatch[0].length).trim();
@@ -736,7 +757,9 @@ function gestisciOrdine(input){
       const isDoppia = /\bdoppi[ao]?\s+pasta/i.test(riga);
       const isBattuta = /\bbattut/i.test(riga);
       const isBattutaPiccola = /battut\w*\s+piccol/i.test(riga) || /piccol\w*\s+battut/i.test(riga);
-      const conMatchRaw = riga.match(/\bcon\s+(.+)$/i);
+      // Trova TUTTI i "con X" nella riga (può essercene più di uno)
+      const _tutteCon = [...riga.matchAll(/\bcon\s+(.+?)(?=\s+(?:battut|doppia\s+pasta|baby|ben\s+cott|poco\s+cott|senza\b|poc[ao]\s|con\s)|$)/gi)];
+      const conMatchRaw = _tutteCon.length > 0 ? {1: _tutteCon.map(m=>m[1]).join(', ')} : null;
       let notaAggiunta = conMatchRaw ? conMatchRaw[1].trim() : null;
       // "con doppia pasta" non è un ingrediente aggiunto
       if(notaAggiunta && /^doppi[ao]?\s+pasta/i.test(notaAggiunta)) notaAggiunta = null;
@@ -744,10 +767,20 @@ function gestisciOrdine(input){
       if(notaAggiunta && isBattuta) notaAggiunta = notaAggiunta.replace(/\bbattut\w*/gi,'').replace(/^[,\s]+|[,\s]+$/g,'').trim() || null;
       // Rimuovi da notaAggiunta le cose già gestite (doppia pasta, senza X riconosciuto)
       if(notaAggiunta){
+        // Rimuovi dalla nota TUTTI i modificatori già gestiti separatamente
         notaAggiunta = notaAggiunta
           .replace(/\bdoppi[ao]?\s+pasta\b/gi,'')
-          .replace(/\bsenza\s+\w+/gi, '')   // rimuovi "senza X" già gestiti
+          .replace(/\bbattut\w*(?:\s+piccol\w*)?/gi,'')
+          .replace(/\bben\s+cott\w*/gi,'')
+          .replace(/\bpoco\s+cott\w*/gi,'')
+          .replace(/\bbaby\b/gi,'')
+          .replace(/\bpoc[ao]\s+\w+/gi,'')
+          .replace(/\bsenza\b[^,]*/gi,'')  // rimuovi tutto dopo "senza"
+          .replace(/\borigano\b/gi,'origano') // mantieni origano
+          .replace(/\bpeperoncino\b/gi,'peperoncino')
           .replace(/^[,\s]+|[,\s]+$/g,'').trim() || null;
+        // Se nota è solo spazi/virgole → null
+        if(notaAggiunta && !notaAggiunta.replace(/[,\s]/g,'')) notaAggiunta = null;
       }
       // "e X" senza "con" → se X è ingrediente noto trattalo come aggiunta
       if(!notaAggiunta){
@@ -775,7 +808,7 @@ function gestisciOrdine(input){
         const _ps = _pocaM[1].trim().replace(/\bsenza\b/gi,'').trim();
         if(_ps && _ps.length > 1) _tuttiSenza.push('poca '+_ps);
       }
-      const _senzaRe = /\bsenza\s+([\w\s]+?)(?=\s*(?:e\s+senza|senza|,|\s+e\s+(?:con|battut|doppi|baby)|\s+ma\s+|\s+però|$))/gi;
+      const _senzaRe = /\bsenza\s+([\w]+(?:\s+(?!(?:battut|doppi|baby|ben\s|poco\s|con\s|senza|poca|poco|e\s+senza))\w+)*)(?=\s+(?:battut|doppi|baby|ben\s|poco\s|con\s|senza|poc[ao]\s|e\s+senza)|,|$)/gi;
       let _senzaM;
       while((_senzaM = _senzaRe.exec(riga)) !== null){
         const _s = _senzaM[1].trim().replace(/\s+e$|\s+ma$|\s+però$/, '');
@@ -872,8 +905,12 @@ function gestisciOrdine(input){
         if(isBattuta && !isBattutaPiccola) nomeDisplay += ' (battuta)';
         if(isDoppia) nomeDisplay += ' (doppia pasta)';
         if(ingredienteSenza){
-          // "poca X" → "(poca X)" non "(senza poca X)"
-          const _senzaLabel = ingredienteSenza.split(', ').map(s=>s.startsWith('poca ')?s:'senza '+s).join(', ');
+          // "poca X" → "(poca X)", "senza X" già ha senza, altri aggiungono "senza"
+          const _senzaLabel = ingredienteSenza.split(', ').map(s=>{
+            if(s.startsWith('poca ')) return s;
+            if(s.startsWith('senza ')) return s; // già ha senza
+            return 'senza '+s;
+          }).join(', ');
           nomeDisplay += ' ('+_senzaLabel+')';
         }
         if(ingredienteExtra && !['pasta','mozzarella','scamorza'].includes(norm(ingredienteExtra)) && !norm(ingredienteExtra).includes(nomePizza) && !(notaAggiunta && norm(notaAggiunta).includes(norm(ingredienteExtra)))){
