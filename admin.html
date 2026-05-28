@@ -216,7 +216,7 @@
         style="flex:1;" 
         onkeydown="if(event.key==='Enter'){parsaComandaVocale(this.value);this.value='';}"
         autocomplete="off">
-      <button onclick="parsaComandaVocale(document.getElementById('chat-pizza-input').value);document.getElementById('chat-pizza-input').value='';" 
+      <button onclick="var _v=document.getElementById('chat-pizza-input').value.trim();if(_v){parsaComandaVocale(_v);document.getElementById('chat-pizza-input').value='';}" 
         style="background:var(--accent);border:none;color:white;padding:10px 14px;cursor:pointer;font-size:0.85rem;font-family:Syne,sans-serif;font-weight:700;white-space:nowrap;">
         ➕
       </button>
@@ -376,6 +376,45 @@
       <span style="color:var(--muted);">// Log vuoto — le operazioni appariranno qui</span>
     </div>
   </div>
+
+<!-- MODAL MODIFICA PIZZA AGGIUNTA -->
+<div id="modal-pizza" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);z-index:1000;overflow-y:auto;padding:20px;">
+  <div style="background:var(--surface);border:1px solid var(--border);max-width:420px;margin:0 auto;padding:24px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <h2 style="font-family:Syne,sans-serif;color:var(--accent2);font-size:1rem;">✏️ MODIFICA PIZZA</h2>
+      <button onclick="chiudiModalPizza()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.2rem;">✕</button>
+    </div>
+    <div id="pizza-modal-nome" style="font-size:0.9rem;margin-bottom:14px;color:var(--accent2);"></div>
+    
+    <div class="form-group">
+      <label>QTÀ</label>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <button class="qty-btn" onclick="cambiaQtyModal(-1)">−</button>
+        <span id="modal-qty-display" style="font-family:Syne,sans-serif;font-size:1.3rem;min-width:30px;text-align:center;">1</span>
+        <button class="qty-btn" onclick="cambiaQtyModal(1)">+</button>
+      </div>
+    </div>
+    
+    <div class="form-group">
+      <label>AGGIUNTE (scrivi o scegli)</label>
+      <div style="display:flex;gap:8px;">
+        <input type="text" class="form-input" id="modal-aggiunta-input" placeholder="es. scamorza, nduja..." style="flex:1;">
+        <button onclick="aggiungiModifica()" style="background:var(--green);border:none;color:#000;padding:10px;cursor:pointer;">+</button>
+      </div>
+    </div>
+    
+    <div class="form-group">
+      <label>RIMOZIONI (scrivi o scegli)</label>
+      <div style="display:flex;gap:8px;">
+        <input type="text" class="form-input" id="modal-rimozione-input" placeholder="es. mozzarella, pomodoro..." style="flex:1;">
+        <button onclick="aggiungiRimozione()" style="background:var(--red);border:none;color:white;padding:10px;cursor:pointer;">−</button>
+      </div>
+    </div>
+
+    <div id="modal-modifiche-list" style="min-height:30px;margin-bottom:14px;font-size:0.8rem;"></div>
+    <button class="btn btn-success" onclick="salvaModificaPizza()">💾 SALVA</button>
+  </div>
+</div>
 
 <!-- MODAL MODIFICA CLIENTE -->
 <div id="modal-modifica" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);z-index:1000;overflow-y:auto;padding:20px;">
@@ -575,6 +614,85 @@ function doLogout(){
 // ═══════════════════
 // INIT
 // ═══════════════════
+// ═══════════════════
+// MODIFICA PIZZA AGGIUNTA
+// ═══════════════════
+let _pizzaModalIdx = -1;
+let _pizzaModalModifiche = [];
+
+function modificaPizzaAggiunta(idx){
+  _pizzaModalIdx = idx;
+  const p = pizzeOrdine[idx];
+  _pizzaModalModifiche = [];
+  document.getElementById('pizza-modal-nome').textContent = p.qty+'x '+p.nome;
+  document.getElementById('modal-qty-display').textContent = p.qty;
+  document.getElementById('modal-modifiche-list').innerHTML = '';
+  document.getElementById('modal-aggiunta-input').value = '';
+  document.getElementById('modal-rimozione-input').value = '';
+  document.getElementById('modal-pizza').style.display = 'block';
+}
+
+function chiudiModalPizza(){
+  document.getElementById('modal-pizza').style.display = 'none';
+}
+
+function cambiaQtyModal(delta){
+  const el = document.getElementById('modal-qty-display');
+  const n = Math.max(1, Math.min(20, parseInt(el.textContent)+delta));
+  el.textContent = n;
+}
+
+function aggiungiModifica(){
+  const v = document.getElementById('modal-aggiunta-input').value.trim();
+  if(!v) return;
+  _pizzaModalModifiche.push({tipo:'con', testo:v});
+  document.getElementById('modal-aggiunta-input').value = '';
+  renderModalModifiche();
+}
+
+function aggiungiRimozione(){
+  const v = document.getElementById('modal-rimozione-input').value.trim();
+  if(!v) return;
+  _pizzaModalModifiche.push({tipo:'senza', testo:v});
+  document.getElementById('modal-rimozione-input').value = '';
+  renderModalModifiche();
+}
+
+function renderModalModifiche(){
+  const el = document.getElementById('modal-modifiche-list');
+  if(!_pizzaModalModifiche.length){el.innerHTML='';return;}
+  el.innerHTML = _pizzaModalModifiche.map((m,i)=>`
+    <span style="display:inline-flex;align-items:center;gap:4px;background:${m.tipo==='con'?'rgba(0,230,118,0.1)':'rgba(255,23,68,0.1)'};border:1px solid ${m.tipo==='con'?'var(--green)':'var(--red)'};padding:3px 8px;margin:2px;font-size:0.75rem;">
+      ${m.tipo==='con'?'+':'-'} ${m.testo}
+      <button onclick="_pizzaModalModifiche.splice(${i},1);renderModalModifiche();" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:0.8rem;">✕</button>
+    </span>`).join('');
+}
+
+function salvaModificaPizza(){
+  if(_pizzaModalIdx < 0) return;
+  const p = pizzeOrdine[_pizzaModalIdx];
+  const nuovaQty = parseInt(document.getElementById('modal-qty-display').textContent);
+  p.qty = nuovaQty;
+  
+  // Applica modifiche al nome e prezzo
+  let nomeBase = p.nome.replace(/\s*\(con [^)]+\)/g,'').replace(/\s*\(senza [^)]+\)/g,'');
+  _pizzaModalModifiche.forEach(m=>{
+    if(m.tipo==='con'){
+      // Cerca prezzo ingrediente
+      const ingKey = Object.keys(INGREDIENTI).find(k=>m.testo.toLowerCase().includes(k.split(' ')[0]));
+      if(ingKey) p.prezzo += INGREDIENTI[ingKey];
+      nomeBase += ' (con '+m.testo+')';
+    } else {
+      nomeBase += ' (senza '+m.testo+')';
+    }
+  });
+  p.nome = nomeBase;
+  
+  renderPizze();
+  chiudiModalPizza();
+  showAlert('ordine','✅ Pizza aggiornata','success');
+}
+
 function toggleManuale(){
   const cont = document.getElementById('manuale-container');
   const arrow = document.getElementById('manuale-arrow');
@@ -907,6 +1025,7 @@ function renderPizze(){
     <div class="pizza-item">
       <span class="pizza-item-nome">${p.qty}x ${p.nome}</span>
       <span style="color:var(--accent2);white-space:nowrap">${(p.prezzo*p.qty).toFixed(2).replace('.',',')}€</span>
+      <button onclick="modificaPizzaAggiunta(${i})" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.85rem;padding:2px 4px;">✏️</button>
       <button onclick="rimuoviPizza(${i})">✕</button>
     </div>`).join('');
   const totBase=pizzeOrdine.reduce((s,p)=>s+p.prezzo*p.qty,0);
@@ -1513,6 +1632,7 @@ function parsaComandaVocale(testo){
     ['quattro stagioni','QUATTROSTAGIONI'],['calzone poro mauretto','CALZONEPORO'],
     ['ciccia e friarielli','CICCIAEFRIARIELLI'],['prosciutto e funghi','PROSCIUTTOFUNGHI'],
     ['tonno e cipolla','TONNOCIPOLLA'],['capricciosa sbagliata','CAPRICCIOSASBAGLIATA'],
+    ['salsiccia e patate','SALSICCIAEPATATE'],['salsiccia con patate','SALSICCIAEPATATE'],
     ['wurstel e patate','WURSTELEPATATE'],['wyrstel e patate','WYRSTELEPATATE'],
     ['viennese e patate','VIENNESEEPATATE'],['calzone classico','CALZONECLASSICO'],
     ['calzone piccante','CALZONEPIC'],['calzone vegeta','CALZONEVEG'],['calzone ade','CALZONEADE'],
@@ -1536,7 +1656,7 @@ function parsaComandaVocale(testo){
     'margherita':['margherita','margherite','margerita','margerite'],
     'diavola':['diavola','diavole'],'capricciosa':['capricciosa','capricciose'],
     'boscaiola':['boscaiola','boscaiole'],'bufala':['bufala','bufale'],
-    'salsiccia':['salsiccia','salsicce'],'amatriciana':['amatriciana','amatriciane'],
+    'salsiccia':['SALSICCIAEPATATE','salsiccia e patate','salsiccia con patate','salsiccia','salsicce'],'amatriciana':['amatriciana','amatriciane'],
     'tartufata':['tartufata','tartufate'],
     'calzone classico':['calzone classico','calzone'],
     'prosciutto e funghi':['prosciutto e funghi','prosciutto funghi'],
@@ -1547,6 +1667,8 @@ function parsaComandaVocale(testo){
   const ALIAS_ING_EXTRA = {
     'wurstel e patate':{'patate fritte':1.5},'wyrstel e patate':{'patate fritte':1.5},
     'viennese e patate':{'patate fritte':1.5},
+    'salsiccia e patate':{'patate fritte':1.5},'salsiccia con patate':{'patate fritte':1.5},
+    'SALSICCIAEPATATE':{'patate fritte':1.5},
   };
 
   // Mappa alias → nome pizza
