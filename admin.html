@@ -207,13 +207,19 @@
       🎂 <strong>COMPLEANNO QUESTA SETTIMANA!</strong> — Applica sconto -5€
     </div>
 
-    <div class="section-title" style="font-size:0.9rem;">AGGIUNGI PIZZA</div>
+    <div class="section-title" style="font-size:0.9rem;">AGGIUNGI PIZZE</div>
 
-    <!-- Ricerca pizza + Microfono comanda -->
-    <div style="display:flex;gap:8px;margin-bottom:10px;">
-      <div class="search-box" style="flex:1;margin-bottom:0;">
-        <input type="text" id="pizza-search" placeholder="Cerca pizza..." oninput="cercaPizza(this.value)" onfocus="mostraRisultati()" autocomplete="off">
-      </div>
+    <!-- Input testo + microfono -->
+    <div style="display:flex;gap:8px;margin-bottom:8px;">
+      <input type="text" id="chat-pizza-input" class="form-input" 
+        placeholder='Es. "2 diavole una margherita con scamorza"'
+        style="flex:1;" 
+        onkeydown="if(event.key==='Enter'){parsaComandaVocale(this.value);this.value='';}"
+        autocomplete="off">
+      <button onclick="parsaComandaVocale(document.getElementById('chat-pizza-input').value);document.getElementById('chat-pizza-input').value='';" 
+        style="background:var(--accent);border:none;color:white;padding:10px 14px;cursor:pointer;font-size:0.85rem;font-family:Syne,sans-serif;font-weight:700;white-space:nowrap;">
+        ➕
+      </button>
       <button id="mic-admin-btn" onclick="startMicAdmin()" 
         style="background:var(--surface);border:1px solid var(--border);color:var(--text);padding:10px 14px;cursor:pointer;font-size:1.1rem;white-space:nowrap;"
         title="Dì l'ordine a voce">
@@ -223,6 +229,16 @@
     <div id="mic-admin-status" style="display:none;font-size:0.75rem;color:var(--accent2);margin-bottom:8px;">
       🔴 Registrazione in corso... parla ora
     </div>
+
+    <!-- Selezione manuale collassata -->
+    <div style="margin-bottom:10px;">
+      <button onclick="toggleManuale()" 
+        style="background:none;border:1px solid var(--border);color:var(--muted);padding:8px 14px;width:100%;text-align:left;cursor:pointer;font-family:DM Mono,monospace;font-size:0.78rem;display:flex;justify-content:space-between;">
+        <span>➕ Aggiungi manualmente</span>
+        <span id="manuale-arrow">▼</span>
+      </button>
+    </div>
+    <div id="manuale-container" style="display:none;">
     <div class="pizza-results" id="pizza-results"></div>
     <div class="pizza-selected" id="pizza-selected">
       <span id="pizza-sel-nome">—</span>
@@ -257,6 +273,7 @@
     </div>
 
     <button class="btn btn-secondary" onclick="aggiungiPizzaAdmin()">+ AGGIUNGI ALLA COMANDA</button>
+    </div> <!-- fine manuale-container -->
 
     <div style="margin:14px 0 8px;font-size:0.8rem;color:var(--muted);">COMANDA</div>
     <div class="pizze-list" id="pizze-list">
@@ -558,6 +575,14 @@ function doLogout(){
 // ═══════════════════
 // INIT
 // ═══════════════════
+function toggleManuale(){
+  const cont = document.getElementById('manuale-container');
+  const arrow = document.getElementById('manuale-arrow');
+  const aperto = cont.style.display !== 'none';
+  cont.style.display = aperto ? 'none' : 'block';
+  arrow.textContent = aperto ? '▼' : '▲';
+}
+
 function initDashboard(){
   document.getElementById('data-oggi').textContent = new Date().toLocaleDateString('it-IT',{weekday:'short',day:'numeric',month:'short'});
   const sel = document.getElementById('ord-orario');
@@ -1481,75 +1506,122 @@ function startMicAdmin(){
 }
 
 function parsaComandaVocale(testo){
-  showAlert('ordine', '🎤 "'+testo+'"', 'warning');
-  
-  // Normalizza numeri
-  let t = testo.toLowerCase()
-    .replace(/\buno\b|\buna\b/g,'1')
-    .replace(/\bdue\b/g,'2').replace(/\btre\b/g,'3')
-    .replace(/\bquattro\b/g,'4').replace(/\bcinque\b/g,'5')
-    .replace(/\bsei\b/g,'6').replace(/\bsette\b/g,'7')
-    .replace(/\botto\b/g,'8').replace(/\bnove\b/g,'9')
-    .replace(/\bdieci\b/g,'10');
-  
-  // Normalizza "e" tra pizze: "2 diavole e una margherita" → "2 diavole 1 margherita"  
-  // Aggiungi 1 davanti a pizze senza numero
-  const nomePizze = Object.keys(PIZZE_MENU).sort((a,b)=>b.length-a.length);
-  
-  // Trova tutte le pizza menzionate con qty
-  const pizzeRiconosciute = [];
-  
-  // Cerca pattern: [numero opzionale] + [nome pizza] + [modificatori opzionali]
-  for(const nomePizza of nomePizze){
-    // Regex: cerca il nome pizza nel testo con eventuale numero prima
-    const re = new RegExp('(?:(\\d+)\\s+)?(?:'+nomePizza.replace(/\s+/g,'\\s+')+'s?\\b)([^0-9]*?)(?=\\d|$|(?:'+nomePizze.slice(0,5).join('|')+'))', 'gi');
-    let m;
-    let testoCopy = t;
-    while((m = re.exec(testoCopy)) !== null){
-      const qty = parseInt(m[1]) || 1;
-      const modificatori = (m[2]||'').trim();
-      let prezzo = PIZZE_MENU[nomePizza];
-      let nomeDisplay = nomePizza.charAt(0).toUpperCase()+nomePizza.slice(1);
-      const note = [];
-      
-      // Modificatori
-      if(modificatori.includes('battut')){ prezzo+=2; nomeDisplay+=' (battuta)'; }
-      if(modificatori.includes('doppia pasta')){ prezzo+=1; nomeDisplay+=' (doppia pasta)'; }
-      if(modificatori.includes('baby')){ prezzo-=0.5; nomeDisplay+=' (baby)'; }
-      
-      // Aggiunte "con X"
-      const conM = modificatori.match(/con\s+([^(]+)/);
-      if(conM){
-        conM[1].split(/\s+e\s+|,/).forEach(agg=>{
-          const aggTrim = agg.trim();
-          for(const [ing,prezzoIng] of Object.entries(INGREDIENTI)){
-            if(aggTrim.includes(ing.split(' ')[0])){
-              const isAbb = aggTrim.includes('abbondan')||aggTrim.includes('doppi');
-              prezzo += prezzoIng*(isAbb?2:1);
-              note.push('con '+(isAbb?'doppia ':'')+ing);
-              break;
-            }
-          }
-        });
-      }
-      
-      if(note.length) nomeDisplay+=' ('+note.join(', ')+')';
-      pizzeRiconosciute.push({qty, nome:nomeDisplay, prezzo});
-      // Rimuovi dal testo per non trovarla di nuovo
-      t = t.replace(m[0],'');
-    }
+  log('🎤 Input: "'+testo+'"', 'mic');
+
+  let t = testo.toLowerCase();
+  const PROTETTI = [
+    ['quattro stagioni','QUATTROSTAGIONI'],['calzone poro mauretto','CALZONEPORO'],
+    ['ciccia e friarielli','CICCIAEFRIARIELLI'],['prosciutto e funghi','PROSCIUTTOFUNGHI'],
+    ['tonno e cipolla','TONNOCIPOLLA'],['capricciosa sbagliata','CAPRICCIOSASBAGLIATA'],
+    ['wurstel e patate','WURSTELEPATATE'],['wyrstel e patate','WYRSTELEPATATE'],
+    ['viennese e patate','VIENNESEEPATATE'],['calzone classico','CALZONECLASSICO'],
+    ['calzone piccante','CALZONEPIC'],['calzone vegeta','CALZONEVEG'],['calzone ade','CALZONEADE'],
+  ];
+  PROTETTI.forEach(([from,to])=>{t=t.replace(new RegExp(from,'gi'),to);});
+
+  t = t.replace(/\buno\b|\buna\b/g,' 1 ')
+    .replace(/\bdue\b/g,' 2 ').replace(/\btre\b/g,' 3 ')
+    .replace(/\bquattro\b/g,' 4 ').replace(/\bcinque\b/g,' 5 ')
+    .replace(/\bsei\b/g,' 6 ').replace(/\bsette\b/g,' 7 ')
+    .replace(/\botto\b/g,' 8 ').replace(/\bnove\b/g,' 9 ')
+    .replace(/\bdieci\b/g,' 10 ');
+  PROTETTI.forEach(([from,to])=>{t=t.replace(new RegExp(to,'gi'),from);});
+  t = t.replace(/\s+/g,' ').trim();
+  log('🔄 "'+t+'"','info');
+
+  const ALIAS_PIZZA = {
+    'patatosa':['patate fritte','patatosa','patata','patate'],
+    'viennese':['wurstel e patate','wyrstel e patate','viennese e patate','viennese','wurstel','wyrstel','würstel'],
+    'formaggi':['quattro formaggi','4 formaggi','tre formaggi','formaggi'],
+    'margherita':['margherita','margherite','margerita','margerite'],
+    'diavola':['diavola','diavole'],'capricciosa':['capricciosa','capricciose'],
+    'boscaiola':['boscaiola','boscaiole'],'bufala':['bufala','bufale'],
+    'salsiccia':['salsiccia','salsicce'],'amatriciana':['amatriciana','amatriciane'],
+    'tartufata':['tartufata','tartufate'],
+    'calzone classico':['calzone classico','calzone'],
+    'prosciutto e funghi':['prosciutto e funghi','prosciutto funghi'],
+    'quattro stagioni':['quattro stagioni'],'ciccia e friarielli':['ciccia e friarielli','ciccia friarielli'],
+    'capricciosa sbagliata':['capricciosa sbagliata'],'tonno e cipolla':['tonno e cipolla','tonno cipolla'],
+    'calzone poro mauretto':['calzone poro mauretto'],'calzone ade':['calzone ade'],
+  };
+  const ALIAS_ING_EXTRA = {
+    'wurstel e patate':{'patate fritte':1.5},'wyrstel e patate':{'patate fritte':1.5},
+    'viennese e patate':{'patate fritte':1.5},
+  };
+
+  // Mappa alias → nome pizza
+  const aliasMap = {};
+  for(const [nome,aliases] of Object.entries(ALIAS_PIZZA)){
+    aliasMap[nome]=nome; aliases.forEach(a=>{aliasMap[a]=nome;});
+    aliasMap[nome+'e']=nome; aliasMap[nome+'i']=nome;
+    aliasMap[nome.replace(/a$/,'e')]=nome; aliasMap[nome.replace(/o$/,'i')]=nome;
   }
-  
-  if(pizzeRiconosciute.length > 0){
+  for(const nome of Object.keys(PIZZE_MENU)){
+    if(!aliasMap[nome]) aliasMap[nome]=nome;
+    aliasMap[nome+'e']=nome; aliasMap[nome+'i']=nome;
+    aliasMap[nome.replace(/a$/,'e')]=nome;
+  }
+  const aliasOrdinati = Object.keys(aliasMap).sort((a,b)=>b.length-a.length);
+
+  // Split per numero — tutto dopo appartiene a quella pizza
+  const parti = t.split(/(?=\b\d+\s)/);
+  const pizzeRiconosciute = [];
+
+  for(const parte of parti){
+    const p = parte.trim(); if(!p) continue;
+    const numM = p.match(/^(\d+)\s+(.+)/);
+    let qty=1, resto=p;
+    if(numM){qty=parseInt(numM[1]);resto=numM[2];}
+
+    let trovata=null, aliasUsato=null;
+    for(const alias of aliasOrdinati){
+      if(!alias||alias.length<3) continue;
+      if(resto.includes(alias)&&PIZZE_MENU[aliasMap[alias]]){
+        trovata=aliasMap[alias]; aliasUsato=alias; break;
+      }
+    }
+    if(!trovata) continue;
+
+    const idxP = resto.indexOf(aliasUsato);
+    const mod = resto.substring(idxP+aliasUsato.length).trim();
+    let prezzo=PIZZE_MENU[trovata];
+    let nomeDisplay=trovata.charAt(0).toUpperCase()+trovata.slice(1);
+    const note=[];
+
+    if(ALIAS_ING_EXTRA[aliasUsato])
+      for(const [ing,pr] of Object.entries(ALIAS_ING_EXTRA[aliasUsato])){prezzo+=pr;note.push('con '+ing);}
+
+    if(/\bbattut/i.test(mod)){prezzo+=2;nomeDisplay+=' (battuta)';}
+    if(/\bdoppia pasta/i.test(mod)){prezzo+=1;nomeDisplay+=' (doppia pasta)';}
+    if(/\bbaby/i.test(mod)){prezzo-=0.5;nomeDisplay+=' (baby)';}
+    if(/\bben cott/i.test(mod)) nomeDisplay+=' (ben cotta)';
+    if(/\bpoco cott/i.test(mod)) nomeDisplay+=' (poco cotta)';
+
+    const conM = mod.match(/\bcon\s+(.+?)(?=\bsenza\b|$)/i);
+    if(conM) conM[1].split(/\s+e\s+|,\s*/).forEach(agg=>{
+      const aggT=agg.trim().replace(/\babbondan\w*/gi,'').replace(/\bdoppi[ao]\b/gi,'').trim();
+      if(aggT.length<3) return;
+      for(const [ing,prezzoIng] of Object.entries(INGREDIENTI)){
+        if(aggT.includes(ing.split(' ')[0])&&ing.split(' ')[0].length>2){
+          const isAbb=/abbondan|doppi/i.test(agg);
+          prezzo+=prezzoIng*(isAbb?2:1); note.push('con '+(isAbb?'doppia ':'')+ing); break;
+        }
+      }
+    });
+
+    [...mod.matchAll(/\bsenza\s+(\w+)/gi)].forEach(m=>note.push('senza '+m[1]));
+    if(note.length) nomeDisplay+=' ('+note.join(', ')+')';
+    pizzeRiconosciute.push({qty,nome:nomeDisplay,prezzo});
+    log('✅ '+qty+'x '+nomeDisplay+' @'+prezzo+'€','success');
+  }
+
+  if(pizzeRiconosciute.length>0){
     pizzeRiconosciute.forEach(p=>pizzeOrdine.push(p));
     renderPizze();
-    const msg = '✅ Parser: '+pizzeRiconosciute.map(p=>p.qty+'x '+p.nome).join(', ');
-    log(msg, 'success');
-    showAlert('ordine', msg, 'success');
+    showAlert('ordine','✅ '+pizzeRiconosciute.map(p=>p.qty+'x '+p.nome).join(', '),'success');
   } else {
-    log('❌ Parser: nessuna pizza trovata in "'+testo+'"', 'error');
-    log('Pizze nel menu: '+Object.keys(PIZZE_MENU).slice(0,5).join(', ')+'...', 'info');
-    showAlert('ordine','😅 Non ho riconosciuto pizze — riprova o aggiungi manualmente','error');
+    log('❌ Nessuna pizza trovata — vedi LOG sopra','error');
+    showAlert('ordine','😅 Non riconosciuto — controlla LOG e riprova','error');
   }
 }
 
