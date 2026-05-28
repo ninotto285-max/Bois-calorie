@@ -749,6 +749,17 @@ function gestisciOrdine(input){
           .replace(/\bsenza\s+\w+/gi, '')   // rimuovi "senza X" già gestiti
           .replace(/^[,\s]+|[,\s]+$/g,'').trim() || null;
       }
+      // "e X" senza "con" → se X è ingrediente noto trattalo come aggiunta
+      if(!notaAggiunta){
+        const _eIngM = riga.match(/\be\s+([\w][\w\s]*?)(?=\s+(?:battut|doppia|baby|ben\s+cott|poco\s+cott|senza|$)|$)/i);
+        if(_eIngM){
+          const _pIng = _eIngM[1].trim();
+          const _pIngN = norm(_pIng);
+          const _isIng = typeof ING !== 'undefined' && Object.keys(ING).some(k=>norm(k).includes(_pIngN)||_pIngN.includes(norm(k)));
+          const _isPiz = typeof PIZZE !== 'undefined' && Object.keys(PIZZE).some(k=>norm(k)===_pIngN);
+          if(_isIng && !_isPiz) notaAggiunta = _pIng;
+        }
+      }
       // "doppia mozzarella" senza "con" → trattala come nota
       if(!notaAggiunta){
         const doppiaIngMatch = riga.match(/\bdoppi[ao]?\s+(mozzarella|mozz|scamorza|formaggio|salamino|salsiccia|porcini|nduja|wurstel|funghi|prosciutto|acciughe|olive|pomodoro)\b/i);
