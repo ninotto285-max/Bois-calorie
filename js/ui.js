@@ -22,10 +22,11 @@ function togglePanel(){
   const panel = document.getElementById('bois-panel');
   if(panel) panel.classList.toggle('open', panelOpen);
   if(panelOpen && !orderShown){
-    // Carica ingredienti esauriti
-    const _oggi = new Date().toLocaleDateString('sv-SE',{timeZone:'Europe/Rome'});
-    const _esauritiSalvati = localStorage.getItem('esauriti_'+_oggi);
-    window._esauritiOggi = _esauritiSalvati ? JSON.parse(_esauritiSalvati) : [];
+    // Carica ingredienti esauriti dal server
+    window._esauritiOggi = [];
+    fetch('/admin-data?action=esauriti')
+      .then(r=>r.json()).then(d=>{ if(d.esauriti) window._esauritiOggi = d.esauriti; })
+      .catch(()=>{});
     orderShown = true;
     setTimeout(()=>addBotMsg('Ciao! 🐧🍕 Sono il Pinguino di BoisPizza!\nDimmi che pizza ti va e ti dico calorie e prezzo — oppure premi **Ordina** per fare un ordine!'), 300);
   }
